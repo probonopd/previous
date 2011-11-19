@@ -1,0 +1,42 @@
+#!/bin/sh
+#
+# Don't modify the 'path' or 'conf' variable names or initial values,
+# those will be replaced by Makefile when this script is installed.
+
+path=${0%/*}
+name=${0##*/}
+
+if [ ! -e $path/$name.py ]; then
+	# Assume package has been relocated, try relative data directory:
+	path=${0%/*}/../share/hatari/hatariui
+fi
+
+# Assume hatari system configuration file dir is relative to hatariui dir
+# (usually system config file isn't installed, but if defaults need to be
+# configured differently from Hatari source code defaults, they're better
+# done with system config file than patching sources).
+conf=${path%/*}/../etc
+# checked by hatari UI
+export HATARI_SYSTEM_CONFDIR=$conf
+
+# example setup for Hatari UI
+$path/$name.py --right "about,|,run,pause,forward,|,reset,|,quit" --embed $*
+exit 0
+
+# test setup without embedding, dupplicate toggles
+$path/$name.py --top "about,run,pause,quit" \
+--panel "Testpanel,pause,>,close" \
+--bottom "sound,|,pause,|,fast,|,Testpanel" \
+$*
+exit 0
+
+# test setup with embedding and all available controls
+$path/$name.py --embed \
+--top "about,|,run,pause,|,reset,debug,|,quit" \
+--left "run,pause,reset,machine,about" \
+--panel "Keys,F1=59,F2=60,F3=61,F4=62,F5=63,F6=64,F7=65,F8=66,F9=67,F10=68,>,Macro=Test,Undo=97,Help=98,Enter=114,>,close" \
+--panel "Misc,fast,|,full,|,sound,>,shot,>,close" \
+--bottom "fast,full,Misc,Keys,input,devices,display,debug,trace" \
+--right "fast,full,Misc,Keys,input,devices,display,Help=98" \
+$*
+exit 0

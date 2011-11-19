@@ -1,0 +1,74 @@
+Hatari UI
+---------
+
+Hatari UI is an out-of-process user interface for the Hatari Atari
+ST/STe/TT/Falcon emulator and its built-in debugger which can
+(optionally) embed the Hatari emulator window.
+
+Having the UI in another process allows doing it with a higher level
+language while avoiding adding GUI toolkit dependencies to Hatari
+itself. The UI is done with PyGtk i.e. in Python language, using the
+Gtk widget set.
+
+The main points of this new UI over the Hatari internal one are its
+configurability and providing a GUI for the (console based) debugger
+included with the Hatari emulator.
+
+Note: this is an additional UI, the built-in Hatari SDL UI isn't being
+replaced or going anywhere!
+
+
+Requirements
+------------
+
+My guess at the required versions for the dependencies are:
+- Python >=2.4
+- PyGtk >= 2.8   (on Ubuntu PyGtk is in python-gtk2 package)
+
+Hatari UI is included with the Hatari sources:
+	http://hg.berlios.de/repos/hatari/file/tip/
+
+Hatari UI has been tested only on Linux (Ubuntu v7.04 and Debian Etch
+& Lenny). I would assume it works also on other unix systems such as
+Apple OSX. It won't work on Windows as the required Windows socket
+support is missing from the Hatari emulator.
+
+Embedding the Hatari emulator window is currently supported only for
+systems using an X window system (from libSDL sources it would seem
+that Windows would also support window embedding, but support for that
+would need to be added both to Hatari and Hatari UI).
+
+
+Running
+-------
+
+Being a Python program, Hatari UI doesn't need to be built.
+You can just run it from where you extracted it (or checked
+it out of BerliOS HG repo) by calling its wrapper script:
+	/path/to/script/hatariui
+
+Or you can run just the debugger:
+	/path/to/script/debugui.py
+
+But you can also install it to system along with Hatari:
+	make install
+
+There's also a command line interface for Hatari's remote API
+called hatari-console.py.
+
+
+Notes
+-----
+
+Hatari UI runs a Hatari version found on $PATH.  If you want
+to use a version of Hatari that hasn't been installed, you
+need to modify the search path, for example like this:
+	PATH=../src:$PATH hatariui
+
+If UI is started without the embedding option, the actions
+(in menus and toolbars) have also shortcuts.  They cannot
+be used when Hatari window is embedded because then those
+shortcuts couldn't be used with Hatari.
+
+
+URL: http://koti.mbnet.fi/tammat/hatari/hatari-ui.shtml
