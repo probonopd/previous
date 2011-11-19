@@ -1,0 +1,58 @@
+TODO
+====
+
+This lists potential TODO items that aren't listed in the Hatari/UI
+sources.
+
+* Separate "Atari monitor" and "Hatari window" settings dialogs
+  (move options from "Display" and monitor setting from "Machine"
+  dialogs to here and add VDI options to Atari Monitor dialog)
+
+* Features for Help menu:
+  - Create empty floppy images (+ convert directories to hard disks?)
+  - MSA converter
+
+* Add more Hatari debugger features to the debug UI:
+  - DSP support
+  - DSP and CPU symbols loading
+  - Support for stepping the emulation
+  - multiple views to memory (refreshed whenever emulation is stopped)
+    - supporting also register relative views (register values
+      parsing should move to common functionality first)
+  - breakpoint support (issue: how to stop emulation on breakpoint
+    but still allow Hatari to process remote commands?)
+  - trace & debug log viewers?
+
+* Put all configuration stuff into single notebook dialog?
+
+* Translation support for the UI:
+  - use gettext
+  - build needs to build & install message catalogs
+  - some way for Hatari to forward dialog ID to the remote UI
+    with dialog string parameters (filenames etc) which then
+    need to be localized too & shown...
+
+* Hatari UI specific configuration which stores:
+  - list of last used configuration files which would be shown
+    either in their own menu or dialog
+  - list of last used memory snapshots (10?)
+  - disk image dir (uses Hatari config value as default)
+  - trace settings
+    - remove dialog specific load/save stuff
+  - screenshot name
+    - needs support also to Hatari src/screenSnapShot.c
+
+* Supporting other, less important Hatari configuration options:
+  - HD booting, toggling disk-b autoinsertion
+  - something for multiple GEMDOS partition directories
+  - separate A/B disk paths for images that are within ZIP archives
+  - joystick autofire toggling, defining the keys for joyemu
+  - keyboard repeat, key mapping type and file, mouse grabbing
+  - toggling ST blitter, RTC support
+  - vdi planes and size, SDL bpp forcing, spec512 threshold, frames-per-sec
+  - screen recording type (every frame vs. when changed)
+  - cartridge image (where? it has many limitations)
+  - log file and levels, bios intercept, run-VBLs
+(Many of these aren't supported by the internal Hatari UI either, or
+are missing corresponding command line options so they will require
+additional support on the Hatari control.c side too.)

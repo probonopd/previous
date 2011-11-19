@@ -1,0 +1,72 @@
+
+User visible changes in Hatari (Python Gtk) UI and console
+----------------------------------------------------------
+
+2010-05:
+- Manual page for Hatari UI
+
+2010-04:
+- UI handles Hatari system configuration properly
+- New settings dialog for HD dir and image configuration
+- Maximum/preferred zoom support to display settings dialog
+- Removed --spec512 support
+- Option for whether debugger will change to new PC address
+  whenever emulation is stopped again
+
+2010-03:
+- With the new Hatari --saveconfig option Hatari UI can ask Hatari
+  to save its configuration (required by the UI) before the UI itself
+  starts, user doesn't need to do it manually anymore
+  (if user config is missing or out of date)
+- Added --slowfdc support to Floppy settings dialog
+- New debugger and command line options commands support to hatari-console
+- hatari-console commands can be scripted (see its help)
+
+2009-12:
+- Support new Hatari command line options in hatari-console
+
+2009-09:
+- Support for setting CPU level & clock and Falcon DSP type
+
+2009-08:
+- Update to latest Hatari 1.3.0:
+  - Debug/trace fixes (Hatari 1.3.1 includes these)
+
+2009-07:
+- Add Help menu items pointing to Hatari docs & site
+- --timer-d support + doc updates
+
+2009-06:
+- Move to BerliOS Hatari repo
+- Update to latest Hatari 1.2.0:
+  - midi in/out, sound freq etc
+
+2008-10:
+- Support paths & peripherals settings
+
+2008-09:
+- Support for auto frameskip, statusbar and overlay led
+- Remove support for multiple machine setups
+  (now that run-time Hatari config/saving loading works)
+
+2008-07:
+- Support recanim/sound, config load/save and memory snapshot load/save
+- First properly working with menus and toolbars instead of buttons
+- Can adapt properly also to Hatari window getting smaller
+  (works on desktop, maemo/Matchbox WM have still issues)
+- Makefile for installation
+
+2008-06:
+- Fairly usable version with configurable buttons
+- Can adapt to Hatari window size changes
+
+2008-05:
+- Loading & saving Hatari configuration and checking
+  changes against saved configuration works
+
+2008-04:
+- First version with debugger UI
+
+2008-02:
+- First version that can embed Hatari window (needed quite
+  a lot of testing to find method that works well enough)
