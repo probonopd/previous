@@ -26,6 +26,12 @@ const char Change_fileid[] = "Hatari change.c : " __DATE__ " " __TIME__;
 #include "video.h"
 #include "hatari-glue.h"
 
+#define DEBUG 0
+#if DEBUG
+#define Dprintf(a) printf(a)
+#else
+#define Dprintf(a)
+#endif
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -54,6 +60,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	bool bFloppyInsert[MAX_FLOPPYDRIVES];
 	int i;
 
+	Dprintf("Changes for:\n");
 	/* Do we need to warn user that changes will only take effect after reset? */
 	if (bForceReset)
 		NeedReset = bForceReset;
@@ -76,6 +83,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Re-init IO memory map? */
 	if (bReInitIoMem)
 	{
+		Dprintf("- IO mem<\n");
 		IoMem_Init();
 	}
 
@@ -83,12 +91,14 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Force things associated with screen change */
 	if (bScreenModeChange)
 	{
+		Dprintf("- screenmode<\n");
 		Screen_ModeChanged();
 	}
 
 	/* Do we need to perform reset? */
 	if (NeedReset)
 	{
+		Dprintf("- reset\n");
 		Reset_Cold();
 	}
 
@@ -100,6 +110,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 
 	/* update statusbar info (CPU, MHz, mem etc) */
 	Statusbar_UpdateInfo();
+	Dprintf("done.\n");
 }
 
 
@@ -122,7 +133,7 @@ static bool Change_Options(int argc, const char *argv[])
 
 	/* Check if reset is required and ask user if he really wants to continue */
 	if (bOK && Change_DoNeedReset(&current, &ConfigureParams)
-	    && current.Log.nAlertDlgLogLevel >= LOG_WARN) {
+	    && current.Log.nAlertDlgLogLevel > LOG_FATAL) {
 		bOK = DlgAlert_Query("The emulated system must be "
 				     "reset to apply these changes. "
 				     "Apply changes now and reset "

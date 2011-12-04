@@ -23,8 +23,7 @@ static SDL_Surface *pSdlGuiScrn;            /* Pointer to the actual main SDL sc
 static SDL_Surface *pSmallFontGfx = NULL;   /* The small font graphics */
 static SDL_Surface *pBigFontGfx = NULL;     /* The big font graphics */
 static SDL_Surface *pFontGfx = NULL;        /* The actual font graphics */
-static int fontwidth, fontheight;           /* Width & height of the actual font */
-
+static int current_object = 0;				/* Current selected object */
 
 
 /*-----------------------------------------------------------------------*/
@@ -154,8 +153,8 @@ int SDLGui_SetScreen(SDL_Surface *pScrn)
 	}
 
 	/* Get the font width and height: */
-	fontwidth = pFontGfx->w/16;
-	fontheight = pFontGfx->h/16;
+	sdlgui_fontwidth = pFontGfx->w/16;
+    sdlgui_fontheight = pFontGfx->h/16;
 
 	return 0;
 }
@@ -166,8 +165,8 @@ int SDLGui_SetScreen(SDL_Surface *pScrn)
  */
 void SDLGui_GetFontSize(int *width, int *height)
 {
-	*width = fontwidth;
-	*height = fontheight;
+	*width = sdlgui_fontwidth;
+    *height = sdlgui_fontheight;
 }
 
 /*-----------------------------------------------------------------------*/
@@ -178,8 +177,8 @@ void SDLGui_GetFontSize(int *width, int *height)
  */
 void SDLGui_CenterDlg(SGOBJ *dlg)
 {
-	dlg[0].x = (pSdlGuiScrn->w/fontwidth-dlg[0].w)/2;
-	dlg[0].y = (pSdlGuiScrn->h/fontheight-dlg[0].h)/2;
+	dlg[0].x = (pSdlGuiScrn->w/sdlgui_fontwidth-dlg[0].w)/2;
+    dlg[0].y = (pSdlGuiScrn->h/sdlgui_fontheight-dlg[0].h)/2;
 }
 
 
@@ -196,14 +195,14 @@ void SDLGui_Text(int x, int y, const char *txt)
 	for (i=0; txt[i]!=0; i++)
 	{
 		c = txt[i];
-		sr.x=fontwidth*(c%16);
-		sr.y=fontheight*(c/16);
-		sr.w=fontwidth;
-		sr.h=fontheight;
-		dr.x=x+i*fontwidth;
-		dr.y=y;
-		dr.w=fontwidth;
-		dr.h=fontheight;
+		sr.x=sdlgui_fontwidth*(c%16);
+        sr.y=sdlgui_fontheight*(c/16);
+        sr.w=sdlgui_fontwidth;
+        sr.h=sdlgui_fontheight;
+        dr.x=x+i*sdlgui_fontwidth;
+  		dr.y=y;
+        dr.w=sdlgui_fontwidth;
+        dr.h=sdlgui_fontheight;
 		SDL_BlitSurface(pFontGfx, &sr, pSdlGuiScrn, &dr);
 	}
 }
@@ -216,8 +215,8 @@ void SDLGui_Text(int x, int y, const char *txt)
 static void SDLGui_DrawText(const SGOBJ *tdlg, int objnum)
 {
 	int x, y;
-	x = (tdlg[0].x+tdlg[objnum].x)*fontwidth;
-	y = (tdlg[0].y+tdlg[objnum].y)*fontheight;
+	x = (tdlg[0].x+tdlg[objnum].x)*sdlgui_fontwidth;
+    y = (tdlg[0].y+tdlg[objnum].y)*sdlgui_fontheight;
 	SDLGui_Text(x, y, tdlg[objnum].txt);
 }
 
@@ -231,13 +230,13 @@ static void SDLGui_DrawEditField(const SGOBJ *edlg, int objnum)
 	int x, y;
 	SDL_Rect rect;
 
-	x = (edlg[0].x+edlg[objnum].x)*fontwidth;
-	y = (edlg[0].y+edlg[objnum].y)*fontheight;
+	x = (edlg[0].x+edlg[objnum].x)*sdlgui_fontwidth;
+    y = (edlg[0].y+edlg[objnum].y)*sdlgui_fontheight;
 	SDLGui_Text(x, y, edlg[objnum].txt);
 
 	rect.x = x;
-	rect.y = y + edlg[objnum].h * fontheight;
-	rect.w = edlg[objnum].w * fontwidth;
+	rect.y = y + edlg[objnum].h * sdlgui_fontheight;
+    rect.w = edlg[objnum].w * sdlgui_fontwidth;
 	rect.h = 1;
 	SDL_FillRect(pSdlGuiScrn, &rect, SDL_MapRGB(pSdlGuiScrn->format,160,160,160));
 }
@@ -254,16 +253,16 @@ static void SDLGui_DrawBox(const SGOBJ *bdlg, int objnum)
 	Uint32 grey = SDL_MapRGB(pSdlGuiScrn->format,192,192,192);
 	Uint32 upleftc, downrightc;
 
-	x = bdlg[objnum].x*fontwidth;
-	y = bdlg[objnum].y*fontheight;
-	if (objnum > 0)                 /* Since the root object is a box, too, */
-	{
-		/* we have to look for it now here and only */
-		x += bdlg[0].x*fontwidth;   /* add its absolute coordinates if we need to */
-		y += bdlg[0].y*fontheight;
-	}
-	w = bdlg[objnum].w*fontwidth;
-	h = bdlg[objnum].h*fontheight;
+	x = bdlg[objnum].x*sdlgui_fontwidth;
+    y = bdlg[objnum].y*sdlgui_fontheight;
+  	if (objnum > 0)                 /* Since the root object is a box, too, */
+  	{
+  		/* we have to look for it now here and only */
+ 		x += bdlg[0].x*sdlgui_fontwidth;   /* add its absolute coordinates if we need to */
+ 		y += bdlg[0].y*sdlgui_fontheight;
+  	}
+ 	w = bdlg[objnum].w*sdlgui_fontwidth;
+ 	h = bdlg[objnum].h*sdlgui_fontheight;
 
 	if (bdlg[objnum].state & SG_SELECTED)
 	{
@@ -329,8 +328,8 @@ static void SDLGui_DrawButton(const SGOBJ *bdlg, int objnum)
 
 	SDLGui_DrawBox(bdlg, objnum);
 
-	x = (bdlg[0].x + bdlg[objnum].x + (bdlg[objnum].w-strlen(bdlg[objnum].txt))/2) * fontwidth;
-	y = (bdlg[0].y + bdlg[objnum].y + (bdlg[objnum].h-1)/2) * fontheight;
+	x = (bdlg[0].x + bdlg[objnum].x + (bdlg[objnum].w-strlen(bdlg[objnum].txt))/2) * sdlgui_fontwidth;
+ 	y = (bdlg[0].y + bdlg[objnum].y + (bdlg[objnum].h-1)/2) * sdlgui_fontheight;
 
 	if (bdlg[objnum].state & SG_SELECTED)
 	{
@@ -350,8 +349,8 @@ static void SDLGui_DrawRadioButton(const SGOBJ *rdlg, int objnum)
 	char str[80];
 	int x, y;
 
-	x = (rdlg[0].x + rdlg[objnum].x) * fontwidth;
-	y = (rdlg[0].y + rdlg[objnum].y) * fontheight;
+	x = (rdlg[0].x + rdlg[objnum].x) * sdlgui_fontwidth;
+ 	y = (rdlg[0].y + rdlg[objnum].y) * sdlgui_fontheight;
 
 	if (rdlg[objnum].state & SG_SELECTED)
 		str[0]=SGRADIOBUTTON_SELECTED;
@@ -373,8 +372,8 @@ static void SDLGui_DrawCheckBox(const SGOBJ *cdlg, int objnum)
 	char str[80];
 	int x, y;
 
-	x = (cdlg[0].x + cdlg[objnum].x) * fontwidth;
-	y = (cdlg[0].y + cdlg[objnum].y) * fontheight;
+	x = (cdlg[0].x + cdlg[objnum].x) * sdlgui_fontwidth;
+ 	y = (cdlg[0].y + cdlg[objnum].y) * sdlgui_fontheight;
 
 	if ( cdlg[objnum].state&SG_SELECTED )
 		str[0]=SGCHECKBOX_SELECTED;
@@ -389,22 +388,65 @@ static void SDLGui_DrawCheckBox(const SGOBJ *cdlg, int objnum)
 
 /*-----------------------------------------------------------------------*/
 /**
+  * Draw a scrollbar button.
+  */
+static void SDLGui_DrawScrollbar(const SGOBJ *bdlg, int objnum)
+{
+ 	SDL_Rect rect;
+ 	int x, y, w, h;
+ 	Uint32 grey0 = SDL_MapRGB(pSdlGuiScrn->format,128,128,128);
+ 	Uint32 grey1 = SDL_MapRGB(pSdlGuiScrn->format,196,196,196);
+ 	Uint32 grey2 = SDL_MapRGB(pSdlGuiScrn->format, 64, 64, 64);
+ 
+ 	x = bdlg[objnum].x * sdlgui_fontwidth;
+ 	y = bdlg[objnum].y * sdlgui_fontheight + bdlg[objnum].h;
+ 
+ 	x += bdlg[0].x*sdlgui_fontwidth;   /* add mainbox absolute coordinates */
+ 	y += bdlg[0].y*sdlgui_fontheight;  /* add mainbox absolute coordinates */
+ 	
+ 	w = 1 * sdlgui_fontwidth;
+ 	h = bdlg[objnum].w;
+ 
+ 	/* Draw background: */
+ 	rect.x = x;
+ 	rect.y = y;
+ 	rect.w = w;
+ 	rect.h = h;
+ 	SDL_FillRect(pSdlGuiScrn, &rect, grey0);
+ 
+ 	/* Draw upper border: */
+ 	rect.x = x;
+ 	rect.y = y;
+ 	rect.w = w;
+ 	rect.h = 1;
+ 	SDL_FillRect(pSdlGuiScrn, &rect, grey1);
+ 
+ 	/* Draw bottom border: */
+ 	rect.x = x;
+ 	rect.y = y + h - 1;
+ 	rect.w = w;
+ 	rect.h = 1;
+ 	SDL_FillRect(pSdlGuiScrn, &rect, grey2);
+ 	
+}
+ 
+/*-----------------------------------------------------------------------*/
+/**
  *  Draw a dialog popup button object.
  */
 static void SDLGui_DrawPopupButton(const SGOBJ *pdlg, int objnum)
 {
-	int x, y, w, h;
+	int x, y, w;
 	const char *downstr = "\x02";
 
 	SDLGui_DrawBox(pdlg, objnum);
 
-	x = (pdlg[0].x + pdlg[objnum].x) * fontwidth;
-	y = (pdlg[0].y + pdlg[objnum].y) * fontheight;
-	w = pdlg[objnum].w*fontwidth;
-	h = pdlg[objnum].h*fontheight;
-
-	SDLGui_Text(x, y, pdlg[objnum].txt);
-	SDLGui_Text(x+w-fontwidth, y, downstr);
+	x = (pdlg[0].x + pdlg[objnum].x) * sdlgui_fontwidth;
+ 	y = (pdlg[0].y + pdlg[objnum].y) * sdlgui_fontheight;
+ 	w = pdlg[objnum].w * sdlgui_fontwidth;
+    
+  	SDLGui_Text(x, y, pdlg[objnum].txt);
+ 	SDLGui_Text(x+w-sdlgui_fontwidth, y, downstr);
 }
 
 
@@ -431,10 +473,10 @@ static void SDLGui_EditField(SGOBJ *dlg, int objnum)
 	grey = SDL_MapRGB(pSdlGuiScrn->format, 192, 192, 192);
 	cursorCol = SDL_MapRGB(pSdlGuiScrn->format, 128, 128, 128);
 
-	rect.x = (dlg[0].x + dlg[objnum].x) * fontwidth;
-	rect.y = (dlg[0].y + dlg[objnum].y) * fontheight;
-	rect.w = (dlg[objnum].w + 1) * fontwidth - 1;
-	rect.h = dlg[objnum].h * fontheight;
+	rect.x = (dlg[0].x + dlg[objnum].x) * sdlgui_fontwidth;
+ 	rect.y = (dlg[0].y + dlg[objnum].y) * sdlgui_fontheight;
+ 	rect.w = (dlg[objnum].w + 1) * sdlgui_fontwidth - 1;
+ 	rect.h = dlg[objnum].h * sdlgui_fontheight;
 
 	txt = dlg[objnum].txt;
 	cursorPos = strlen(txt);
@@ -516,9 +558,9 @@ static void SDLGui_EditField(SGOBJ *dlg, int objnum)
 		if (blinkState && !bStopEditing)
 		{
 			SDL_Rect cursorrect;
-			cursorrect.x = rect.x + cursorPos * fontwidth;
+			cursorrect.x = rect.x + cursorPos * sdlgui_fontwidth;
 			cursorrect.y = rect.y;
-			cursorrect.w = fontwidth;
+			cursorrect.w = sdlgui_fontwidth;
 			cursorrect.h = rect.h;
 			SDL_FillRect(pSdlGuiScrn, &cursorrect, cursorCol);
 		}
@@ -563,6 +605,9 @@ void SDLGui_DrawDialog(const SGOBJ *dlg)
 		 case SGPOPUP:
 			SDLGui_DrawPopupButton(dlg, i);
 			break;
+        case SGSCROLLBAR:
+ 			SDLGui_DrawScrollbar(dlg, i);
+ 			break;
 		}
 	}
 	SDL_UpdateRect(pSdlGuiScrn, 0,0,0,0);
@@ -582,13 +627,24 @@ static int SDLGui_FindObj(const SGOBJ *dlg, int fx, int fy)
 	len = 0;
 	while (dlg[len].type != -1)   len++;
 
-	xpos = fx / fontwidth;
-	ypos = fy / fontheight;
+	xpos = fx / sdlgui_fontwidth;
+ 	ypos = fy / sdlgui_fontheight;
 	/* Now search for the object: */
 	for (i = len; i >= 0; i--)
 	{
-		if (xpos >= dlg[0].x+dlg[i].x && ypos >= dlg[0].y+dlg[i].y
-		    && xpos < dlg[0].x+dlg[i].x+dlg[i].w && ypos < dlg[0].y+dlg[i].y+dlg[i].h)
+		/* clicked on a scrollbar ? */
+ 		if (dlg[i].type == SGSCROLLBAR) {
+ 			if (xpos >= dlg[0].x+dlg[i].x && xpos < dlg[0].x+dlg[i].x+1) {
+ 				ypos = dlg[i].y * sdlgui_fontheight + dlg[i].h + dlg[0].y * sdlgui_fontheight;
+ 				if (fy >= ypos && fy < ypos + dlg[i].w) {
+ 					ob = i;
+ 					break;
+ 				}
+ 			}
+ 		}
+ 		/* clicked on another object ? */
+ 		else if (xpos >= dlg[0].x+dlg[i].x && ypos >= dlg[0].y+dlg[i].y
+                         && xpos < dlg[0].x+dlg[i].x+dlg[i].w && ypos < dlg[0].y+dlg[i].y+dlg[i].h)
 		{
 			ob = i;
 			break;
@@ -636,7 +692,7 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 	SDL_Surface *pBgSurface;
 	SDL_Rect dlgrect, bgrect;
 
-	if (pSdlGuiScrn->h / fontheight < dlg[0].h)
+	if (pSdlGuiScrn->h / sdlgui_fontheight < dlg[0].h)
 	{
 		fprintf(stderr, "Screen size too small for dialog!\n");
 		return SDLGUI_ERROR;
@@ -644,10 +700,10 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 
 	grey = SDL_MapRGB(pSdlGuiScrn->format,192,192,192);
 
-	dlgrect.x = dlg[0].x * fontwidth;
-	dlgrect.y = dlg[0].y * fontheight;
-	dlgrect.w = dlg[0].w * fontwidth;
-	dlgrect.h = dlg[0].h * fontheight;
+	dlgrect.x = dlg[0].x * sdlgui_fontwidth;
+ 	dlgrect.y = dlg[0].y * sdlgui_fontheight;
+ 	dlgrect.w = dlg[0].w * sdlgui_fontwidth;
+ 	dlgrect.h = dlg[0].h * sdlgui_fontheight;
 
 	bgrect.x = bgrect.y = 0;
 	bgrect.w = dlgrect.w;
@@ -676,21 +732,44 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 	/* Is the left mouse button still pressed? Yes -> Handle TOUCHEXIT objects here */
 	SDL_PumpEvents();
 	b = SDL_GetMouseState(&i, &j);
-	obj = SDLGui_FindObj(dlg, i, j);
-	if (obj > 0 && (dlg[obj].flags&SG_TOUCHEXIT) )
-	{
-		oldbutton = obj;
-		if (b & SDL_BUTTON(1))
-		{
-			dlg[obj].state |= SG_SELECTED;
+
+ 	/* If current object is the scrollbar, and mouse is still down, we can scroll it */
+ 	/* also if the mouse pointer has left the scrollbar */
+ 	if (dlg[current_object].type == SGSCROLLBAR) {
+ 		if (b & SDL_BUTTON(1)) {
+ 			obj = current_object;
+ 			dlg[obj].state |= SG_MOUSEDOWN;
+ 			oldbutton = obj;
+ 			retbutton = obj;
+ 		}
+ 		else {
+			obj = current_object;
+ 			current_object = 0;
+ 			dlg[obj].state &= SG_MOUSEUP;
 			retbutton = obj;
+            oldbutton = obj;
 		}
 	}
+    else {
+ 		obj = SDLGui_FindObj(dlg, i, j);
+ 		current_object = obj;
+ 		if (obj > 0 && (dlg[obj].flags&SG_TOUCHEXIT) )
+ 		{
+ 			oldbutton = obj;
+			if (b & SDL_BUTTON(1))
+ 			{
+ 				dlg[obj].state |= SG_SELECTED;
+ 				retbutton = obj;
+ 			}
+ 		}
+ 	}
 
+    
 	/* The main loop */
 	while (retbutton == 0 && !bQuitProgram)
 	{
 		if (SDL_WaitEvent(&sdlEvent) == 1)  /* Wait for events */
+            
 			switch (sdlEvent.type)
 			{
 			 case SDL_QUIT:
@@ -713,8 +792,13 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 					{
 						dlg[obj].state |= SG_SELECTED;
 						SDLGui_DrawButton(dlg, obj);
-						SDL_UpdateRect(pSdlGuiScrn, (dlg[0].x+dlg[obj].x)*fontwidth-2, (dlg[0].y+dlg[obj].y)*fontheight-2,
-						               dlg[obj].w*fontwidth+4, dlg[obj].h*fontheight+4);
+						SDL_UpdateRect(pSdlGuiScrn, (dlg[0].x+dlg[obj].x)*sdlgui_fontwidth-2, (dlg[0].y+dlg[obj].y)*sdlgui_fontheight-2,
+ 						               dlg[obj].w*sdlgui_fontwidth+4, dlg[obj].h*sdlgui_fontheight+4);
+ 						oldbutton=obj;
+ 					}
+ 					if (dlg[obj].type==SGSCROLLBAR)
+ 					{
+ 						dlg[obj].state |= SG_MOUSEDOWN;
 						oldbutton=obj;
 					}
 					if ( dlg[obj].flags&SG_TOUCHEXIT )
@@ -743,17 +827,23 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 						if (oldbutton==obj)
 							retbutton=obj;
 						break;
-					 case SGEDITFIELD:
+                        case SGSCROLLBAR:
+  						dlg[obj].state &= SG_MOUSEUP;
+ 
+ 						if (oldbutton==obj)
+							retbutton=obj;
+ 						break;
+ 					case SGEDITFIELD:
 						SDLGui_EditField(dlg, obj);
 						break;
 					 case SGRADIOBUT:
 						for (i = obj-1; i > 0 && dlg[i].type == SGRADIOBUT; i--)
 						{
 							dlg[i].state &= ~SG_SELECTED;  /* Deselect all radio buttons in this group */
-							rct.x = (dlg[0].x+dlg[i].x)*fontwidth;
-							rct.y = (dlg[0].y+dlg[i].y)*fontheight;
-							rct.w = fontwidth;
-							rct.h = fontheight;
+							rct.x = (dlg[0].x+dlg[i].x)*sdlgui_fontwidth;
+ 							rct.y = (dlg[0].y+dlg[i].y)*sdlgui_fontheight;
+							rct.w = sdlgui_fontwidth;
+							rct.h = sdlgui_fontheight;
 							SDL_FillRect(pSdlGuiScrn, &rct, grey); /* Clear old */
 							SDLGui_DrawRadioButton(dlg, i);
 							SDL_UpdateRects(pSdlGuiScrn, 1, &rct);
@@ -761,29 +851,29 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 						for (i = obj+1; dlg[i].type == SGRADIOBUT; i++)
 						{
 							dlg[i].state &= ~SG_SELECTED;  /* Deselect all radio buttons in this group */
-							rct.x = (dlg[0].x+dlg[i].x)*fontwidth;
-							rct.y = (dlg[0].y+dlg[i].y)*fontheight;
-							rct.w = fontwidth;
-							rct.h = fontheight;
+							rct.x = (dlg[0].x+dlg[i].x)*sdlgui_fontwidth;
+ 							rct.y = (dlg[0].y+dlg[i].y)*sdlgui_fontheight;
+ 							rct.w = sdlgui_fontwidth;
+ 							rct.h = sdlgui_fontheight;
 							SDL_FillRect(pSdlGuiScrn, &rct, grey); /* Clear old */
 							SDLGui_DrawRadioButton(dlg, i);
 							SDL_UpdateRects(pSdlGuiScrn, 1, &rct);
 						}
 						dlg[obj].state |= SG_SELECTED;  /* Select this radio button */
-						rct.x = (dlg[0].x+dlg[obj].x)*fontwidth;
-						rct.y = (dlg[0].y+dlg[obj].y)*fontheight;
-						rct.w = fontwidth;
-						rct.h = fontheight;
+                            rct.x = (dlg[0].x+dlg[obj].x)*sdlgui_fontwidth;
+ 						rct.y = (dlg[0].y+dlg[obj].y)*sdlgui_fontheight;
+ 						rct.w = sdlgui_fontwidth;
+ 						rct.h = sdlgui_fontheight;
 						SDL_FillRect(pSdlGuiScrn, &rct, grey); /* Clear old */
 						SDLGui_DrawRadioButton(dlg, obj);
 						SDL_UpdateRects(pSdlGuiScrn, 1, &rct);
 						break;
 					 case SGCHECKBOX:
 						dlg[obj].state ^= SG_SELECTED;
-						rct.x = (dlg[0].x+dlg[obj].x)*fontwidth;
-						rct.y = (dlg[0].y+dlg[obj].y)*fontheight;
-						rct.w = fontwidth;
-						rct.h = fontheight;
+                        rct.x = (dlg[0].x+dlg[obj].x)*sdlgui_fontwidth;
+ 						rct.y = (dlg[0].y+dlg[obj].y)*sdlgui_fontheight;
+ 						rct.w = sdlgui_fontwidth;
+ 						rct.h = sdlgui_fontheight;
 						SDL_FillRect(pSdlGuiScrn, &rct, grey); /* Clear old */
 						SDLGui_DrawCheckBox(dlg, obj);
 						SDL_UpdateRects(pSdlGuiScrn, 1, &rct);
@@ -791,18 +881,18 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 					 case SGPOPUP:
 						dlg[obj].state |= SG_SELECTED;
 						SDLGui_DrawPopupButton(dlg, obj);
-						SDL_UpdateRect(pSdlGuiScrn, (dlg[0].x+dlg[obj].x)*fontwidth-2, (dlg[0].y+dlg[obj].y)*fontheight-2,
-						               dlg[obj].w*fontwidth+4, dlg[obj].h*fontheight+4);
+                            SDL_UpdateRect(pSdlGuiScrn, (dlg[0].x+dlg[obj].x)*sdlgui_fontwidth-2, (dlg[0].y+dlg[obj].y)*sdlgui_fontheight-2,
+ 						               dlg[obj].w*sdlgui_fontwidth+4, dlg[obj].h*sdlgui_fontheight+4);
 						retbutton=obj;
 						break;
 					}
 				}
-				if (oldbutton > 0)
+				if (oldbutton > 0 && dlg[oldbutton].type == SGBUTTON)
 				{
 					dlg[oldbutton].state &= ~SG_SELECTED;
 					SDLGui_DrawButton(dlg, oldbutton);
-					SDL_UpdateRect(pSdlGuiScrn, (dlg[0].x+dlg[oldbutton].x)*fontwidth-2, (dlg[0].y+dlg[oldbutton].y)*fontheight-2,
-					               dlg[oldbutton].w*fontwidth+4, dlg[oldbutton].h*fontheight+4);
+					SDL_UpdateRect(pSdlGuiScrn, (dlg[0].x+dlg[oldbutton].x)*sdlgui_fontwidth-2, (dlg[0].y+dlg[oldbutton].y)*sdlgui_fontheight-2,
+ 					               dlg[oldbutton].w*sdlgui_fontwidth+4, dlg[oldbutton].h*sdlgui_fontheight+4);
 					oldbutton = 0;
 				}
 				if (obj >= 0 && (dlg[obj].flags&SG_EXIT))

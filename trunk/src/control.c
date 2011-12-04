@@ -54,17 +54,22 @@ static bool bRemotePaused;
 static bool Control_InsertKey(const char *event)
 {
 	const char *key = NULL;
-	bool press;
+	bool up, down;
 
 	if (strncmp(event, "keypress ", 9) == 0) {
 		key = &event[9];
-		press = true;
-	} else if (strncmp(event, "keyrelease ", 11) == 0) {
-		key = &event[11];
-		press = false;
+		down = up = true;
+	} else if (strncmp(event, "keydown ", 8) == 0) {
+		key = &event[8];
+		down = true;
+		up = false;
+	} else if (strncmp(event, "keyup ", 6) == 0) {
+		key = &event[6];
+		down = false;
+		up = true;
 	}
 	if (!(key && key[0])) {
-		fprintf(stderr, "ERROR: event '%s' contains no key press/release\n", event);
+		fprintf(stderr, "ERROR: '%s' contains no key press/down/up event\n", event);
 		return false;
 	}
 	if (key[1]) {
@@ -73,16 +78,28 @@ static bool Control_InsertKey(const char *event)
 		int keycode = strtol(key, &endptr, 0);
 		/* not a valid number or keycode is out of range? */
 		if (*endptr || keycode < 0 || keycode > 255) {
-			fprintf(stderr, "ERROR: '%s' is not valid key code, got %d\n",
+			fprintf(stderr, "ERROR: '%s' is not valid key scancode, got %d\n",
 				key, keycode);
 			return false;
 		}
-//		IKBD_PressSTKey(keycode, press);
+		if (down) {
+//			IKBD_PressSTKey(keycode, true);
+		}
+		if (up) {
+//			IKBD_PressSTKey(keycode, false);
+		}
 	} else {
-//		Keymap_SimulateCharacter(key[0], press);
+		if (down) {
+//			Keymap_SimulateCharacter(key[0], true);
+		}
+		if (up) {
+//			Keymap_SimulateCharacter(key[0], false);
+		}
 	}
-	fprintf(stderr, "Simulated %s key %s\n",
-		key, (press?"press":"release"));
+#if 0
+	fprintf(stderr, "Simulated key %s of %d\n",
+		(down? (up? "press":"down") :"up"), key);
+#endif
 	return true;
 }
 
@@ -101,11 +118,11 @@ static bool Control_InsertEvent(const char *event)
 //		Keyboard.LButtonDblClk = 1;
 		return true;
 	}
-	if (strcmp(event, "rightpress") == 0) {
+	if (strcmp(event, "rightdown") == 0) {
 //		Keyboard.bRButtonDown |= BUTTON_MOUSE;
 		return true;
 	}
-	if (strcmp(event, "rightrelease") == 0) {
+	if (strcmp(event, "rightup") == 0) {
 //		Keyboard.bRButtonDown &= ~BUTTON_MOUSE;
 		return true;
 	}
@@ -113,13 +130,17 @@ static bool Control_InsertEvent(const char *event)
 		return true;
 	}
 	fprintf(stderr, "ERROR: unrecognized event: '%s'\n", event);
-	fprintf(stderr, "Supported events are:\n");
-	fprintf(stderr, "- doubleclick\n");
-	fprintf(stderr, "- rightpress\n");
-	fprintf(stderr, "- rightrelease\n");
-	fprintf(stderr, "- keypress <character>\n");
-	fprintf(stderr, "- keyrelease <character>\n");
-	fprintf(stderr, "<character> can be either a single ASCII char or keycode.\n");
+	fprintf(stderr,
+		"Supported mouse button and key events are:\n"
+		"- doubleclick\n"
+		"- rightdown\n"
+		"- rightup\n"
+		"- keypress <key>\n"
+		"- keydown <key>\n"
+		"- keyup <key>\n"
+		"<key> can be either a single ASCII character or an ST scancode\n"
+		"(e.g. space has scancode of 57 and enter 28).\n"
+		);
 	return false;	
 }
 
@@ -140,6 +161,9 @@ static bool Control_DeviceAction(const char *name, action_t action)
 		void(*init)(void);
 		void(*uninit)(void);
 	} item[] = {
+//		{ "printer", &ConfigureParams.Printer.bEnablePrinting, Printer_Init, Printer_UnInit },
+//		{ "rs232",   &ConfigureParams.RS232.bEnableRS232, RS232_Init, RS232_UnInit },
+//		{ "midi",    &ConfigureParams.Midi.bEnableMidi, Midi_Init, Midi_UnInit },
 		{ NULL, NULL, NULL, NULL }
 	};
 	int i;
@@ -192,6 +216,12 @@ static bool Control_SetPath(char *name)
 	} item[] = {
 		{ "memauto",  ConfigureParams.Memory.szAutoSaveFileName },
 		{ "memsave",  ConfigureParams.Memory.szMemoryCaptureFileName },
+//		{ "midiin",   ConfigureParams.Midi.sMidiInFileName },
+//		{ "midiout",  ConfigureParams.Midi.sMidiOutFileName },
+//		{ "printout", ConfigureParams.Printer.szPrintToFileName },
+//		{ "soundout", ConfigureParams.Sound.szYMCaptureFileName },
+//		{ "rs232in",  ConfigureParams.RS232.szInFileName },
+//		{ "rs232out", ConfigureParams.RS232.szOutFileName },
 		{ NULL, NULL }
 	};
 	int i;

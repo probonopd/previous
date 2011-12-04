@@ -15,7 +15,6 @@ const char Dialog_fileid[] = "Hatari dialog.c : " __DATE__ " " __TIME__;
 #include "log.h"
 #include "sdlgui.h"
 #include "screen.h"
-#include "statusbar.h"
 
 
 /*-----------------------------------------------------------------------*/
@@ -47,8 +46,6 @@ bool Dialog_DoProperty(void)
 	/* If a memory snapshot has been loaded, no further changes are required */
 	if (bLoadedSnapshot)
 	{
-		/* changes from new memory snapshot may affect also info shown in statusbar */
-		Statusbar_UpdateInfo();
 		Main_UnPauseEmulation();
 		return true;
 	}
@@ -56,7 +53,7 @@ bool Dialog_DoProperty(void)
 	/* Check if reset is required and ask user if he really wants to continue then */
 	if (bOKDialog && !bForceReset
 	    && Change_DoNeedReset(&current, &ConfigureParams)
-	    && ConfigureParams.Log.nAlertDlgLogLevel >= LOG_WARN) {
+	    && ConfigureParams.Log.nAlertDlgLogLevel > LOG_FATAL) {
 		bOKDialog = DlgAlert_Query("The emulated system must be "
 		                           "reset to apply these changes. "
 		                           "Apply changes now and reset "

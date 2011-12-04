@@ -9,6 +9,7 @@
 const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 
 #include <time.h>
+#include <errno.h>
 #include <SDL.h>
 
 #include "main.h"
@@ -17,11 +18,13 @@ const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 #include "options.h"
 #include "dialog.h"
 #include "ioMem.h"
+#include "keymap.h"
 #include "log.h"
 #include "m68000.h"
 #include "memorySnapShot.h"
 #include "paths.h"
 #include "reset.h"
+#include "resolution.h"
 #include "screen.h"
 #include "sdlgui.h"
 #include "shortcut.h"
@@ -31,14 +34,18 @@ const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 #include "video.h"
 #include "avi_record.h"
 #include "debugui.h"
-#include "keymap.h"
+#include "clocks_timings.h"
+
 #include "hatari-glue.h"
 
+#if HAVE_GETTIMEOFDAY
+#include <sys/time.h>
+#endif
 
 
 bool bQuitProgram = false;                /* Flag to quit program cleanly */
 
-Uint32 nRunVBLs;                          /* Whether and how many VBLS to run before exit */
+static Uint32 nRunVBLs;                   /* Whether and how many VBLS to run before exit */
 static Uint32 nFirstMilliTick;            /* Ticks when VBL counting started */
 static Uint32 nVBLCount;                  /* Frame count */
 
@@ -79,6 +86,58 @@ static Uint32 Main_GetTicks(void)
 #endif
 
 
+//#undef HAVE_GETTIMEOFDAY
+//#undef HAVE_NANOSLEEP
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Return a time counter in micro seconds.
+ * If gettimeofday is available, we use it directly, else we convert the
+ * return of SDL_GetTicks in micro sec.
+ */
+
+static Sint64	Time_GetTicks ( void )
+{
+        Sint64		ticks_micro;
+
+#if HAVE_GETTIMEOFDAY
+        struct timeval	now;
+        gettimeofday ( &now , NULL );
+        ticks_micro = (Sint64)now.tv_sec * 1000000 + now.tv_usec;
+#else
+	ticks_micro = (Sint64)SDL_GetTicks() * 1000;		/* milli sec -> micro sec */
+#endif
+
+	return ticks_micro;
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Sleep for a given number of micro seconds.
+ * If nanosleep is available, we use it directly, else we use SDL_Delay
+ * (which is portable, but less accurate as is uses milli-seconds)
+ */
+
+static void	Time_Delay ( Sint64 ticks_micro )
+{
+#if HAVE_NANOSLEEP
+	struct timespec	ts;
+	int		ret;
+	ts.tv_sec = ticks_micro / 1000000;
+	ts.tv_nsec = (ticks_micro % 1000000) * 1000;	/* micro sec -> nano sec */
+	/* wait until all the delay is elapsed, including possible interruptions by signals */
+	do
+	{
+                errno = 0;
+                ret = nanosleep(&ts, &ts);
+	} while ( ret && ( errno == EINTR ) );		/* keep on sleeping if we were interrupted */
+#else
+	SDL_Delay ( (Uint32)(ticks_micro / 1000) ) ;	/* micro sec -> milli sec */
+#endif
+}
+
+
 /*-----------------------------------------------------------------------*/
 /**
  * Pause emulation, stop sound.  'visualize' should be set true,
@@ -91,6 +150,7 @@ bool Main_PauseEmulation(bool visualize)
 	if ( !bEmulationActive )
 		return false;
 
+//	Audio_EnableAudio(false);
 	bEmulationActive = false;
 	if (visualize)
 	{
@@ -103,7 +163,7 @@ bool Main_PauseEmulation(bool visualize)
 			current = (1000.0 * nVBLCount) / interval;
 			printf("SPEED: %.1f VBL/s (%d/%.1fs), diff=%.1f%%\n",
 			       current, nVBLCount, interval/1000.0,
-			       previous ? 100*(current-previous)/previous : 0.0);
+			       previous>0.0 ? 100*(current-previous)/previous : 0.0);
 			nVBLCount = nFirstMilliTick = 0;
 			previous = current;
 		}
@@ -130,6 +190,8 @@ bool Main_UnPauseEmulation(void)
 	if ( bEmulationActive )
 		return false;
 
+//	Sound_BufferIndexNeedReset = true;
+//	Audio_EnableAudio(ConfigureParams.Sound.bEnableSound);
 	bEmulationActive = true;
 
 	/* Cause full screen update (to clear all) */
@@ -171,19 +233,32 @@ void Main_RequestQuit(void)
 
 /*-----------------------------------------------------------------------*/
 /**
+ * Set how many VBLs Hatari should run, from the moment this function
+ * is called.
+ */
+void Main_SetRunVBLs(Uint32 vbls)
+{
+	fprintf(stderr, "Exit after %d VBLs.\n", vbls);
+	nRunVBLs = vbls;
+	nVBLCount = 0;
+}
+
+/*-----------------------------------------------------------------------*/
+/**
  * This function waits on each emulated VBL to synchronize the real time
  * with the emulated ST.
  * Unfortunately SDL_Delay and other sleep functions like usleep or nanosleep
  * are very inaccurate on some systems like Linux 2.4 or Mac OS X (they can only
  * wait for a multiple of 10ms due to the scheduler on these systems), so we have
  * to "busy wait" there to get an accurate timing.
+ * All times are expressed as micro seconds, to avoid too much rounding error.
  */
 void Main_WaitOnVbl(void)
 {
-	int nCurrentMilliTicks;
-	static int nDestMilliTicks = 0;
-	int nFrameDuration;
-	signed int nDelay;
+	Sint64 CurrentTicks;
+	static Sint64 DestTicks = 0;
+	Sint64 FrameDuration_micro;
+	Sint64 nDelay;
 
 	nVBLCount++;
 	if (nRunVBLs &&	nVBLCount >= nRunVBLs)
@@ -192,14 +267,20 @@ void Main_WaitOnVbl(void)
 		Main_PauseEmulation(true);
 		exit(0);
 	}
-	nCurrentMilliTicks = SDL_GetTicks();
 
-	nFrameDuration = 1000/50;
-	nDelay = nDestMilliTicks - nCurrentMilliTicks;
+//	FrameDuration_micro = (Sint64) ( 1000000.0 / nScreenRefreshRate + 0.5 );	/* round to closest integer */
+//	FrameDuration_micro = ClocksTimings_GetVBLDuration_micro ( ConfigureParams.System.nMachineType , nScreenRefreshRate );
+    FrameDuration_micro = 1000000/50;
+	CurrentTicks = Time_GetTicks();
+
+	if ( DestTicks == 0 )					/* first call, init DestTicks */
+		DestTicks = CurrentTicks + FrameDuration_micro;
+
+	nDelay = DestTicks - CurrentTicks;
 
 	/* Do not wait if we are in fast forward mode or if we are totally out of sync */
 	if (ConfigureParams.System.bFastForward == true
-	        || nDelay < -4*nFrameDuration)
+	        || nDelay < -4*FrameDuration_micro)
 	{
 		if (ConfigureParams.System.bFastForward == true)
 		{
@@ -211,8 +292,8 @@ void Main_WaitOnVbl(void)
 //			nFrameSkips += 1;
 			// Log_Printf(LOG_DEBUG, "Increased frameskip to %d\n", nFrameSkips);
 //		}
-		/* Only update nDestMilliTicks for next VBL */
-		nDestMilliTicks = nCurrentMilliTicks + nFrameDuration;
+		/* Only update DestTicks for next VBL */
+		DestTicks = CurrentTicks + FrameDuration_micro;
 		return;
 	}
 	/* If automatic frameskip is enabled and delay's more than twice
@@ -220,7 +301,7 @@ void Main_WaitOnVbl(void)
 	 */
 //	if (nFrameSkips > 0
 //	    && ConfigureParams.Screen.nFrameSkips >= AUTO_FRAMESKIP_LIMIT
-//	    && 2*nDelay > nFrameDuration/nFrameSkips)
+//	    && 2*nDelay > FrameDuration_micro/nFrameSkips)
 //	{
 //		nFrameSkips -= 1;
 		// Log_Printf(LOG_DEBUG, "Decreased frameskip to %d\n", nFrameSkips);
@@ -229,25 +310,26 @@ void Main_WaitOnVbl(void)
 	if (bAccurateDelays)
 	{
 		/* Accurate sleeping is possible -> use SDL_Delay to free the CPU */
-		if (nDelay > 1)
-			SDL_Delay(nDelay - 1);
+		if (nDelay > 1000)
+			Time_Delay(nDelay - 1000);
 	}
 	else
 	{
 		/* No accurate SDL_Delay -> only wait if more than 5ms to go... */
-		if (nDelay > 5)
-			SDL_Delay(nDelay<10 ? nDelay-1 : 9);
+		if (nDelay > 5000)
+			Time_Delay(nDelay<10000 ? nDelay-1000 : 9000);
 	}
 
 	/* Now busy-wait for the right tick: */
 	while (nDelay > 0)
 	{
-		nCurrentMilliTicks = SDL_GetTicks();
-		nDelay = nDestMilliTicks - nCurrentMilliTicks;
+		CurrentTicks = Time_GetTicks();
+		nDelay = DestTicks - CurrentTicks;
 	}
 
-	/* Update nDestMilliTicks for next VBL */
-	nDestMilliTicks += nFrameDuration;
+//printf ( "tick %lld\n" , CurrentTicks );
+	/* Update DestTicks for next VBL */
+	DestTicks += FrameDuration_micro;
 }
 
 
@@ -327,6 +409,8 @@ static void Main_HandleMouseMotion(SDL_Event *pEvent)
 		dy /= nScreenZoomY;
 	}
 
+//	KeyboardProcessor.Mouse.dx += dx;
+//	KeyboardProcessor.Mouse.dy += dy;
 }
 
 
@@ -384,44 +468,61 @@ void Main_EventHandler(void)
 		 case SDL_MOUSEBUTTONDOWN:
 			if (event.button.button == SDL_BUTTON_LEFT)
 			{
+//				if (Keyboard.LButtonDblClk == 0)
+//					Keyboard.bLButtonDown |= BUTTON_MOUSE;  /* Set button down flag */
 			}
 			else if (event.button.button == SDL_BUTTON_RIGHT)
 			{
+//				Keyboard.bRButtonDown |= BUTTON_MOUSE;
 			}
 			else if (event.button.button == SDL_BUTTON_MIDDLE)
 			{
+				/* Start double-click sequence in emulation time */
+//				Keyboard.LButtonDblClk = 1;
 			}
 			else if (event.button.button == SDL_BUTTON_WHEELDOWN)
 			{
+				/* Simulate pressing the "cursor down" key */
+//				IKBD_PressSTKey(0x50, true);
 			}
 			else if (event.button.button == SDL_BUTTON_WHEELUP)
 			{
+				/* Simulate pressing the "cursor up" key */
+//				IKBD_PressSTKey(0x48, true);
 			}
 			break;
 
 		 case SDL_MOUSEBUTTONUP:
 			if (event.button.button == SDL_BUTTON_LEFT)
 			{
+//				Keyboard.bLButtonDown &= ~BUTTON_MOUSE;
 			}
 			else if (event.button.button == SDL_BUTTON_RIGHT)
 			{
+//				Keyboard.bRButtonDown &= ~BUTTON_MOUSE;
 			}
 			else if (event.button.button == SDL_BUTTON_WHEELDOWN)
 			{
+				/* Simulate releasing the "cursor down" key */
+//				IKBD_PressSTKey(0x50, false);
 			}
 			else if (event.button.button == SDL_BUTTON_WHEELUP)
 			{
+				/* Simulate releasing the "cursor up" key */
+//				IKBD_PressSTKey(0x48, false);
 			}
 			break;
 
 		 case SDL_KEYDOWN:
-		fprintf(stderr, "keydwn\n");
-			Keymap_KeyDown(&event.key.keysym);
+//          fprintf(stderr, "keydwn\n");
+//			Keymap_KeyDown(&event.key.keysym);
 			ShortCut_ActKey();
+            KeyTranslator(&event.key.keysym);
 			break;
 
 		 case SDL_KEYUP:
-			Keymap_KeyUp(&event.key.keysym);
+//			Keymap_KeyUp(&event.key.keysym);
+            KeyRelease(&event.key.keysym);
 			break;
 
 		default:
@@ -432,6 +533,18 @@ void Main_EventHandler(void)
 	} while (bContinueProcessing || !(bEmulationActive || bQuitProgram));
 }
 
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Set Hatari window title. Use NULL for default
+ */
+void Main_SetTitle(const char *title)
+{
+	if (title)
+		SDL_WM_SetCaption(title, "Previous");
+	else
+		SDL_WM_SetCaption(PROG_NAME, "Previous");
+}
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -454,9 +567,14 @@ static void Main_Init(void)
 		fprintf(stderr, "Could not initialize the SDL library:\n %s\n", SDL_GetError() );
 		exit(-1);
 	}
-
+	ClocksTimings_InitMachine ( ConfigureParams.System.nMachineType );
+	Resolution_Init();
 	SDLGui_Init();
 	Screen_Init();
+	Main_SetTitle(NULL);
+//	HostScreen_Init();
+//	DSP_Init();
+//	Floppy_Init();
 	M68000_Init();                /* Init CPU emulation */
 
 	if (Reset_Cold())             /* Reset all systems, load TOS image */
@@ -577,7 +695,7 @@ int main(int argc, char *argv[])
 	Main_LoadInitialConfig();
 
 	/* Check for any passed parameters */
-	if (!Opt_ParseParameters(argc, (const char**)argv))
+	if (!Opt_ParseParameters(argc, (const char * const *)argv))
 	{
 		return 1;
 	}
@@ -604,11 +722,25 @@ int main(int argc, char *argv[])
 	/* Check if SDL_Delay is accurate */
 	Main_CheckForAccurateDelays();
 
+//	if ( AviRecordOnStartup )	/* Immediatly starts avi recording ? */
+//		Avi_StartRecording ( ConfigureParams.Video.AviRecordFile , ConfigureParams.Screen.bCrop ,
+//			ConfigureParams.Video.AviRecordFps == 0 ?
+//				ClocksTimings_GetVBLPerSec ( ConfigureParams.System.nMachineType , nScreenRefreshRate ) :
+//				(Uint32)ConfigureParams.Video.AviRecordFps << CLOCKS_TIMINGS_SHIFT_VBL ,
+//			1 << CLOCKS_TIMINGS_SHIFT_VBL ,
+//			ConfigureParams.Video.AviRecordVcodec );
 
 	/* Run emulation */
 	Main_UnPauseEmulation();
 	M68000_Start();                 /* Start emulation */
 
+//	if (bRecordingAvi)
+//	{
+		/* cleanly close the avi file */
+//		Statusbar_AddMessage("Finishing AVI file...", 100);
+//		Statusbar_Update(sdlscrn);
+//		Avi_StopRecording();
+//	}
 	/* Un-init emulation system */
 	Main_UnInit();
 

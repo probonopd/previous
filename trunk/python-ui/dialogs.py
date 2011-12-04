@@ -2,7 +2,7 @@
 #
 # Classes for the Hatari UI dialogs
 #
-# Copyright (C) 2008-2010 by Eero Tamminen <eerot at berlios>
+# Copyright (C) 2008-2011 by Eero Tamminen <eerot at berlios>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -23,7 +23,8 @@ import pango
 
 from uihelpers import UInfo, HatariTextInsert, create_table_dialog, \
      table_add_entry_row, table_add_widget_row, table_add_separator, \
-     table_add_radio_rows, table_set_col_offset, create_button, FselEntry
+     table_add_radio_rows, table_set_col_offset, create_button, FselEntry, \
+     FselAndEjectFactory
 
 
 # -----------------
@@ -111,28 +112,30 @@ class InputDialog(HatariUIDialog):
             gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
             ("Close", gtk.RESPONSE_CLOSE))
         
-        tips = gtk.Tooltips()
         entry = gtk.Entry()
         entry.connect("activate", self._entry_cb)
         insert = create_button("Insert", self._entry_cb)
-        tips.set_tip(insert, "Insert text to Hatari window")
+        insert.set_tooltip_text("Insert given text to Hatari window")
+        enter = create_button("Enter key", self._enter_cb)
+        enter.set_tooltip_text("Simulate Enter key press")
 
         hbox1 = gtk.HBox()
         hbox1.add(gtk.Label("Text:"))
         hbox1.add(entry)
         hbox1.add(insert)
+        hbox1.add(enter)
         dialog.vbox.add(hbox1)
 
-        rclick = gtk.Button("Rightclick")
-        tips.set_tip(rclick, "Simulate Atari left button double-click")
+        rclick = gtk.Button("Right click")
         rclick.connect("pressed", self._rightpress_cb)
         rclick.connect("released", self._rightrelease_cb)
-        dclick = create_button("Doubleclick", self._doubleclick_cb)
-        tips.set_tip(dclick, "Simulate Atari rigth button click")
+        rclick.set_tooltip_text("Simulate Atari right button press & release")
+        dclick = create_button("Double click", self._doubleclick_cb)
+        dclick.set_tooltip_text("Simulate Atari left button double-click")
 
         hbox2 = gtk.HBox()
-        hbox2.add(rclick)
         hbox2.add(dclick)
+        hbox2.add(rclick)
         dialog.vbox.add(hbox2)
 
         dialog.show_all()
@@ -145,14 +148,17 @@ class InputDialog(HatariUIDialog):
             HatariTextInsert(self.hatari, text)
             self.entry.set_text("")
 
+    def _enter_cb(self, widget):
+        self.hatari.insert_event("keypress 28") # Enter key scancode
+
     def _doubleclick_cb(self, widget):
         self.hatari.insert_event("doubleclick")
 
     def _rightpress_cb(self, widget):
-        self.hatari.insert_event("rightpress")
+        self.hatari.insert_event("rightdown")
 
     def _rightrelease_cb(self, widget):
-        self.hatari.insert_event("rightrelease")
+        self.hatari.insert_event("rightup")
 
     def run(self, hatari):
         "run(hatari), do text/mouse click input"
@@ -271,52 +277,36 @@ class ResetDialog(HatariUIDialog):
 class FloppyDialog(HatariUIDialog):
     def _create_dialog(self, config):
         table, self.dialog = create_table_dialog(self.parent, "Floppy images", 4, 2)
+        factory = FselAndEjectFactory()
 
         row = 0
         self.floppy = []
         path = config.get_floppydir()
         for drive in ("A", "B"):
             label = "Disk %c:" % drive
-            fsel = gtk.FileChooserButton(label)
-            # Hatari cannot access URIs
-            fsel.set_local_only(True)
-            fsel.set_width_chars(12)
-            filename = config.get_floppy(row)
-            if filename:
-                fsel.set_filename(filename)
-            elif path:
-                fsel.set_current_folder(path)
-            self.floppy.append(fsel)
-            
-            eject = create_button("Eject", self._eject, fsel)
-            box = gtk.HBox()
-            box.pack_start(fsel)
-            box.pack_start(eject, False, False)
+            fname = config.get_floppy(row)
+            fsel, box = factory.get(label, path, fname, gtk.FILE_CHOOSER_ACTION_OPEN)
             table_add_widget_row(table, row, label, box)
+            self.floppy.append(fsel)
             row += 1
-
-        tips = gtk.Tooltips()
 
         protect = gtk.combo_box_new_text()
         for text in config.get_protection_types():
             protect.append_text(text)
         protect.set_active(config.get_floppy_protection())
-        tips.set_tip(protect, "Write protect floppy image contents")
+        protect.set_tooltip_text("Write protect floppy image contents")
         table_add_widget_row(table, row, "Write protection:", protect)
 
         row += 1
         slowfdc = gtk.CheckButton("Slow floppy access")
         slowfdc.set_active(config.get_slowfdc())
-        tips.set_tip(slowfdc, "May be required by some rare game/demo")
+        slowfdc.set_tooltip_text("May be required by some rare game/demo")
         table_add_widget_row(table, row, None, slowfdc)
 
         table.show_all()
 
         self.protect = protect
         self.slowfdc = slowfdc
-
-    def _eject(self, widget, fsel):
-        fsel.unselect_all()
     
     def run(self, config):
         "run(config), show disk image dialog"
@@ -329,7 +319,7 @@ class FloppyDialog(HatariUIDialog):
             config.lock_updates()
             for drive in range(2):
                 config.set_floppy(drive, self.floppy[drive].get_filename())
-            config.set_hd_protection(self.protect.get_active())
+            config.set_floppy_protection(self.protect.get_active())
             config.set_slowfdc(self.slowfdc.get_active())
             config.flush_updates()
 
@@ -340,64 +330,45 @@ class FloppyDialog(HatariUIDialog):
 class HardDiskDialog(HatariUIDialog):
     def _create_dialog(self, config):
         table, self.dialog = create_table_dialog(self.parent, "Hard disks", 4, 4, "Set and reboot")
-        row = 0
+        factory = FselAndEjectFactory()
 
+        row = 0
         label = "ASCI HD image:"
         path = config.get_acsi_image()
-        fsel, box = self._fsel_box(label, path, gtk.FILE_CHOOSER_ACTION_OPEN)
+        fsel, box = factory.get(label, None, path, gtk.FILE_CHOOSER_ACTION_OPEN)
         table_add_widget_row(table, row, label, box, True)
         self.acsi = fsel
         row += 1
 
         label = "IDE HD master image:"
         path = config.get_idemaster_image()
-        fsel, box = self._fsel_box(label, path, gtk.FILE_CHOOSER_ACTION_OPEN)
+        fsel, box = factory.get(label, None, path, gtk.FILE_CHOOSER_ACTION_OPEN)
         table_add_widget_row(table, row, label, box, True)
         self.idemaster = fsel
         row += 1
 
         label = "IDE HD slave image:"
         path = config.get_ideslave_image()
-        fsel, box = self._fsel_box(label, path, gtk.FILE_CHOOSER_ACTION_OPEN)
+        fsel, box = factory.get(label, None, path, gtk.FILE_CHOOSER_ACTION_OPEN)
         table_add_widget_row(table, row, label, box, True)
         self.ideslave = fsel
         row += 1
         
         label = "GEMDOS drive directory:"
         path = config.get_gemdos_dir()
-        fsel, box = self._fsel_box(label, path, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
+        fsel, box = factory.get(label, None, path, gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
         table_add_widget_row(table, row, label, box, True)
         self.gemdos = fsel
         row += 1
 
-        tips = gtk.Tooltips()
-
         protect = gtk.combo_box_new_text()
         for text in config.get_protection_types():
             protect.append_text(text)
-        tips.set_tip(protect, "Write protect GEMDOS drive contents")
+        protect.set_tooltip_text("Write protect GEMDOS drive contents")
         table_add_widget_row(table, row, "Write protection:", protect)
         self.protect = protect
 
         table.show_all()
-
-    def _eject(self, widget, fsel):
-        fsel.unselect_all()
-
-    def _fsel_box(self, label, path, action):
-        fsel = gtk.FileChooserButton(label)
-        # Hatari cannot access URIs
-        fsel.set_local_only(True)
-        fsel.set_width_chars(12)
-        fsel.set_action(action)
-        if path:
-            fsel.set_filename(path)
-        eject = create_button("Eject", self._eject, fsel)
-
-        box = gtk.HBox()
-        box.pack_start(fsel)
-        box.pack_start(eject, False, False)
-        return (fsel, box)
     
     def _get_config(self, config):
         path = config.get_gemdos_dir()
@@ -443,13 +414,12 @@ class HardDiskDialog(HatariUIDialog):
 class DisplayDialog(HatariUIDialog):
 
     def _create_dialog(self, config):
-        tips = gtk.Tooltips()
 
         skip = gtk.combo_box_new_text()
         for text in config.get_frameskip_names():
             skip.append_text(text)
         skip.set_active(config.get_frameskip())
-        tips.set_tip(skip, "Set how many frames are skipped")
+        skip.set_tooltip_text("Set how many frames are skipped")
 
         maxw, maxh = config.get_max_size()
         maxadjw = gtk.Adjustment(maxw, 320, 1280, 8, 40)
@@ -458,20 +428,28 @@ class DisplayDialog(HatariUIDialog):
         scaleh = gtk.HScale(maxadjh)
         scalew.set_digits(0)
         scaleh.set_digits(0)
-        tips.set_tip(scalew, "Preferred/maximum zoomed width")
-        tips.set_tip(scaleh, "Preferred/maximum zoomed height")
+        scalew.set_tooltip_text("Preferred/maximum zoomed width")
+        scaleh.set_tooltip_text("Preferred/maximum zoomed height")
+
+        desktop = gtk.CheckButton("Keep desktop resolution")
+        desktop.set_active(config.get_desktop())
+        desktop.set_tooltip_text("Whether to keep desktop resolution in fullscreen and (try to) scale Atari screen by an integer factor instead")
 
         borders = gtk.CheckButton("ST/STE overscan borders")
         borders.set_active(config.get_borders())
-        tips.set_tip(borders, "Whether to show ST/STE overscan borders in low/mid-rez. Visible border area is affected by max. zoom size")
+        borders.set_tooltip_text("Whether to show overscan borders in ST/STE low/mid-rez. Visible border area is affected by max. zoom size")
 
         statusbar = gtk.CheckButton("Show statusbar")
         statusbar.set_active(config.get_statusbar())
-        tips.set_tip(statusbar, "Whether to show statusbar with floppy leds etc")
+        statusbar.set_tooltip_text("Whether to show statusbar with floppy leds etc")
 
         led = gtk.CheckButton("Show overlay led")
         led.set_active(config.get_led())
-        tips.set_tip(led, "Whether to show overlay drive led when statusbar isn't visible")
+        led.set_tooltip_text("Whether to show overlay drive led when statusbar isn't visible")
+
+        crop = gtk.CheckButton("Remove statusbar from screen capture")
+        crop.set_active(config.get_crop())
+        crop.set_tooltip_text("Whether to crop statusbar from screenshots and video recordings")
 
         dialog = gtk.Dialog("Display settings", self.parent,
             gtk.DIALOG_MODAL | gtk.DIALOG_DESTROY_WITH_PARENT,
@@ -483,18 +461,22 @@ class DisplayDialog(HatariUIDialog):
         dialog.vbox.add(gtk.Label("Max zoomed size:"))
         dialog.vbox.add(scalew)
         dialog.vbox.add(scaleh)
+        dialog.vbox.add(desktop)
         dialog.vbox.add(borders)
         dialog.vbox.add(statusbar)
         dialog.vbox.add(led)
+        dialog.vbox.add(crop)
         dialog.vbox.show_all()
 
         self.dialog = dialog
         self.skip = skip
         self.maxw = maxadjw
         self.maxh = maxadjh
+        self.desktop = desktop
         self.borders = borders
         self.statusbar = statusbar
         self.led = led
+        self.crop = crop
  
     def run(self, config):
         "run(config), show display dialog"
@@ -506,9 +488,11 @@ class DisplayDialog(HatariUIDialog):
             config.lock_updates()
             config.set_frameskip(self.skip.get_active())
             config.set_max_size(self.maxw.get_value(), self.maxh.get_value())
+            config.set_desktop(self.desktop.get_active())
             config.set_borders(self.borders.get_active())
             config.set_statusbar(self.statusbar.get_active())
             config.set_led(self.led.get_active())
+            config.set_crop(self.crop.get_active())
             config.flush_updates()
 
 
@@ -691,8 +675,8 @@ class TraceDialog(HatariUIDialog):
         "mfp_start",
         "mfp_read",
         "mfp_write",
-        "psg_write_reg",
-        "psg_write_data",
+        "psg_read",
+        "psg_write",
         "cpu_pairing",
         "cpu_disasm",
         "cpu_exception",
@@ -706,9 +690,18 @@ class TraceDialog(HatariUIDialog):
         "xbios",
         "gemdos",
         "vdi",
+        "aes",
         "io_read",
         "io_write",
-        "dmasound"
+        "dmasound",
+        "crossbar",
+        "videl",
+        "dsp_host_interface",
+        "dsp_host_command",
+        "dsp_host_ssi",
+        "dsp_interrupt",
+        "dsp_disasm",
+        "dsp_state"
     ]
     def __init__(self, parent):
         self.savedpoints = "none"
@@ -718,12 +711,12 @@ class TraceDialog(HatariUIDialog):
         hbox1.add(create_button("Save", self._save_traces))
         hbox2 = gtk.HBox()
         vboxes = []
-        for idx in (0,1,2):
+        for idx in (0,1,2,3):
             vboxes.append(gtk.VBox())
             hbox2.add(vboxes[idx])
 
         count = 0
-        per_side = (len(self.tracepoints)+2)/3
+        per_side = (len(self.tracepoints)+3)/4
         self.tracewidgets = {}
         for trace in self.tracepoints:
             name = trace.replace("_", "-")
@@ -757,7 +750,7 @@ class TraceDialog(HatariUIDialog):
             if trace in self.tracewidgets:
                 self.tracewidgets[trace].set_active(True)
             else:
-                print "ERROR: unknown trace setting '%s'" % trace
+                print("ERROR: unknown trace setting '%s'" % trace)
 
     def _clear_traces(self, widget = None):
         for trace in self.tracepoints:
@@ -797,16 +790,11 @@ class MachineDialog(HatariUIDialog):
             self.cpulevel.set_active(0)
         elif machine == "falcon":
             self.clocks[1].set_active(True)
+            self.dsps[2].set_active(True)
             self.cpulevel.set_active(3)
         elif machine == "tt":
             self.clocks[2].set_active(True)
             self.cpulevel.set_active(3)
-
-    def _dsp_cb(self, widget, data):
-        if not widget.get_active():
-            return
-        if not self.machines[3].get_active():
-            NoteDialog(self.dialog).run("Only Falcon has DSP.")
 
     def _create_dialog(self, config):
         table, self.dialog = create_table_dialog(self.parent, "Machine configuration", 6, 4, "Set and reboot")
@@ -816,8 +804,7 @@ class MachineDialog(HatariUIDialog):
                         config.get_machine_types(), self._machine_cb)
         row += 1
 
-        self.dsps = table_add_radio_rows(table, row, "DSP type:",
-                    config.get_dsp_types(), self._dsp_cb)
+        self.dsps = table_add_radio_rows(table, row, "DSP type:", config.get_dsp_types())
         row += 1
 
         # start next table column
@@ -851,9 +838,11 @@ class MachineDialog(HatariUIDialog):
 
         vbox = gtk.VBox()
         self.compatible = gtk.CheckButton("Compatible CPU")
+        self.rtc = gtk.CheckButton("Real-time clock")
         self.timerd = gtk.CheckButton("Patch Timer-D")
         vbox.add(self.compatible)
         vbox.add(self.timerd)
+        vbox.add(self.rtc)
         table_add_widget_row(table, row, "Misc.:", vbox, fullspan)
         row += 1
 
@@ -879,6 +868,7 @@ class MachineDialog(HatariUIDialog):
             self.tos.set_filename(tos)
         self.compatible.set_active(config.get_compatible())
         self.timerd.set_active(config.get_timerd())
+        self.rtc.set_active(config.get_rtc())
 
     def _get_active_radio(self, radios):
         idx = 0
@@ -898,6 +888,7 @@ class MachineDialog(HatariUIDialog):
         config.set_tos(self.tos.get_filename())
         config.set_compatible(self.compatible.get_active())
         config.set_timerd(self.timerd.get_active())
+        config.set_rtc(self.rtc.get_active())
         config.flush_updates()
 
     def run(self, config):

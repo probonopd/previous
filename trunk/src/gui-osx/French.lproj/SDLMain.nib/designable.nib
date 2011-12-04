@@ -2,21 +2,42 @@
 <archive type="com.apple.InterfaceBuilder3.Cocoa.XIB" version="8.00">
 	<data>
 		<int key="IBDocument.SystemTarget">1030</int>
-		<string key="IBDocument.SystemVersion">10D573</string>
-		<string key="IBDocument.InterfaceBuilderVersion">762</string>
-		<string key="IBDocument.AppKitVersion">1038.29</string>
-		<string key="IBDocument.HIToolboxVersion">460.00</string>
+		<string key="IBDocument.SystemVersion">11C74</string>
+		<string key="IBDocument.InterfaceBuilderVersion">1938</string>
+		<string key="IBDocument.AppKitVersion">1138.23</string>
+		<string key="IBDocument.HIToolboxVersion">567.00</string>
 		<object class="NSMutableDictionary" key="IBDocument.PluginVersions">
 			<string key="NS.key.0">com.apple.InterfaceBuilder.CocoaPlugin</string>
-			<string key="NS.object.0">762</string>
+			<string key="NS.object.0">1938</string>
 		</object>
-		<array class="NSMutableArray" key="IBDocument.EditedObjectIDs">
-			<integer value="285"/>
+		<array key="IBDocument.IntegratedClassDependencies">
+			<string>NSStepper</string>
+			<string>NSComboBoxCell</string>
+			<string>NSPopUpButton</string>
+			<string>NSStepperCell</string>
+			<string>NSMenuItem</string>
+			<string>NSMenu</string>
+			<string>NSButton</string>
+			<string>NSButtonCell</string>
+			<string>NSTextFieldCell</string>
+			<string>NSBox</string>
+			<string>NSComboBox</string>
+			<string>NSTabView</string>
+			<string>NSMatrix</string>
+			<string>NSCustomObject</string>
+			<string>NSTabViewItem</string>
+			<string>NSView</string>
+			<string>NSWindowTemplate</string>
+			<string>NSTextField</string>
+			<string>NSPopUpButtonCell</string>
 		</array>
 		<array key="IBDocument.PluginDependencies">
 			<string>com.apple.InterfaceBuilder.CocoaPlugin</string>
 		</array>
-		<dictionary class="NSMutableDictionary" key="IBDocument.Metadata"/>
+		<object class="NSMutableDictionary" key="IBDocument.Metadata">
+			<string key="NS.key.0">PluginDependencyRecalculationVersion</string>
+			<integer value="1" key="NS.object.0"/>
+		</object>
 		<array class="NSMutableArray" key="IBDocument.RootObjects" id="565895796">
 			<object class="NSCustomObject" id="613129401">
 				<object class="NSMutableString" key="NSClassName">
@@ -34,7 +55,7 @@
 				<array class="NSMutableArray" key="NSMenuItems">
 					<object class="NSMenuItem" id="942654413">
 						<reference key="NSMenu" ref="870714475"/>
-						<string key="NSTitle">Hatari</string>
+						<string key="NSTitle">Previous</string>
 						<string key="NSKeyEquiv"/>
 						<int key="NSKeyEquivModMask">1048576</int>
 						<int key="NSMnemonicLoc">2147483647</int>
@@ -48,11 +69,11 @@
 						</object>
 						<string key="NSAction">submenuAction:</string>
 						<object class="NSMenu" key="NSSubmenu" id="990009852">
-							<string key="NSTitle">Hatari</string>
+							<string key="NSTitle">Previous</string>
 							<array class="NSMutableArray" key="NSMenuItems">
 								<object class="NSMenuItem" id="80010610">
 									<reference key="NSMenu" ref="990009852"/>
-									<string key="NSTitle">A propos d'Hatari</string>
+									<string key="NSTitle">A propos d'Previous</string>
 									<string key="NSKeyEquiv"/>
 									<int key="NSMnemonicLoc">2147483647</int>
 									<reference key="NSOnImage" ref="52882415"/>
@@ -80,7 +101,7 @@
 								</object>
 								<object class="NSMenuItem" id="233254928">
 									<reference key="NSMenu" ref="990009852"/>
-									<string key="NSTitle">Masquer Hatari</string>
+									<string key="NSTitle">Masquer Previous</string>
 									<string key="NSKeyEquiv">h</string>
 									<int key="NSKeyEquivModMask">1048576</int>
 									<int key="NSMnemonicLoc">2147483647</int>
@@ -118,7 +139,7 @@
 								</object>
 								<object class="NSMenuItem" id="808050907">
 									<reference key="NSMenu" ref="990009852"/>
-									<string key="NSTitle">Quitter Hatari</string>
+									<string key="NSTitle">Quitter Previous</string>
 									<string key="NSKeyEquiv">q</string>
 									<int key="NSKeyEquivModMask">1048576</int>
 									<int key="NSMnemonicLoc">2147483647</int>
@@ -416,7 +437,7 @@
 							<array class="NSMutableArray" key="NSMenuItems">
 								<object class="NSMenuItem" id="617815460">
 									<reference key="NSMenu" ref="302072103"/>
-									<string key="NSTitle">Aide Hatari</string>
+									<string key="NSTitle">Aide Previous</string>
 									<string key="NSKeyEquiv">?</string>
 									<int key="NSKeyEquivModMask">1048576</int>
 									<int key="NSMnemonicLoc">2147483647</int>
@@ -445,7 +466,7 @@
 				<object class="NSMutableString" key="NSViewClass">
 					<characters key="NS.bytes">View</characters>
 				</object>
-				<string key="NSWindowContentMaxSize">{1.79769e+308, 1.79769e+308}</string>
+				<nil key="NSUserInterfaceItemIdentifier"/>
 				<object class="NSView" key="NSWindowView" id="648283426">
 					<nil key="NSNextResponder"/>
 					<int key="NSvFlags">256</int>
@@ -495,7 +516,7 @@
 												<array class="NSMutableArray" key="NSSubviews">
 													<object class="NSView" id="629715400">
 														<reference key="NSNextResponder" ref="78126040"/>
-														<int key="NSvFlags">256</int>
+														<int key="NSvFlags">274</int>
 														<string key="NSFrame">{{1, 1}, {615, 151}}</string>
 														<reference key="NSSuperview" ref="78126040"/>
 													</object>
@@ -538,7 +559,7 @@
 												<array class="NSMutableArray" key="NSSubviews">
 													<object class="NSView" id="749539216">
 														<reference key="NSNextResponder" ref="706375680"/>
-														<int key="NSvFlags">256</int>
+														<int key="NSvFlags">274</int>
 														<string key="NSFrame">{{1, 1}, {615, 191}}</string>
 														<reference key="NSSuperview" ref="706375680"/>
 													</object>
@@ -1560,7 +1581,7 @@ AAA</bytes>
 												<array class="NSMutableArray" key="NSSubviews">
 													<object class="NSView" id="276210836">
 														<reference key="NSNextResponder" ref="391305820"/>
-														<int key="NSvFlags">256</int>
+														<int key="NSvFlags">274</int>
 														<string key="NSFrame">{{1, 1}, {613, 157}}</string>
 														<reference key="NSSuperview" ref="391305820"/>
 													</object>
@@ -1591,7 +1612,7 @@ AAA</bytes>
 												<array class="NSMutableArray" key="NSSubviews">
 													<object class="NSView" id="445528368">
 														<reference key="NSNextResponder" ref="68106059"/>
-														<int key="NSvFlags">256</int>
+														<int key="NSvFlags">274</int>
 														<string key="NSFrame">{{1, 1}, {613, 157}}</string>
 														<reference key="NSSuperview" ref="68106059"/>
 													</object>
@@ -2095,7 +2116,7 @@ AGIAZQBzAGsAcgBpAHYAZQBsAHMAZQBzAFIARwBCAC0AcAByAG8AZgBpAGUAbABzAFIARwBCACDVBLhc
 												<array class="NSMutableArray" key="NSSubviews">
 													<object class="NSView" id="743566678">
 														<reference key="NSNextResponder" ref="720776156"/>
-														<int key="NSvFlags">256</int>
+														<int key="NSvFlags">274</int>
 														<string key="NSFrame">{{1, 1}, {604, 147}}</string>
 														<reference key="NSSuperview" ref="720776156"/>
 													</object>
@@ -2226,7 +2247,7 @@ AGIAZQBzAGsAcgBpAHYAZQBsAHMAZQBzAFIARwBCAC0AcAByAG8AZgBpAGUAbABzAFIARwBCACDVBLhc
 												<array class="NSMutableArray" key="NSSubviews">
 													<object class="NSView" id="32055344">
 														<reference key="NSNextResponder" ref="96266087"/>
-														<int key="NSvFlags">256</int>
+														<int key="NSvFlags">274</int>
 														<string key="NSFrame">{{1, 1}, {604, 147}}</string>
 														<reference key="NSSuperview" ref="96266087"/>
 													</object>
@@ -5044,7 +5065,6 @@ AAA</bytes>
 														<bool key="NSEnabled">YES</bool>
 														<array class="NSMutableArray" key="NSTableColumns">
 															<object class="NSTableColumn">
-																<integer value="0" key="NSIdentifier"/>
 																<double key="NSWidth">10</double>
 																<double key="NSMinWidth">10</double>
 																<double key="NSMaxWidth">1000</double>
@@ -5106,6 +5126,7 @@ AAA</bytes>
 														<int key="NSDraggingSourceMaskForNonLocal">0</int>
 														<bool key="NSAllowsTypeSelect">YES</bool>
 														<int key="NSTableViewDraggingDestinationStyle">0</int>
+														<int key="NSTableViewGroupRowStyle">1</int>
 													</object>
 												</object>
 											</object>
@@ -5144,7 +5165,6 @@ AAA</bytes>
 														<bool key="NSEnabled">YES</bool>
 														<array class="NSMutableArray" key="NSTableColumns">
 															<object class="NSTableColumn">
-																<integer value="0" key="NSIdentifier"/>
 																<double key="NSWidth">10</double>
 																<double key="NSMinWidth">10</double>
 																<double key="NSMaxWidth">1000</double>
@@ -5189,6 +5209,7 @@ AAA</bytes>
 														<int key="NSDraggingSourceMaskForNonLocal">0</int>
 														<bool key="NSAllowsTypeSelect">YES</bool>
 														<int key="NSTableViewDraggingDestinationStyle">0</int>
+														<int key="NSTableViewGroupRowStyle">1</int>
 													</object>
 												</object>
 											</object>
@@ -5297,8 +5318,9 @@ AAA</bytes>
 					</array>
 					<string key="NSFrameSize">{689, 479}</string>
 				</object>
-				<string key="NSScreenRect">{{0, 0}, {1280, 778}}</string>
-				<string key="NSMaxSize">{1.79769e+308, 1.79769e+308}</string>
+				<string key="NSScreenRect">{{0, 0}, {1680, 1028}}</string>
+				<string key="NSMaxSize">{10000000000000, 10000000000000}</string>
+				<bool key="NSWindowIsRestorable">YES</bool>
 			</object>
 			<object class="NSCustomObject" id="335164678">
 				<string key="NSClassName">PrefsController</string>
@@ -5315,7 +5337,7 @@ AAA</bytes>
 				<object class="NSMutableString" key="NSViewClass">
 					<characters key="NS.bytes">View</characters>
 				</object>
-				<string key="NSWindowContentMaxSize">{1.79769e+308, 1.79769e+308}</string>
+				<nil key="NSUserInterfaceItemIdentifier"/>
 				<object class="NSView" key="NSWindowView" id="365476874">
 					<nil key="NSNextResponder"/>
 					<int key="NSvFlags">256</int>
@@ -5629,11 +5651,22 @@ AAA</bytes>
 					</array>
 					<string key="NSFrameSize">{323, 231}</string>
 				</object>
-				<string key="NSScreenRect">{{0, 0}, {1280, 778}}</string>
-				<string key="NSMaxSize">{1.79769e+308, 1.79769e+308}</string>
+				<string key="NSScreenRect">{{0, 0}, {1680, 1028}}</string>
+				<string key="NSMaxSize">{10000000000000, 10000000000000}</string>
+				<bool key="NSWindowIsRestorable">YES</bool>
 			</object>
 			<object class="NSCustomObject" id="984041441">
 				<string key="NSClassName">CreateFloppyController</string>
+			</object>
+			<object class="NSView" id="245553785">
+				<nil key="NSNextResponder"/>
+				<int key="NSvFlags">256</int>
+				<string key="NSFrameSize">{125, 1}</string>
+			</object>
+			<object class="NSView" id="489053295">
+				<nil key="NSNextResponder"/>
+				<int key="NSvFlags">256</int>
+				<string key="NSFrameSize">{125, 1}</string>
 			</object>
 		</array>
 		<object class="IBObjectContainer" key="IBDocument.Objects">
@@ -5709,6 +5742,150 @@ AAA</bytes>
 						<reference key="destination" ref="617815460"/>
 					</object>
 					<int key="connectionID">324</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">captureScreen:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="830202222"/>
+					</object>
+					<int key="connectionID">828</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">captureAnimation:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="524149627"/>
+					</object>
+					<int key="connectionID">829</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">captureSound:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="236679891"/>
+					</object>
+					<int key="connectionID">830</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">beginCaptureAnim</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="524149627"/>
+					</object>
+					<int key="connectionID">836</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">endCaptureAnim</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="88314270"/>
+					</object>
+					<int key="connectionID">837</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">beginCaptureSound</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="236679891"/>
+					</object>
+					<int key="connectionID">838</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">endCaptureSound</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="153767878"/>
+					</object>
+					<int key="connectionID">839</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">endCaptureSound:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="153767878"/>
+					</object>
+					<int key="connectionID">841</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">saveMemorySnap:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="877009641"/>
+					</object>
+					<int key="connectionID">848</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">restoreMemorySnap:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="618585160"/>
+					</object>
+					<int key="connectionID">849</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">warmReset:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="80937600"/>
+					</object>
+					<int key="connectionID">861</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">coldReset:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="138867128"/>
+					</object>
+					<int key="connectionID">862</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">doFullScreen:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="336724054"/>
+					</object>
+					<int key="connectionID">1246</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">debugUI:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="955425928"/>
+					</object>
+					<int key="connectionID">4609</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">prefsMenu:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="529064921"/>
+					</object>
+					<int key="connectionID">4610</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">insertDiskA:</string>
+						<reference key="source" ref="486273137"/>
+						<reference key="destination" ref="576175348"/>
+					</object>
+					<int key="connectionID">4611</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">performClose:</string>
+						<reference key="source" ref="464728346"/>
+						<reference key="destination" ref="832733153"/>
+					</object>
+					<int key="connectionID">845</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">fax:</string>
+						<reference key="source" ref="648283426"/>
+						<reference key="destination" ref="1040122819"/>
+					</object>
+					<int key="connectionID">3080</int>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBOutletConnection" key="connection">
@@ -6135,38 +6312,6 @@ AAA</bytes>
 					<int key="connectionID">593</int>
 				</object>
 				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">createFloppyImage:</string>
-						<reference key="source" ref="984041441"/>
-						<reference key="destination" ref="689421968"/>
-					</object>
-					<int key="connectionID">689</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">sectors</string>
-						<reference key="source" ref="984041441"/>
-						<reference key="destination" ref="326382272"/>
-					</object>
-					<int key="connectionID">691</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">sides</string>
-						<reference key="source" ref="984041441"/>
-						<reference key="destination" ref="15299753"/>
-					</object>
-					<int key="connectionID">692</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">tracks</string>
-						<reference key="source" ref="984041441"/>
-						<reference key="destination" ref="335601310"/>
-					</object>
-					<int key="connectionID">700</int>
-				</object>
-				<object class="IBConnectionRecord">
 					<object class="IBOutletConnection" key="connection">
 						<string key="label">joystickUp</string>
 						<reference key="source" ref="335164678"/>
@@ -6280,219 +6425,11 @@ AAA</bytes>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBOutletConnection" key="connection">
-						<string key="label">nextKeyView</string>
-						<reference key="source" ref="459147403"/>
-						<reference key="destination" ref="76882586"/>
-					</object>
-					<int key="connectionID">818</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">nextKeyView</string>
-						<reference key="source" ref="76882586"/>
-						<reference key="destination" ref="453546059"/>
-					</object>
-					<int key="connectionID">819</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">nextKeyView</string>
-						<reference key="source" ref="453546059"/>
-						<reference key="destination" ref="1049672474"/>
-					</object>
-					<int key="connectionID">820</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">nextKeyView</string>
-						<reference key="source" ref="1049672474"/>
-						<reference key="destination" ref="844841105"/>
-					</object>
-					<int key="connectionID">821</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">nextKeyView</string>
-						<reference key="source" ref="844841105"/>
-						<reference key="destination" ref="992775369"/>
-					</object>
-					<int key="connectionID">822</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">nextKeyView</string>
-						<reference key="source" ref="992775369"/>
-						<reference key="destination" ref="755825360"/>
-					</object>
-					<int key="connectionID">823</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">nextKeyView</string>
-						<reference key="source" ref="755825360"/>
-						<reference key="destination" ref="1026161904"/>
-					</object>
-					<int key="connectionID">824</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">nextKeyView</string>
-						<reference key="source" ref="1026161904"/>
-						<reference key="destination" ref="412711280"/>
-					</object>
-					<int key="connectionID">825</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">nextKeyView</string>
-						<reference key="source" ref="412711280"/>
-						<reference key="destination" ref="70475561"/>
-					</object>
-					<int key="connectionID">826</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">captureScreen:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="830202222"/>
-					</object>
-					<int key="connectionID">828</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">captureAnimation:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="524149627"/>
-					</object>
-					<int key="connectionID">829</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">captureSound:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="236679891"/>
-					</object>
-					<int key="connectionID">830</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">beginCaptureAnim</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="524149627"/>
-					</object>
-					<int key="connectionID">836</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">endCaptureAnim</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="88314270"/>
-					</object>
-					<int key="connectionID">837</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">beginCaptureSound</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="236679891"/>
-					</object>
-					<int key="connectionID">838</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">endCaptureSound</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="153767878"/>
-					</object>
-					<int key="connectionID">839</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">endCaptureSound:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="153767878"/>
-					</object>
-					<int key="connectionID">841</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">runModal:</string>
-						<reference key="source" ref="984041441"/>
-						<reference key="destination" ref="251976646"/>
-					</object>
-					<int key="connectionID">843</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
-						<string key="label">window</string>
-						<reference key="source" ref="984041441"/>
-						<reference key="destination" ref="465257457"/>
-					</object>
-					<int key="connectionID">844</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">performClose:</string>
-						<reference key="source" ref="464728346"/>
-						<reference key="destination" ref="832733153"/>
-					</object>
-					<int key="connectionID">845</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">performClose:</string>
-						<reference key="source" ref="465257457"/>
-						<reference key="destination" ref="618702874"/>
-					</object>
-					<int key="connectionID">847</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">saveMemorySnap:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="877009641"/>
-					</object>
-					<int key="connectionID">848</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">restoreMemorySnap:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="618585160"/>
-					</object>
-					<int key="connectionID">849</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">warmReset:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="80937600"/>
-					</object>
-					<int key="connectionID">861</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">coldReset:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="138867128"/>
-					</object>
-					<int key="connectionID">862</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBOutletConnection" key="connection">
 						<string key="label">enableDSP</string>
 						<reference key="source" ref="335164678"/>
 						<reference key="destination" ref="53088713"/>
 					</object>
 					<int key="connectionID">1230</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">doFullScreen:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="336724054"/>
-					</object>
-					<int key="connectionID">1246</int>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBActionConnection" key="connection">
@@ -6509,14 +6446,6 @@ AAA</bytes>
 						<reference key="destination" ref="984993284"/>
 					</object>
 					<int key="connectionID">2804</int>
-				</object>
-				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">fax:</string>
-						<reference key="source" ref="648283426"/>
-						<reference key="destination" ref="1040122819"/>
-					</object>
-					<int key="connectionID">3080</int>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBOutletConnection" key="connection">
@@ -6679,28 +6608,132 @@ AAA</bytes>
 					<int key="connectionID">4602</int>
 				</object>
 				<object class="IBConnectionRecord">
-					<object class="IBActionConnection" key="connection">
-						<string key="label">debugUI:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="955425928"/>
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">nextKeyView</string>
+						<reference key="source" ref="755825360"/>
+						<reference key="destination" ref="1026161904"/>
 					</object>
-					<int key="connectionID">4609</int>
+					<int key="connectionID">824</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">nextKeyView</string>
+						<reference key="source" ref="453546059"/>
+						<reference key="destination" ref="1049672474"/>
+					</object>
+					<int key="connectionID">820</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">nextKeyView</string>
+						<reference key="source" ref="1049672474"/>
+						<reference key="destination" ref="844841105"/>
+					</object>
+					<int key="connectionID">821</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">nextKeyView</string>
+						<reference key="source" ref="992775369"/>
+						<reference key="destination" ref="755825360"/>
+					</object>
+					<int key="connectionID">823</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">nextKeyView</string>
+						<reference key="source" ref="76882586"/>
+						<reference key="destination" ref="453546059"/>
+					</object>
+					<int key="connectionID">819</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">nextKeyView</string>
+						<reference key="source" ref="412711280"/>
+						<reference key="destination" ref="70475561"/>
+					</object>
+					<int key="connectionID">826</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">nextKeyView</string>
+						<reference key="source" ref="459147403"/>
+						<reference key="destination" ref="76882586"/>
+					</object>
+					<int key="connectionID">818</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">nextKeyView</string>
+						<reference key="source" ref="844841105"/>
+						<reference key="destination" ref="992775369"/>
+					</object>
+					<int key="connectionID">822</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">nextKeyView</string>
+						<reference key="source" ref="1026161904"/>
+						<reference key="destination" ref="412711280"/>
+					</object>
+					<int key="connectionID">825</int>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBActionConnection" key="connection">
-						<string key="label">prefsMenu:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="529064921"/>
+						<string key="label">performClose:</string>
+						<reference key="source" ref="465257457"/>
+						<reference key="destination" ref="618702874"/>
 					</object>
-					<int key="connectionID">4610</int>
+					<int key="connectionID">847</int>
 				</object>
 				<object class="IBConnectionRecord">
 					<object class="IBActionConnection" key="connection">
-						<string key="label">insertDiskA:</string>
-						<reference key="source" ref="486273137"/>
-						<reference key="destination" ref="576175348"/>
+						<string key="label">createFloppyImage:</string>
+						<reference key="source" ref="984041441"/>
+						<reference key="destination" ref="689421968"/>
 					</object>
-					<int key="connectionID">4611</int>
+					<int key="connectionID">689</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">sectors</string>
+						<reference key="source" ref="984041441"/>
+						<reference key="destination" ref="326382272"/>
+					</object>
+					<int key="connectionID">691</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">sides</string>
+						<reference key="source" ref="984041441"/>
+						<reference key="destination" ref="15299753"/>
+					</object>
+					<int key="connectionID">692</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">tracks</string>
+						<reference key="source" ref="984041441"/>
+						<reference key="destination" ref="335601310"/>
+					</object>
+					<int key="connectionID">700</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBActionConnection" key="connection">
+						<string key="label">runModal:</string>
+						<reference key="source" ref="984041441"/>
+						<reference key="destination" ref="251976646"/>
+					</object>
+					<int key="connectionID">843</int>
+				</object>
+				<object class="IBConnectionRecord">
+					<object class="IBOutletConnection" key="connection">
+						<string key="label">window</string>
+						<reference key="source" ref="984041441"/>
+						<reference key="destination" ref="465257457"/>
+					</object>
+					<int key="connectionID">844</int>
 				</object>
 			</array>
 			<object class="IBMutableOrderedSet" key="objectRecords">
@@ -7218,19 +7251,8 @@ AAA</bytes>
 					<object class="IBObjectRecord">
 						<int key="objectID">366</int>
 						<reference key="object" ref="74414029"/>
-						<array class="NSMutableArray" key="children">
-							<object class="NSView" id="245553785">
-								<nil key="NSNextResponder"/>
-								<int key="NSvFlags">256</int>
-								<string key="NSFrame">{{2, 2}, {125, 1}}</string>
-							</object>
-						</array>
+						<array class="NSMutableArray" key="children"/>
 						<reference key="parent" ref="625703175"/>
-					</object>
-					<object class="IBObjectRecord">
-						<int key="objectID">367</int>
-						<reference key="object" ref="245553785"/>
-						<reference key="parent" ref="74414029"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">368</int>
@@ -7243,19 +7265,8 @@ AAA</bytes>
 					<object class="IBObjectRecord">
 						<int key="objectID">369</int>
 						<reference key="object" ref="792924724"/>
-						<array class="NSMutableArray" key="children">
-							<object class="NSView" id="489053295">
-								<nil key="NSNextResponder"/>
-								<int key="NSvFlags">256</int>
-								<string key="NSFrame">{{2, 2}, {125, 1}}</string>
-							</object>
-						</array>
+						<array class="NSMutableArray" key="children"/>
 						<reference key="parent" ref="625703175"/>
-					</object>
-					<object class="IBObjectRecord">
-						<int key="objectID">370</int>
-						<reference key="object" ref="489053295"/>
-						<reference key="parent" ref="792924724"/>
 					</object>
 					<object class="IBObjectRecord">
 						<int key="objectID">371</int>
@@ -9861,269 +9872,151 @@ AAA</bytes>
 						<reference key="object" ref="68106059"/>
 						<reference key="parent" ref="422475899"/>
 					</object>
+					<object class="IBObjectRecord">
+						<int key="objectID">367</int>
+						<reference key="object" ref="245553785"/>
+						<reference key="parent" ref="0"/>
+					</object>
+					<object class="IBObjectRecord">
+						<int key="objectID">370</int>
+						<reference key="object" ref="489053295"/>
+						<reference key="parent" ref="0"/>
+					</object>
 				</array>
 			</object>
 			<dictionary class="NSMutableDictionary" key="flattenedProperties">
+				<string key="-1.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
+				<string key="-2.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="-3.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="-3.ImportedFromIB2"/>
 				<string key="103.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="103.ImportedFromIB2"/>
 				<string key="106.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="106.ImportedFromIB2"/>
 				<string key="111.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="111.ImportedFromIB2"/>
 				<string key="1222.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="1222.ImportedFromIB2"/>
 				<string key="1224.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="1224.ImportedFromIB2"/>
 				<string key="1225.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="1225.ImportedFromIB2"/>
 				<string key="1226.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="1226.ImportedFromIB2"/>
 				<string key="1227.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="1227.ImportedFromIB2"/>
 				<string key="1228.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="1228.ImportedFromIB2"/>
 				<string key="1241.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="1241.ImportedFromIB2"/>
 				<string key="134.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="134.ImportedFromIB2"/>
 				<string key="136.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="136.ImportedFromIB2"/>
 				<string key="145.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="145.ImportedFromIB2"/>
 				<string key="149.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="149.ImportedFromIB2"/>
 				<string key="150.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="150.ImportedFromIB2"/>
 				<string key="1605.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="1605.ImportedFromIB2"/>
-				<boolean value="YES" key="194.ImportedFromIB2"/>
+				<string key="194.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="196.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="196.ImportedFromIB2"/>
-				<boolean value="YES" key="253.ImportedFromIB2"/>
+				<string key="253.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="2803.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2803.ImportedFromIB2"/>
 				<string key="283.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="283.ImportedFromIB2"/>
 				<string key="284.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="284.ImportedFromIB2"/>
-				<string key="285.IBEditorWindowLastContentRect">{{286, 613}, {152, 43}}</string>
 				<string key="285.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="285.ImportedFromIB2"/>
-				<string key="29.IBEditorWindowLastContentRect">{{63, 656}, {353, 20}}</string>
 				<string key="29.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="29.ImportedFromIB2"/>
 				<string key="2921.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2921.ImportedFromIB2"/>
 				<string key="2922.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2922.ImportedFromIB2"/>
 				<string key="2923.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2923.ImportedFromIB2"/>
 				<string key="2927.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2927.ImportedFromIB2"/>
 				<string key="293.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="293.ImportedFromIB2"/>
 				<string key="2933.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2933.ImportedFromIB2"/>
 				<string key="2935.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2935.ImportedFromIB2"/>
 				<string key="2937.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2937.ImportedFromIB2"/>
 				<string key="2939.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2939.ImportedFromIB2"/>
 				<string key="2941.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2941.ImportedFromIB2"/>
 				<string key="2943.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2943.ImportedFromIB2"/>
 				<string key="2945.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2945.ImportedFromIB2"/>
 				<string key="2947.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2947.ImportedFromIB2"/>
 				<string key="2949.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="2949.ImportedFromIB2"/>
 				<string key="306.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="306.ImportedFromIB2"/>
 				<string key="3083.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="3083.ImportedFromIB2"/>
 				<string key="309.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="309.ImportedFromIB2"/>
 				<string key="311.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="311.ImportedFromIB2"/>
-				<string key="312.IBEditorWindowLastContentRect">{{137, 533}, {234, 123}}</string>
 				<string key="312.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="312.ImportedFromIB2"/>
 				<string key="3215.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="3215.ImportedFromIB2"/>
-				<string key="326.IBEditorWindowLastContentRect">{{192, 45}, {689, 479}}</string>
 				<string key="326.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="326.IBWindowTemplateEditedContentRect">{{192, 45}, {689, 479}}</string>
-				<boolean value="YES" key="326.ImportedFromIB2"/>
 				<string key="327.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="327.ImportedFromIB2"/>
 				<string key="328.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="328.ImportedFromIB2"/>
-				<boolean value="YES" key="329.ImportedFromIB2"/>
+				<string key="329.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="332.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="332.ImportedFromIB2"/>
 				<string key="3473.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="3473.ImportedFromIB2"/>
 				<string key="352.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="352.ImportedFromIB2"/>
 				<string key="353.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="353.ImportedFromIB2"/>
 				<string key="354.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="354.ImportedFromIB2"/>
 				<string key="355.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="355.ImportedFromIB2"/>
 				<string key="356.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="356.ImportedFromIB2"/>
 				<string key="357.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="357.ImportedFromIB2"/>
 				<string key="358.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="358.ImportedFromIB2"/>
 				<string key="359.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="359.ImportedFromIB2"/>
 				<string key="360.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="360.ImportedFromIB2"/>
 				<string key="3603.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="3603.ImportedFromIB2"/>
 				<string key="3604.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="3604.ImportedFromIB2"/>
 				<string key="3605.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="3605.ImportedFromIB2"/>
 				<string key="361.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="361.ImportedFromIB2"/>
 				<string key="362.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="362.ImportedFromIB2"/>
 				<string key="363.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="363.ImportedFromIB2"/>
 				<string key="364.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="364.ImportedFromIB2"/>
 				<string key="365.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="365.ImportedFromIB2"/>
 				<string key="366.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="366.ImportedFromIB2"/>
 				<string key="367.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="367.ImportedFromIB2"/>
 				<string key="368.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="368.ImportedFromIB2"/>
 				<string key="369.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="369.ImportedFromIB2"/>
 				<string key="370.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="370.ImportedFromIB2"/>
 				<string key="371.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="371.ImportedFromIB2"/>
 				<string key="372.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="372.ImportedFromIB2"/>
 				<string key="373.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="373.ImportedFromIB2"/>
 				<string key="3735.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="3735.ImportedFromIB2"/>
 				<string key="3736.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="3736.ImportedFromIB2"/>
 				<string key="3737.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="3737.ImportedFromIB2"/>
 				<string key="3738.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="3738.ImportedFromIB2"/>
 				<string key="374.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="374.ImportedFromIB2"/>
 				<string key="376.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="376.ImportedFromIB2"/>
 				<string key="377.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="377.ImportedFromIB2"/>
 				<string key="378.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="378.ImportedFromIB2"/>
 				<string key="379.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="379.ImportedFromIB2"/>
 				<string key="380.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="380.ImportedFromIB2"/>
 				<string key="381.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="381.ImportedFromIB2"/>
 				<string key="382.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="382.ImportedFromIB2"/>
 				<string key="384.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="384.ImportedFromIB2"/>
 				<string key="385.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="385.ImportedFromIB2"/>
 				<string key="386.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="386.ImportedFromIB2"/>
 				<string key="387.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="387.ImportedFromIB2"/>
 				<string key="388.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="388.ImportedFromIB2"/>
 				<string key="394.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="394.ImportedFromIB2"/>
 				<string key="397.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="397.ImportedFromIB2"/>
 				<string key="398.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="398.ImportedFromIB2"/>
 				<string key="399.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="399.ImportedFromIB2"/>
 				<string key="400.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="400.ImportedFromIB2"/>
 				<string key="4004.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4004.ImportedFromIB2"/>
 				<string key="4005.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4005.ImportedFromIB2"/>
 				<string key="4006.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4006.ImportedFromIB2"/>
 				<string key="4007.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4007.ImportedFromIB2"/>
 				<string key="4008.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4008.ImportedFromIB2"/>
 				<string key="4009.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4009.ImportedFromIB2"/>
 				<string key="401.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="401.ImportedFromIB2"/>
 				<string key="402.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="402.ImportedFromIB2"/>
 				<string key="403.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="403.ImportedFromIB2"/>
 				<string key="404.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="404.ImportedFromIB2"/>
 				<string key="405.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="405.ImportedFromIB2"/>
 				<string key="406.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="406.ImportedFromIB2"/>
 				<string key="409.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="409.ImportedFromIB2"/>
 				<string key="414.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="414.ImportedFromIB2"/>
 				<string key="415.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="415.ImportedFromIB2"/>
 				<string key="416.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="416.ImportedFromIB2"/>
 				<string key="417.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="417.ImportedFromIB2"/>
 				<string key="418.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="418.ImportedFromIB2"/>
 				<string key="419.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="419.ImportedFromIB2"/>
 				<string key="420.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="420.ImportedFromIB2"/>
 				<string key="421.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="421.ImportedFromIB2"/>
 				<string key="422.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="422.ImportedFromIB2"/>
 				<string key="428.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="428.ImportedFromIB2"/>
 				<string key="429.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="429.ImportedFromIB2"/>
 				<string key="430.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="430.ImportedFromIB2"/>
 				<string key="431.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="431.ImportedFromIB2"/>
 				<string key="432.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="432.ImportedFromIB2"/>
 				<string key="433.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="433.ImportedFromIB2"/>
 				<string key="434.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="434.ImportedFromIB2"/>
 				<string key="435.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="435.ImportedFromIB2"/>
 				<string key="440.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="440.ImportedFromIB2"/>
 				<string key="4403.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4404.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4405.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -10132,7 +10025,6 @@ AAA</bytes>
 				<string key="4408.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4409.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="441.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="441.ImportedFromIB2"/>
 				<string key="4410.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4411.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4412.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -10144,7 +10036,6 @@ AAA</bytes>
 				<string key="4418.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4419.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="442.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="442.ImportedFromIB2"/>
 				<string key="4420.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4421.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4422.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -10156,7 +10047,6 @@ AAA</bytes>
 				<string key="4428.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4429.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="443.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="443.ImportedFromIB2"/>
 				<string key="4430.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4432.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4433.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -10190,7 +10080,6 @@ AAA</bytes>
 				<string key="4467.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4468.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="447.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="447.ImportedFromIB2"/>
 				<string key="4470.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4471.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4473.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -10211,7 +10100,6 @@ AAA</bytes>
 				<string key="4488.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4489.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="449.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="449.ImportedFromIB2"/>
 				<string key="4490.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4491.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4492.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -10233,7 +10121,6 @@ AAA</bytes>
 				<string key="4508.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4509.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="451.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="451.ImportedFromIB2"/>
 				<string key="4510.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4511.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4512.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -10245,7 +10132,6 @@ AAA</bytes>
 				<string key="4518.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4519.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="452.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="452.ImportedFromIB2"/>
 				<string key="4520.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4521.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4522.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -10257,66 +10143,42 @@ AAA</bytes>
 				<string key="4528.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4529.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="453.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="453.ImportedFromIB2"/>
 				<string key="4530.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4530.ImportedFromIB2"/>
 				<string key="4531.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4531.ImportedFromIB2"/>
 				<string key="4532.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4532.ImportedFromIB2"/>
 				<string key="4533.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4533.ImportedFromIB2"/>
 				<string key="4534.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4535.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4536.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4537.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="454.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="454.ImportedFromIB2"/>
 				<string key="4547.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4547.ImportedFromIB2"/>
 				<string key="4548.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4549.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="455.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="455.ImportedFromIB2"/>
 				<string key="4550.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4551.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4551.ImportedFromIB2"/>
 				<string key="4552.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4552.ImportedFromIB2"/>
 				<string key="4553.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4554.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4555.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4555.ImportedFromIB2"/>
 				<string key="4556.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4556.ImportedFromIB2"/>
 				<string key="4557.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4557.ImportedFromIB2"/>
 				<string key="4558.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4558.ImportedFromIB2"/>
 				<string key="4559.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4559.ImportedFromIB2"/>
 				<string key="456.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="456.ImportedFromIB2"/>
 				<string key="4560.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4560.ImportedFromIB2"/>
 				<string key="4561.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4561.ImportedFromIB2"/>
 				<string key="4562.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4563.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4563.ImportedFromIB2"/>
 				<string key="4564.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4566.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4566.ImportedFromIB2"/>
 				<string key="4567.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4569.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4569.ImportedFromIB2"/>
 				<string key="457.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="457.ImportedFromIB2"/>
 				<string key="4570.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4571.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4571.ImportedFromIB2"/>
 				<string key="4572.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4572.ImportedFromIB2"/>
 				<string key="4573.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4574.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4575.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -10328,16 +10190,12 @@ AAA</bytes>
 				<string key="4581.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4582.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4583.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4583.ImportedFromIB2"/>
 				<string key="4584.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4585.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4585.ImportedFromIB2"/>
 				<string key="4586.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4592.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="4592.ImportedFromIB2"/>
 				<string key="4593.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="460.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="460.ImportedFromIB2"/>
 				<string key="4603.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4604.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4605.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
@@ -10345,65 +10203,35 @@ AAA</bytes>
 				<string key="4607.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="4608.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="461.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="461.ImportedFromIB2"/>
 				<string key="462.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="462.ImportedFromIB2"/>
 				<string key="463.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="463.ImportedFromIB2"/>
 				<string key="464.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="464.ImportedFromIB2"/>
 				<string key="465.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="465.ImportedFromIB2"/>
 				<string key="466.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="466.ImportedFromIB2"/>
 				<string key="467.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="467.ImportedFromIB2"/>
 				<string key="468.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="468.ImportedFromIB2"/>
 				<string key="471.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="471.ImportedFromIB2"/>
 				<string key="472.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="472.ImportedFromIB2"/>
 				<string key="473.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="473.ImportedFromIB2"/>
 				<string key="474.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="474.ImportedFromIB2"/>
 				<string key="475.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="475.ImportedFromIB2"/>
 				<string key="476.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="476.ImportedFromIB2"/>
 				<string key="477.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="477.ImportedFromIB2"/>
 				<string key="478.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="478.ImportedFromIB2"/>
 				<string key="479.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="479.ImportedFromIB2"/>
 				<string key="481.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="481.ImportedFromIB2"/>
 				<string key="482.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="482.ImportedFromIB2"/>
 				<string key="484.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="484.ImportedFromIB2"/>
 				<string key="485.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="485.ImportedFromIB2"/>
 				<string key="486.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="486.ImportedFromIB2"/>
 				<string key="487.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="487.ImportedFromIB2"/>
 				<string key="488.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="488.ImportedFromIB2"/>
 				<string key="490.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="490.ImportedFromIB2"/>
 				<string key="491.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="491.ImportedFromIB2"/>
 				<string key="492.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="492.ImportedFromIB2"/>
 				<string key="493.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="493.ImportedFromIB2"/>
 				<string key="496.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="496.ImportedFromIB2"/>
 				<string key="497.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="497.ImportedFromIB2"/>
 				<object class="NSMutableDictionary" key="498.IBAttributePlaceholdersKey">
 					<string key="NS.key.0">ToolTip</string>
 					<object class="IBToolTipAttribute" key="NS.object.0">
@@ -10413,231 +10241,117 @@ AAA</bytes>
 					</object>
 				</object>
 				<string key="498.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="498.ImportedFromIB2"/>
 				<string key="502.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="502.ImportedFromIB2"/>
 				<string key="503.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="503.ImportedFromIB2"/>
 				<string key="504.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="504.ImportedFromIB2"/>
 				<string key="505.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="505.ImportedFromIB2"/>
 				<string key="508.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="508.ImportedFromIB2"/>
 				<string key="511.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="511.ImportedFromIB2"/>
 				<string key="513.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="513.ImportedFromIB2"/>
 				<string key="514.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="514.ImportedFromIB2"/>
 				<string key="517.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="517.ImportedFromIB2"/>
 				<string key="518.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="518.ImportedFromIB2"/>
 				<string key="544.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="544.ImportedFromIB2"/>
 				<string key="56.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="56.ImportedFromIB2"/>
-				<string key="57.IBEditorWindowLastContentRect">{{75, 513}, {206, 143}}</string>
 				<string key="57.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="57.ImportedFromIB2"/>
 				<string key="58.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="58.ImportedFromIB2"/>
 				<string key="584.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="584.ImportedFromIB2"/>
 				<string key="585.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="585.ImportedFromIB2"/>
 				<string key="595.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="595.ImportedFromIB2"/>
 				<string key="596.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="596.ImportedFromIB2"/>
 				<string key="600.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="600.ImportedFromIB2"/>
 				<string key="603.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="603.ImportedFromIB2"/>
 				<string key="604.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="604.ImportedFromIB2"/>
 				<string key="605.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="605.ImportedFromIB2"/>
 				<string key="606.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="606.ImportedFromIB2"/>
 				<string key="607.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="607.ImportedFromIB2"/>
-				<string key="608.IBEditorWindowLastContentRect">{{371, 483}, {294, 103}}</string>
 				<string key="608.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="608.ImportedFromIB2"/>
 				<string key="609.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="609.ImportedFromIB2"/>
 				<string key="610.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="610.ImportedFromIB2"/>
 				<string key="611.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="611.ImportedFromIB2"/>
-				<string key="612.IBEditorWindowLastContentRect">{{243, 373}, {323, 231}}</string>
 				<string key="612.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="612.IBWindowTemplateEditedContentRect">{{243, 373}, {323, 231}}</string>
-				<boolean value="YES" key="612.ImportedFromIB2"/>
 				<string key="613.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="613.ImportedFromIB2"/>
 				<string key="617.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="617.ImportedFromIB2"/>
 				<string key="634.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="634.ImportedFromIB2"/>
 				<string key="640.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="640.ImportedFromIB2"/>
 				<string key="643.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="643.ImportedFromIB2"/>
 				<string key="644.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="644.ImportedFromIB2"/>
-				<boolean value="YES" key="687.ImportedFromIB2"/>
+				<string key="687.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
 				<string key="688.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="688.ImportedFromIB2"/>
 				<string key="695.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="695.ImportedFromIB2"/>
 				<string key="696.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="696.ImportedFromIB2"/>
 				<string key="697.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="697.ImportedFromIB2"/>
 				<string key="698.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="698.ImportedFromIB2"/>
 				<string key="699.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="699.ImportedFromIB2"/>
 				<string key="711.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="711.ImportedFromIB2"/>
 				<string key="712.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="712.ImportedFromIB2"/>
 				<string key="713.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="713.ImportedFromIB2"/>
 				<string key="714.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="714.ImportedFromIB2"/>
 				<string key="715.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="715.ImportedFromIB2"/>
 				<string key="716.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="716.ImportedFromIB2"/>
 				<string key="717.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="717.ImportedFromIB2"/>
 				<string key="718.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="718.ImportedFromIB2"/>
 				<string key="719.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="719.ImportedFromIB2"/>
 				<string key="720.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="720.ImportedFromIB2"/>
 				<string key="721.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="721.ImportedFromIB2"/>
 				<string key="722.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="722.ImportedFromIB2"/>
 				<string key="723.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="723.ImportedFromIB2"/>
 				<string key="724.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="724.ImportedFromIB2"/>
 				<string key="725.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="725.ImportedFromIB2"/>
 				<string key="726.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="726.ImportedFromIB2"/>
 				<string key="727.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="727.ImportedFromIB2"/>
 				<string key="728.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="728.ImportedFromIB2"/>
 				<string key="729.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="729.ImportedFromIB2"/>
 				<string key="730.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="730.ImportedFromIB2"/>
 				<string key="731.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="731.ImportedFromIB2"/>
 				<string key="732.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="732.ImportedFromIB2"/>
 				<string key="733.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="733.ImportedFromIB2"/>
 				<string key="734.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="734.ImportedFromIB2"/>
 				<string key="735.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="735.ImportedFromIB2"/>
 				<string key="736.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="736.ImportedFromIB2"/>
 				<string key="737.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="737.ImportedFromIB2"/>
 				<string key="738.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="738.ImportedFromIB2"/>
 				<string key="739.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="739.ImportedFromIB2"/>
 				<string key="740.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="740.ImportedFromIB2"/>
 				<string key="749.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="749.ImportedFromIB2"/>
 				<string key="750.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="750.ImportedFromIB2"/>
 				<string key="751.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="751.ImportedFromIB2"/>
 				<string key="755.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="755.ImportedFromIB2"/>
 				<string key="767.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="767.ImportedFromIB2"/>
 				<string key="768.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="768.ImportedFromIB2"/>
 				<string key="769.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="769.ImportedFromIB2"/>
 				<string key="774.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="774.ImportedFromIB2"/>
 				<string key="775.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="775.ImportedFromIB2"/>
 				<string key="789.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="789.ImportedFromIB2"/>
 				<string key="790.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="790.ImportedFromIB2"/>
 				<string key="791.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="791.ImportedFromIB2"/>
 				<string key="801.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="801.ImportedFromIB2"/>
 				<string key="802.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="802.ImportedFromIB2"/>
 				<string key="803.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="803.ImportedFromIB2"/>
 				<string key="804.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="804.ImportedFromIB2"/>
 				<string key="805.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="805.ImportedFromIB2"/>
 				<string key="806.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="806.ImportedFromIB2"/>
 				<string key="807.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="807.ImportedFromIB2"/>
 				<string key="808.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="808.ImportedFromIB2"/>
 				<string key="809.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="809.ImportedFromIB2"/>
 				<string key="810.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="810.ImportedFromIB2"/>
 				<string key="811.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="811.ImportedFromIB2"/>
 				<string key="834.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="834.ImportedFromIB2"/>
 				<string key="835.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="835.ImportedFromIB2"/>
 				<string key="846.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="846.ImportedFromIB2"/>
 				<string key="855.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="855.ImportedFromIB2"/>
-				<string key="856.IBEditorWindowLastContentRect">{{200, 523}, {254, 133}}</string>
 				<string key="856.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="856.ImportedFromIB2"/>
 				<string key="857.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="857.ImportedFromIB2"/>
 				<string key="858.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="858.ImportedFromIB2"/>
 				<string key="864.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="864.ImportedFromIB2"/>
 				<string key="865.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="865.ImportedFromIB2"/>
 				<string key="866.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="866.ImportedFromIB2"/>
 				<string key="867.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="867.ImportedFromIB2"/>
 				<string key="876.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="876.ImportedFromIB2"/>
 				<string key="877.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="877.ImportedFromIB2"/>
 				<string key="878.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="878.ImportedFromIB2"/>
 				<string key="879.IBPluginDependency">com.apple.InterfaceBuilder.CocoaPlugin</string>
-				<boolean value="YES" key="879.ImportedFromIB2"/>
 			</dictionary>
 			<dictionary class="NSMutableDictionary" key="unlocalizedProperties"/>
 			<nil key="activeLocalization"/>
@@ -10654,31 +10368,43 @@ AAA</bytes>
 						<string key="createFloppyImage:">id</string>
 						<string key="runModal:">id</string>
 					</dictionary>
+					<dictionary class="NSMutableDictionary" key="actionInfosByName">
+						<object class="IBActionInfo" key="createFloppyImage:">
+							<string key="name">createFloppyImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="runModal:">
+							<string key="name">runModal:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+					</dictionary>
 					<dictionary class="NSMutableDictionary" key="outlets">
 						<string key="sectors">NSMatrix</string>
 						<string key="sides">NSMatrix</string>
 						<string key="tracks">NSPopUpButton</string>
 						<string key="window">NSWindow</string>
 					</dictionary>
+					<dictionary class="NSMutableDictionary" key="toOneOutletInfosByName">
+						<object class="IBToOneOutletInfo" key="sectors">
+							<string key="name">sectors</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="sides">
+							<string key="name">sides</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="tracks">
+							<string key="name">tracks</string>
+							<string key="candidateClassName">NSPopUpButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="window">
+							<string key="name">window</string>
+							<string key="candidateClassName">NSWindow</string>
+						</object>
+					</dictionary>
 					<object class="IBClassDescriptionSource" key="sourceIdentifier">
 						<string key="majorKey">IBProjectSource</string>
-						<string key="minorKey">src/gui-osx/CreateFloppyController.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">CreateFloppyController</string>
-					<string key="superclassName">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBUserSource</string>
-						<string key="minorKey"/>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">FirstResponder</string>
-					<string key="superclassName">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBUserSource</string>
-						<string key="minorKey"/>
+						<string key="minorKey">./Classes/CreateFloppyController.h</string>
 					</object>
 				</object>
 				<object class="IBPartialClassDescription">
@@ -10692,6 +10418,7 @@ AAA</bytes>
 						<string key="chooseFloppyImageB:">id</string>
 						<string key="chooseGemdosImage:">id</string>
 						<string key="chooseHdImage:">id</string>
+						<string key="chooseIDEHdImage:">id</string>
 						<string key="chooseIdeMasterHdImage:">id</string>
 						<string key="chooseIdeSlaveHdImage:">id</string>
 						<string key="chooseKeyboardMappingFile:">id</string>
@@ -10705,14 +10432,142 @@ AAA</bytes>
 						<string key="ejectFloppyB:">id</string>
 						<string key="ejectGemdosImage:">id</string>
 						<string key="ejectHdImage:">id</string>
+						<string key="ejectIDEHdImage:">id</string>
 						<string key="ejectIdeMasterHdImage:">id</string>
 						<string key="ejectIdeSlaveHdImage:">id</string>
 						<string key="loadConfigFrom:">id</string>
 						<string key="loadPrefs:">id</string>
+						<string key="myAction:">id</string>
 						<string key="saveConfigAs:">id</string>
 						<string key="setHeight:">id</string>
 						<string key="setWidth:">id</string>
 						<string key="updateEnabledStates:">id</string>
+					</dictionary>
+					<dictionary class="NSMutableDictionary" key="actionInfosByName">
+						<object class="IBActionInfo" key="changeViewedJoystick:">
+							<string key="name">changeViewedJoystick:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseCartridgeImage:">
+							<string key="name">chooseCartridgeImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseDefaultImagesLocation:">
+							<string key="name">chooseDefaultImagesLocation:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseFloppyImageA:">
+							<string key="name">chooseFloppyImageA:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseFloppyImageB:">
+							<string key="name">chooseFloppyImageB:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseGemdosImage:">
+							<string key="name">chooseGemdosImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseHdImage:">
+							<string key="name">chooseHdImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseIDEHdImage:">
+							<string key="name">chooseIDEHdImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseIdeMasterHdImage:">
+							<string key="name">chooseIdeMasterHdImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseIdeSlaveHdImage:">
+							<string key="name">chooseIdeSlaveHdImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseKeyboardMappingFile:">
+							<string key="name">chooseKeyboardMappingFile:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseMidiOutputFile:">
+							<string key="name">chooseMidiOutputFile:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="choosePrintToFile:">
+							<string key="name">choosePrintToFile:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseRS232InputFile:">
+							<string key="name">chooseRS232InputFile:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseRS232OutputFile:">
+							<string key="name">chooseRS232OutputFile:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="chooseTosImage:">
+							<string key="name">chooseTosImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="commitAndClose:">
+							<string key="name">commitAndClose:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="ejectFloppyA:">
+							<string key="name">ejectFloppyA:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="ejectFloppyB:">
+							<string key="name">ejectFloppyB:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="ejectGemdosImage:">
+							<string key="name">ejectGemdosImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="ejectHdImage:">
+							<string key="name">ejectHdImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="ejectIDEHdImage:">
+							<string key="name">ejectIDEHdImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="ejectIdeMasterHdImage:">
+							<string key="name">ejectIdeMasterHdImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="ejectIdeSlaveHdImage:">
+							<string key="name">ejectIdeSlaveHdImage:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="loadConfigFrom:">
+							<string key="name">loadConfigFrom:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="loadPrefs:">
+							<string key="name">loadPrefs:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="myAction:">
+							<string key="name">myAction:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="saveConfigAs:">
+							<string key="name">saveConfigAs:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="setHeight:">
+							<string key="name">setHeight:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="setWidth:">
+							<string key="name">setWidth:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="updateEnabledStates:">
+							<string key="name">updateEnabledStates:</string>
+							<string key="candidateClassName">id</string>
+						</object>
 					</dictionary>
 					<dictionary class="NSMutableDictionary" key="outlets">
 						<string key="autoInsertB">NSButton</string>
@@ -10723,6 +10578,7 @@ AAA</bytes>
 						<string key="colorDepth">NSMatrix</string>
 						<string key="compatibleCpu">NSButton</string>
 						<string key="configFile">NSTextField</string>
+						<string key="confirmQuit">NSButton</string>
 						<string key="cpuClock">NSMatrix</string>
 						<string key="cpuType">NSMatrix</string>
 						<string key="currentJoystick">NSPopUpButton</string>
@@ -10734,6 +10590,7 @@ AAA</bytes>
 						<string key="enableRS232">NSButton</string>
 						<string key="enableSound">NSButton</string>
 						<string key="falconTTRatio">NSButton</string>
+						<string key="fastForward">NSButton</string>
 						<string key="floppyImageA">NSTextField</string>
 						<string key="floppyImageB">NSTextField</string>
 						<string key="force8bpp">NSButton</string>
@@ -10771,6 +10628,7 @@ AAA</bytes>
 						<string key="slowFDC">NSButton</string>
 						<string key="tosImage">NSTextField</string>
 						<string key="useBorders">NSButton</string>
+						<string key="useIDEHD">NSButton</string>
 						<string key="useVDIResolution">NSButton</string>
 						<string key="widthStepper">NSStepper</string>
 						<string key="window">NSWindow</string>
@@ -10779,27 +10637,275 @@ AAA</bytes>
 						<string key="writeRS232ToFile">NSTextField</string>
 						<string key="zoomSTLowRes">NSButton</string>
 					</dictionary>
+					<dictionary class="NSMutableDictionary" key="toOneOutletInfosByName">
+						<object class="IBToOneOutletInfo" key="autoInsertB">
+							<string key="name">autoInsertB</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="blitter">
+							<string key="name">blitter</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="bootFromHD">
+							<string key="name">bootFromHD</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="captureOnChange">
+							<string key="name">captureOnChange</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="cartridgeImage">
+							<string key="name">cartridgeImage</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="colorDepth">
+							<string key="name">colorDepth</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="compatibleCpu">
+							<string key="name">compatibleCpu</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="configFile">
+							<string key="name">configFile</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="confirmQuit">
+							<string key="name">confirmQuit</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="cpuClock">
+							<string key="name">cpuClock</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="cpuType">
+							<string key="name">cpuType</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="currentJoystick">
+							<string key="name">currentJoystick</string>
+							<string key="candidateClassName">NSPopUpButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="defaultImagesLocation">
+							<string key="name">defaultImagesLocation</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="enableAutoFire">
+							<string key="name">enableAutoFire</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="enableDSP">
+							<string key="name">enableDSP</string>
+							<string key="candidateClassName">NSPopUpButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="enableMidi">
+							<string key="name">enableMidi</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="enablePrinter">
+							<string key="name">enablePrinter</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="enableRS232">
+							<string key="name">enableRS232</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="enableSound">
+							<string key="name">enableSound</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="falconTTRatio">
+							<string key="name">falconTTRatio</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="fastForward">
+							<string key="name">fastForward</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="floppyImageA">
+							<string key="name">floppyImageA</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="floppyImageB">
+							<string key="name">floppyImageB</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="force8bpp">
+							<string key="name">force8bpp</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="frameSkip">
+							<string key="name">frameSkip</string>
+							<string key="candidateClassName">NSPopUpButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="fullScreen">
+							<string key="name">fullScreen</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="gemdosImage">
+							<string key="name">gemdosImage</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="hdImage">
+							<string key="name">hdImage</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="heightStepper">
+							<string key="name">heightStepper</string>
+							<string key="candidateClassName">NSStepper</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="ideMasterHdImage">
+							<string key="name">ideMasterHdImage</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="ideSlaveHdImage">
+							<string key="name">ideSlaveHdImage</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="interleaved">
+							<string key="name">interleaved</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="joystickDown">
+							<string key="name">joystickDown</string>
+							<string key="candidateClassName">NSPopUpButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="joystickFire">
+							<string key="name">joystickFire</string>
+							<string key="candidateClassName">NSPopUpButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="joystickLeft">
+							<string key="name">joystickLeft</string>
+							<string key="candidateClassName">NSPopUpButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="joystickMode">
+							<string key="name">joystickMode</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="joystickRight">
+							<string key="name">joystickRight</string>
+							<string key="candidateClassName">NSPopUpButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="joystickUp">
+							<string key="name">joystickUp</string>
+							<string key="candidateClassName">NSPopUpButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="keyboardMapping">
+							<string key="name">keyboardMapping</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="keyboardMappingFile">
+							<string key="name">keyboardMappingFile</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="ledDisks">
+							<string key="name">ledDisks</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="machineType">
+							<string key="name">machineType</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="maxZoomedHeight">
+							<string key="name">maxZoomedHeight</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="maxZoomedWidth">
+							<string key="name">maxZoomedWidth</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="monitor">
+							<string key="name">monitor</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="nSpec512Treshold">
+							<string key="name">nSpec512Treshold</string>
+							<string key="candidateClassName">NSSlider</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="patchTimerD">
+							<string key="name">patchTimerD</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="playbackQuality">
+							<string key="name">playbackQuality</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="printToFile">
+							<string key="name">printToFile</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="ramSize">
+							<string key="name">ramSize</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="readRS232FromFile">
+							<string key="name">readRS232FromFile</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="realJoystick">
+							<string key="name">realJoystick</string>
+							<string key="candidateClassName">NSPopUpButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="realTime">
+							<string key="name">realTime</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="resolution">
+							<string key="name">resolution</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="showStatusBar">
+							<string key="name">showStatusBar</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="slowFDC">
+							<string key="name">slowFDC</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="tosImage">
+							<string key="name">tosImage</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="useBorders">
+							<string key="name">useBorders</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="useIDEHD">
+							<string key="name">useIDEHD</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="useVDIResolution">
+							<string key="name">useVDIResolution</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="widthStepper">
+							<string key="name">widthStepper</string>
+							<string key="candidateClassName">NSStepper</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="window">
+							<string key="name">window</string>
+							<string key="candidateClassName">NSWindow</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="writeMidiToFile">
+							<string key="name">writeMidiToFile</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="writeProtection">
+							<string key="name">writeProtection</string>
+							<string key="candidateClassName">NSMatrix</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="writeRS232ToFile">
+							<string key="name">writeRS232ToFile</string>
+							<string key="candidateClassName">NSTextField</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="zoomSTLowRes">
+							<string key="name">zoomSTLowRes</string>
+							<string key="candidateClassName">NSButton</string>
+						</object>
+					</dictionary>
 					<object class="IBClassDescriptionSource" key="sourceIdentifier">
 						<string key="majorKey">IBProjectSource</string>
-						<string key="minorKey">src/gui-osx/PrefsController.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">PrefsController</string>
-					<string key="superclassName">NSObject</string>
-					<dictionary class="NSMutableDictionary" key="actions">
-						<string key="chooseIDEHdImage:">id</string>
-						<string key="ejectIDEHdImage:">id</string>
-						<string key="myAction:">id</string>
-					</dictionary>
-					<dictionary class="NSMutableDictionary" key="outlets">
-						<string key="confirmQuit">NSButton</string>
-						<string key="fastForward">NSButton</string>
-						<string key="useIDEHD">NSButton</string>
-					</dictionary>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBUserSource</string>
-						<string key="minorKey"/>
+						<string key="minorKey">./Classes/PrefsController.h</string>
 					</object>
 				</object>
 				<object class="IBPartialClassDescription">
@@ -10811,8 +10917,12 @@ AAA</bytes>
 						<string key="captureSound:">id</string>
 						<string key="coldReset:">id</string>
 						<string key="debugUI:">id</string>
+						<string key="debuggerGUI:">id</string>
 						<string key="doFullScreen:">id</string>
+						<string key="enableBIOSInterception:">id</string>
+						<string key="enableDebugger:">id</string>
 						<string key="endCaptureSound:">id</string>
+						<string key="fastForward:">id</string>
 						<string key="help:">id</string>
 						<string key="insertDiskA:">id</string>
 						<string key="insertDiskB:">id</string>
@@ -10823,564 +10933,130 @@ AAA</bytes>
 						<string key="saveMemorySnap:">id</string>
 						<string key="warmReset:">id</string>
 					</dictionary>
+					<dictionary class="NSMutableDictionary" key="actionInfosByName">
+						<object class="IBActionInfo" key="captureAnimation:">
+							<string key="name">captureAnimation:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="captureScreen:">
+							<string key="name">captureScreen:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="captureSound:">
+							<string key="name">captureSound:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="coldReset:">
+							<string key="name">coldReset:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="debugUI:">
+							<string key="name">debugUI:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="debuggerGUI:">
+							<string key="name">debuggerGUI:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="doFullScreen:">
+							<string key="name">doFullScreen:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="enableBIOSInterception:">
+							<string key="name">enableBIOSInterception:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="enableDebugger:">
+							<string key="name">enableDebugger:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="endCaptureSound:">
+							<string key="name">endCaptureSound:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="fastForward:">
+							<string key="name">fastForward:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="help:">
+							<string key="name">help:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="insertDiskA:">
+							<string key="name">insertDiskA:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="insertDiskB:">
+							<string key="name">insertDiskB:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="openConfig:">
+							<string key="name">openConfig:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="prefsMenu:">
+							<string key="name">prefsMenu:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="restoreMemorySnap:">
+							<string key="name">restoreMemorySnap:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="saveConfig:">
+							<string key="name">saveConfig:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="saveMemorySnap:">
+							<string key="name">saveMemorySnap:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+						<object class="IBActionInfo" key="warmReset:">
+							<string key="name">warmReset:</string>
+							<string key="candidateClassName">id</string>
+						</object>
+					</dictionary>
 					<dictionary class="NSMutableDictionary" key="outlets">
 						<string key="beginCaptureAnim">NSMenuItem</string>
 						<string key="beginCaptureSound">NSMenuItem</string>
+						<string key="enableBIOSMenu">NSMenuItem</string>
+						<string key="enableDebuggerMenu">NSMenuItem</string>
 						<string key="endCaptureAnim">NSMenuItem</string>
 						<string key="endCaptureSound">NSMenuItem</string>
+						<string key="fastForward">NSMenuItem</string>
+					</dictionary>
+					<dictionary class="NSMutableDictionary" key="toOneOutletInfosByName">
+						<object class="IBToOneOutletInfo" key="beginCaptureAnim">
+							<string key="name">beginCaptureAnim</string>
+							<string key="candidateClassName">NSMenuItem</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="beginCaptureSound">
+							<string key="name">beginCaptureSound</string>
+							<string key="candidateClassName">NSMenuItem</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="enableBIOSMenu">
+							<string key="name">enableBIOSMenu</string>
+							<string key="candidateClassName">NSMenuItem</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="enableDebuggerMenu">
+							<string key="name">enableDebuggerMenu</string>
+							<string key="candidateClassName">NSMenuItem</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="endCaptureAnim">
+							<string key="name">endCaptureAnim</string>
+							<string key="candidateClassName">NSMenuItem</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="endCaptureSound">
+							<string key="name">endCaptureSound</string>
+							<string key="candidateClassName">NSMenuItem</string>
+						</object>
+						<object class="IBToOneOutletInfo" key="fastForward">
+							<string key="name">fastForward</string>
+							<string key="candidateClassName">NSMenuItem</string>
+						</object>
 					</dictionary>
 					<object class="IBClassDescriptionSource" key="sourceIdentifier">
 						<string key="majorKey">IBProjectSource</string>
-						<string key="minorKey">src/gui-osx/SDLMain.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">SDLMain</string>
-					<string key="superclassName">NSObject</string>
-					<dictionary class="NSMutableDictionary" key="actions">
-						<string key="debuggerGUI:">id</string>
-						<string key="enableBIOSInterception:">id</string>
-						<string key="enableDebugger:">id</string>
-						<string key="fastForward:">id</string>
-					</dictionary>
-					<dictionary class="NSMutableDictionary" key="outlets">
-						<string key="enableBIOSMenu">NSMenuItem</string>
-						<string key="enableDebuggerMenu">NSMenuItem</string>
-						<string key="fastForward">NSMenuItem</string>
-					</dictionary>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBUserSource</string>
-						<string key="minorKey"/>
-					</object>
-				</object>
-			</array>
-			<array class="NSMutableArray" key="referencedPartialClassDescriptionsV3.2+">
-				<object class="IBPartialClassDescription">
-					<string key="className">NSActionCell</string>
-					<string key="superclassName">NSCell</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSActionCell.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSApplication</string>
-					<string key="superclassName">NSResponder</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="72358384">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSApplication.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSApplication</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="65262714">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSApplicationScripting.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSApplication</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="399679184">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSColorPanel.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSApplication</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSHelpManager.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSApplication</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSPageLayout.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSApplication</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSUserInterfaceItemSearching.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSBox</string>
-					<string key="superclassName">NSView</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSBox.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSButton</string>
-					<string key="superclassName">NSControl</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSButton.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSButtonCell</string>
-					<string key="superclassName">NSActionCell</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSButtonCell.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSCell</string>
-					<string key="superclassName">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSCell.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSComboBox</string>
-					<string key="superclassName">NSTextField</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSComboBox.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSComboBoxCell</string>
-					<string key="superclassName">NSTextFieldCell</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSComboBoxCell.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSControl</string>
-					<string key="superclassName">NSView</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="437527394">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSControl.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSFontManager</string>
-					<string key="superclassName">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="486923454">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSFontManager.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSFormatter</string>
-					<string key="superclassName">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSFormatter.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSMatrix</string>
-					<string key="superclassName">NSControl</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSMatrix.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSMenu</string>
-					<string key="superclassName">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="211136323">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSMenu.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSMenuItem</string>
-					<string key="superclassName">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="816537174">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSMenuItem.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSMenuItemCell</string>
-					<string key="superclassName">NSButtonCell</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSMenuItemCell.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSAccessibility.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<reference key="sourceIdentifier" ref="72358384"/>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<reference key="sourceIdentifier" ref="65262714"/>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<reference key="sourceIdentifier" ref="399679184"/>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<reference key="sourceIdentifier" ref="437527394"/>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSDictionaryController.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSDragging.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<reference key="sourceIdentifier" ref="486923454"/>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSFontPanel.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSKeyValueBinding.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<reference key="sourceIdentifier" ref="211136323"/>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSNibLoading.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSOutlineView.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSPasteboard.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSSavePanel.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSTableView.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSToolbarItem.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier" id="208188310">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSView.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSArchiver.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSClassDescription.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSError.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSFileManager.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSKeyValueCoding.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSKeyValueObserving.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSKeyedArchiver.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSObject.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSObjectScripting.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSPortCoder.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSRunLoop.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSScriptClassDescription.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSScriptKeyValueCoding.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSScriptObjectSpecifiers.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSScriptWhoseTests.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSThread.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSURL.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSURLConnection.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">Foundation.framework/Headers/NSURLDownload.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSPopUpButton</string>
-					<string key="superclassName">NSButton</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSPopUpButton.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSPopUpButtonCell</string>
-					<string key="superclassName">NSMenuItemCell</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSPopUpButtonCell.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSResponder</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSInterfaceStyle.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSResponder</string>
-					<string key="superclassName">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSResponder.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSSlider</string>
-					<string key="superclassName">NSControl</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSSlider.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSStepper</string>
-					<string key="superclassName">NSControl</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSStepper.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSStepperCell</string>
-					<string key="superclassName">NSActionCell</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSStepperCell.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSTabView</string>
-					<string key="superclassName">NSView</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSTabView.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSTabViewItem</string>
-					<string key="superclassName">NSObject</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSTabViewItem.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSTextField</string>
-					<string key="superclassName">NSControl</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSTextField.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSTextFieldCell</string>
-					<string key="superclassName">NSActionCell</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSTextFieldCell.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSView</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSClipView.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSView</string>
-					<reference key="sourceIdentifier" ref="816537174"/>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSView</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSRulerView.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSView</string>
-					<string key="superclassName">NSResponder</string>
-					<reference key="sourceIdentifier" ref="208188310"/>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSWindow</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSDrawer.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSWindow</string>
-					<string key="superclassName">NSResponder</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSWindow.h</string>
-					</object>
-				</object>
-				<object class="IBPartialClassDescription">
-					<string key="className">NSWindow</string>
-					<object class="IBClassDescriptionSource" key="sourceIdentifier">
-						<string key="majorKey">IBFrameworkSource</string>
-						<string key="minorKey">AppKit.framework/Headers/NSWindowScripting.h</string>
+						<string key="minorKey">./Classes/SDLMain.h</string>
 					</object>
 				</object>
 			</array>
@@ -11391,12 +11067,7 @@ AAA</bytes>
 			<string key="NS.key.0">com.apple.InterfaceBuilder.CocoaPlugin.macosx</string>
 			<integer value="1030" key="NS.object.0"/>
 		</object>
-		<object class="NSMutableDictionary" key="IBDocument.PluginDeclaredDependencyDefaults">
-			<string key="NS.key.0">com.apple.InterfaceBuilder.CocoaPlugin.macosx</string>
-			<integer value="1060" key="NS.object.0"/>
-		</object>
 		<bool key="IBDocument.PluginDeclaredDependenciesTrackSystemTargetVersion">YES</bool>
-		<string key="IBDocument.LastKnownRelativeProjectPath">../../../Hatari.xcodeproj</string>
 		<int key="IBDocument.defaultPropertyAccessControl">3</int>
 		<dictionary class="NSMutableDictionary" key="IBDocument.LastKnownImageSizes">
 			<string key="NSEnterFullScreenTemplate">{16, 15}</string>

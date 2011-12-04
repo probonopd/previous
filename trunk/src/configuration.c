@@ -23,6 +23,8 @@ const char Configuration_fileid[] = "Hatari configuration.c : " __DATE__ " " __T
 #include "paths.h"
 #include "screen.h"
 #include "video.h"
+#include "avi_record.h"
+#include "clocks_timings.h"
 
 
 CNF_PARAMS ConfigureParams;                 /* List of configuration for the emulator */
@@ -53,8 +55,9 @@ static const struct Config_Tag configs_Debugger[] =
 static const struct Config_Tag configs_Screen[] =
 {
 	{ "nMonitorType", Int_Tag, &ConfigureParams.Screen.nMonitorType },
-	{ "nFrameSkips", Int_Tag, &ConfigureParams.Screen.nFrameSkips },
+//	{ "nFrameSkips", Int_Tag, &ConfigureParams.Screen.nFrameSkips },
 	{ "bFullScreen", Bool_Tag, &ConfigureParams.Screen.bFullScreen },
+    { "bKeepResolution", Bool_Tag, &ConfigureParams.Screen.bKeepResolution },
 	{ "bAllowOverscan", Bool_Tag, &ConfigureParams.Screen.bAllowOverscan },
 	{ "nSpec512Threshold", Int_Tag, &ConfigureParams.Screen.nSpec512Threshold },
 	{ "nForceBpp", Int_Tag, &ConfigureParams.Screen.nForceBpp },
@@ -65,7 +68,7 @@ static const struct Config_Tag configs_Screen[] =
 	{ "nVdiColors", Int_Tag, &ConfigureParams.Screen.nVdiColors },
 	{ "bShowStatusbar", Bool_Tag, &ConfigureParams.Screen.bShowStatusbar },
 	{ "bShowDriveLed", Bool_Tag, &ConfigureParams.Screen.bShowDriveLed },
-	{ "bCaptureChange", Bool_Tag, &ConfigureParams.Screen.bCaptureChange },
+	{ "bCrop", Bool_Tag, &ConfigureParams.Screen.bCrop },
 	{ "nMaxWidth", Int_Tag, &ConfigureParams.Screen.nMaxWidth },
 	{ "nMaxHeight", Int_Tag, &ConfigureParams.Screen.nMaxHeight },
 	{ NULL , Error_Tag, NULL }
@@ -222,10 +225,12 @@ static const struct Config_Tag configs_ShortCutWithoutMod[] =
 /* Used to load/save sound options */
 static const struct Config_Tag configs_Sound[] =
 {
-	{ "bEnableSound", Bool_Tag, &ConfigureParams.Sound.bEnableSound },
-	{ "nPlaybackFreq", Int_Tag, &ConfigureParams.Sound.nPlaybackFreq },
-	{ "szYMCaptureFileName", String_Tag, ConfigureParams.Sound.szYMCaptureFileName },
-	{ "nSdlAudioBufferSize", Int_Tag, &ConfigureParams.Sound.SdlAudioBufferSize },
+    { "bEnableMicrophone", Bool_Tag, &ConfigureParams.Sound.bEnableMicrophone },
+  	{ "bEnableSound", Bool_Tag, &ConfigureParams.Sound.bEnableSound },
+  	{ "nPlaybackFreq", Int_Tag, &ConfigureParams.Sound.nPlaybackFreq },
+  	{ "nSdlAudioBufferSize", Int_Tag, &ConfigureParams.Sound.SdlAudioBufferSize },
+    { "szYMCaptureFileName", String_Tag, ConfigureParams.Sound.szYMCaptureFileName },
+//    { "YmVolumeMixing", Int_Tag, &ConfigureParams.Sound.YmVolumeMixing },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -317,6 +322,23 @@ static const struct Config_Tag configs_System[] =
 	{ "bRealTimeClock", Bool_Tag, &ConfigureParams.System.bRealTimeClock },
 	{ "bPatchTimerD", Bool_Tag, &ConfigureParams.System.bPatchTimerD },
 	{ "bFastForward", Bool_Tag, &ConfigureParams.System.bFastForward },
+    
+#if ENABLE_WINUAE_CPU
+    { "bAddressSpace24", Bool_Tag, &ConfigureParams.System.bAddressSpace24 },
+    { "bCycleExactCpu", Bool_Tag, &ConfigureParams.System.bCycleExactCpu },
+    { "n_FPUType", Int_Tag, &ConfigureParams.System.n_FPUType },
+    { "bCompatibleFPU", Bool_Tag, &ConfigureParams.System.bCompatibleFPU },
+    { "bMMU", Bool_Tag, &ConfigureParams.System.bMMU },
+#endif
+    { NULL , Error_Tag, NULL }
+    };
+
+/* Used to load/save video options */
+static const struct Config_Tag configs_Video[] =
+{
+    { "AviRecordVcodec", Int_Tag, &ConfigureParams.Video.AviRecordVcodec },
+    { "AviRecordFps", Int_Tag, &ConfigureParams.Video.AviRecordFps },
+    { "AviRecordFile", String_Tag, ConfigureParams.Video.AviRecordFile },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -403,9 +425,10 @@ void Configuration_SetDefault(void)
 	/* Set defaults for Shortcuts */
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS] = SDLK_F12;
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_FULLSCREEN] = SDLK_F11;
-	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_PAUSE] = SDLK_PAUSE;
-  
-	ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG] = SDLK_PAUSE;
+    
+	ConfigureParams.Shortcut.withModifier[SHORTCUT_PAUSE] = SDLK_p;
+	ConfigureParams.Shortcut.withModifier[SHORTCUT_DEBUG] = SDLK_d;
+    
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_OPTIONS] = SDLK_o;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_FULLSCREEN] = SDLK_f;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_MOUSEGRAB] = SDLK_m;
@@ -421,7 +444,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_QUIT] = SDLK_q;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_LOADMEM] = SDLK_l;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_SAVEMEM] = SDLK_k;
-	ConfigureParams.Shortcut.withModifier[SHORTCUT_INSERTDISKA] = SDLK_d;
+	ConfigureParams.Shortcut.withModifier[SHORTCUT_INSERTDISKA] = SDLK_1;
 
 	/* Set defaults for Memory */
 	ConfigureParams.Memory.nMemorySize = 1;     /* 1 MiB */
@@ -449,7 +472,8 @@ void Configuration_SetDefault(void)
 
 	/* Set defaults for Screen */
 	ConfigureParams.Screen.bFullScreen = false;
-	ConfigureParams.Screen.nFrameSkips = AUTO_FRAMESKIP_LIMIT;
+    ConfigureParams.Screen.bKeepResolution = true;
+//	ConfigureParams.Screen.nFrameSkips = AUTO_FRAMESKIP_LIMIT;
 	ConfigureParams.Screen.bAllowOverscan = true;
 	ConfigureParams.Screen.nSpec512Threshold = 16;
 	ConfigureParams.Screen.nForceBpp = 0;
@@ -458,17 +482,19 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Screen.bUseExtVdiResolutions = false;
 	ConfigureParams.Screen.bShowStatusbar = true;
 	ConfigureParams.Screen.bShowDriveLed = true;
-	ConfigureParams.Screen.bCaptureChange = false;
+	ConfigureParams.Screen.bCrop = false;
 	/* target 800x600 screen with statusbar out of screen */
-	ConfigureParams.Screen.nMaxWidth = 1024;
-	ConfigureParams.Screen.nMaxHeight = 768;
+	ConfigureParams.Screen.nMaxWidth = 0;
+	ConfigureParams.Screen.nMaxHeight = 0;
 
 	/* Set defaults for Sound */
+    ConfigureParams.Sound.bEnableMicrophone = true;
 	ConfigureParams.Sound.bEnableSound = true;
 	ConfigureParams.Sound.nPlaybackFreq = 44100;
 	sprintf(ConfigureParams.Sound.szYMCaptureFileName, "%s%chatari.wav",
 	        psWorkingDir, PATHSEP);
 	ConfigureParams.Sound.SdlAudioBufferSize = 0;
+//  ConfigureParams.Sound.YmVolumeMixing = YM_TABLE_MIXING;
 
 	/* Set defaults for Rom */
 	sprintf(ConfigureParams.Rom.szTosImageFileName, "%s%ctos.img",
@@ -477,21 +503,38 @@ void Configuration_SetDefault(void)
 
 	/* Set defaults for System */
 	ConfigureParams.System.nCpuLevel = 4;
-	ConfigureParams.System.nCpuFreq = 8;
+	ConfigureParams.System.nCpuFreq = 32;
 	ConfigureParams.System.bCompatibleCpu = true;
-	/*ConfigureParams.System.bAddressSpace24 = true;*/
 	ConfigureParams.System.nMachineType = MACHINE_ST;
 	ConfigureParams.System.bBlitter = false;
 	ConfigureParams.System.nDSPType = DSP_TYPE_NONE;
 	ConfigureParams.System.bPatchTimerD = true;
 	ConfigureParams.System.bRealTimeClock = true;
 	ConfigureParams.System.bFastForward = false;
+    
+#if ENABLE_WINUAE_CPU
+    ConfigureParams.System.bAddressSpace24 = false;
+    ConfigureParams.System.bCycleExactCpu = false;
+    ConfigureParams.System.n_FPUType = FPU_CPU;
+    ConfigureParams.System.bCompatibleFPU = true;
+    ConfigureParams.System.bMMU = true;
+#endif
+
+    /* Set defaults for Video */
+#if HAVE_LIBPNG
+    ConfigureParams.Video.AviRecordVcodec = AVI_RECORD_VIDEO_CODEC_PNG;
+#else
+    ConfigureParams.Video.AviRecordVcodec = AVI_RECORD_VIDEO_CODEC_BMP;
+#endif
+    ConfigureParams.Video.AviRecordFps = 0;			/* automatic FPS */
+    sprintf(ConfigureParams.Video.AviRecordFile, "%s%chatari.avi", psWorkingDir, PATHSEP);
+
 
 	/* Initialize the configuration file name */
 	if (strlen(psHomeDir) < sizeof(sConfigFileName)-13)
-		sprintf(sConfigFileName, "%s%chatari.cfg", psHomeDir, PATHSEP);
+		sprintf(sConfigFileName, "%s%cprevious.cfg", psHomeDir, PATHSEP);
 	else
-		strcpy(sConfigFileName, "hatari.cfg");
+		strcpy(sConfigFileName, "previous.cfg");
 
 #if defined(__AMIGAOS4__)
 	/* Fix default path names on Amiga OS */
@@ -511,11 +554,15 @@ void Configuration_Apply(bool bReset)
 	{
 		/* Set resolution change */
 	}
-	if (ConfigureParams.Screen.nFrameSkips < AUTO_FRAMESKIP_LIMIT)
-	{
-//		nFrameSkips = ConfigureParams.Screen.nFrameSkips;
-	}
+//	if (ConfigureParams.Screen.nFrameSkips < AUTO_FRAMESKIP_LIMIT)
+//	{
+//        nFrameSkips = ConfigureParams.Screen.nFrameSkips;
+//	}
 
+    /* Init clocks for this machine */
+    ClocksTimings_InitMachine ( ConfigureParams.System.nMachineType );
+    
+    
 	/* Sound settings */
 	/* SDL sound buffer in ms */
 //	SdlAudioBufferSize = ConfigureParams.Sound.SdlAudioBufferSize;
@@ -529,25 +576,19 @@ void Configuration_Apply(bool bReset)
 	/* Set playback frequency */
 //	Audio_SetOutputAudioFreq(ConfigureParams.Sound.nPlaybackFreq);
 
-	/* CPU settings */
-	if (ConfigureParams.System.nCpuFreq < 12)
-	{
-		ConfigureParams.System.nCpuFreq = 8;
-		nCpuFreqShift = 0;
-	}
-	else if (ConfigureParams.System.nCpuFreq > 26)
-	{
-		ConfigureParams.System.nCpuFreq = 32;
-		nCpuFreqShift = 2;
-	}
-	else
-	{
-		ConfigureParams.System.nCpuFreq = 16;
-		nCpuFreqShift = 1;
-	}
-	/* Change UAE cpu_level and cpu_compatible accordingly */
-	M68000_CheckCpuLevel();
+	/* YM Mixing */
+//    if ( ( ConfigureParams.Sound.YmVolumeMixing != YM_LINEAR_MIXING )
+//            && ( ConfigureParams.Sound.YmVolumeMixing != YM_TABLE_MIXING ) )
+//        ConfigureParams.Sound.YmVolumeMixing = YM_TABLE_MIXING;
 
+//    YmVolumeMixing = ConfigureParams.Sound.YmVolumeMixing;
+//    Sound_SetYmVolumeMixing();
+    
+    /* Check/constrain CPU settings and change corresponding
+    * UAE cpu_level & cpu_compatible variables
+    */
+    M68000_CheckCpuSettings();
+    
 	/* Clean file and directory names */
 	File_MakeAbsoluteName(ConfigureParams.Rom.szTosImageFileName);
 	if (strlen(ConfigureParams.Rom.szCartridgeImageFileName) > 0)
@@ -559,6 +600,7 @@ void Configuration_Apply(bool bReset)
 	File_MakeAbsoluteName(ConfigureParams.Sound.szYMCaptureFileName);
 	if (strlen(ConfigureParams.Keyboard.szMappingFileName) > 0)
 		File_MakeAbsoluteName(ConfigureParams.Keyboard.szMappingFileName);
+    File_MakeAbsoluteName(ConfigureParams.Video.AviRecordFile);
 	
 	/* make path names absolute, but handle special file names */
 	File_MakeAbsoluteSpecialName(ConfigureParams.Log.sLogFileName);
@@ -601,7 +643,7 @@ void Configuration_Load(const char *psFileName)
 
 	if (!File_Exists(psFileName))
 	{
-		fprintf(stderr, "Configuration file %s not found.\n", psFileName);
+		Log_Printf(LOG_DEBUG, "Configuration file %s not found.\n", psFileName);
 		return;
 	}
 
@@ -626,6 +668,7 @@ void Configuration_Load(const char *psFileName)
 	Configuration_LoadSection(psFileName, configs_Printer, "[Printer]");
 	Configuration_LoadSection(psFileName, configs_Midi, "[Midi]");
 	Configuration_LoadSection(psFileName, configs_System, "[System]");
+    Configuration_LoadSection(psFileName, configs_Video, "[Video]");
 }
 
 
@@ -677,6 +720,7 @@ void Configuration_Save(void)
 	Configuration_SaveSection(sConfigFileName, configs_Printer, "[Printer]");
 	Configuration_SaveSection(sConfigFileName, configs_Midi, "[Midi]");
 	Configuration_SaveSection(sConfigFileName, configs_System, "[System]");
+    Configuration_SaveSection(sConfigFileName, configs_Video, "[Video]");
 }
 
 
@@ -711,6 +755,15 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
 	MemorySnapShot_Store(&ConfigureParams.System.nDSPType, sizeof(ConfigureParams.System.nDSPType));
 	MemorySnapShot_Store(&ConfigureParams.System.bRealTimeClock, sizeof(ConfigureParams.System.bRealTimeClock));
 	MemorySnapShot_Store(&ConfigureParams.System.bPatchTimerD, sizeof(ConfigureParams.System.bPatchTimerD));
+    
+#if ENABLE_WINUAE_CPU
+    MemorySnapShot_Store(&ConfigureParams.System.bAddressSpace24, sizeof(ConfigureParams.System.bAddressSpace24));
+    MemorySnapShot_Store(&ConfigureParams.System.bCycleExactCpu, sizeof(ConfigureParams.System.bCycleExactCpu));
+    MemorySnapShot_Store(&ConfigureParams.System.n_FPUType, sizeof(ConfigureParams.System.n_FPUType));
+    MemorySnapShot_Store(&ConfigureParams.System.bCompatibleFPU, sizeof(ConfigureParams.System.bCompatibleFPU));
+    MemorySnapShot_Store(&ConfigureParams.System.bMMU, sizeof(ConfigureParams.System.bMMU));
+#endif
+    
 	MemorySnapShot_Store(&ConfigureParams.DiskImage.bSlowFloppy, sizeof(ConfigureParams.DiskImage.bSlowFloppy));
 
 	if (!bSave)

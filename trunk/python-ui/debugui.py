@@ -2,7 +2,7 @@
 #
 # A Debug UI for the Hatari, part of PyGtk Hatari UI
 #
-# Copyright (C) 2008-2010 by Eero Tamminen <eerot at berlios>
+# Copyright (C) 2008-2011 by Eero Tamminen <eerot at berlios>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -250,7 +250,7 @@ class MemoryAddress:
             address = self.first
 
         if not address:
-            print "ERROR: address needed"
+            print("ERROR: address needed")
             return
         
         if self.dumpmode == Constants.MEMDUMP:
@@ -258,7 +258,7 @@ class MemoryAddress:
         elif self.dumpmode == Constants.DISASM:
             output = self._get_disasm(address, move_idx)
         else:
-            print "ERROR: unknown dumpmode:", self.dumpmode
+            print("ERROR: unknown dumpmode:", self.dumpmode)
             return
         self.memory.set_label("".join(output))
         if move_idx:
@@ -325,9 +325,9 @@ class MemoryAddress:
             else:
                 output = output[:self.lines]
         # with disasm need to re-get the addresses from the output
-        self.first  = int(output[0][:output[0].find(":")], 16)
-        self.second = int(output[1][:output[1].find(":")], 16)
-        self.last   = int(output[-1][:output[-1].find(":")], 16)
+        self.first  = int(output[0][1:output[0].find(":")], 16)
+        self.second = int(output[1][1:output[1].find(":")], 16)
+        self.last   = int(output[-1][1:output[-1].find(":")], 16)
         return output
 
     def _set_clamped(self, first, last):
@@ -545,7 +545,7 @@ def main():
     hatariobj = Hatari()
     if len(sys.argv) > 1:
         if sys.argv[1] in ("-h", "--help"):
-            print "usage: %s [hatari options]" % os.path.basename(sys.argv[0])
+            print("usage: %s [hatari options]" % os.path.basename(sys.argv[0]))
             return
         args = sys.argv[1:]
     else:

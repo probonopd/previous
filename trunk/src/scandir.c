@@ -20,9 +20,23 @@ const char ScanDir_fileid[] = "Hatari scandir.c : " __DATE__ " " __TIME__;
 #include "log.h"
 
 /*-----------------------------------------------------------------------
- * Here come alphasort and scandir for BeOS and SunOS
+ * Here come alphasort and scandir for POSIX-like OSes
  *-----------------------------------------------------------------------*/
-#if defined(__BEOS__) || (defined(__sun) && defined(__SVR4))
+#if !defined(WIN32) && !defined(__CEGCC__)
+
+/**
+ * Alphabetic order comparison routine.
+ */
+#if !HAVE_ALPHASORT
+int alphasort(const void *d1, const void *d2)
+{
+    return strcmp((*(struct dirent * const *)d1)->d_name,
+                  (*(struct dirent * const *)d2)->d_name);
+}
+#endif
+
+
+#if !HAVE_SCANDIR
 
 #undef DIRSIZ
 
@@ -35,16 +49,6 @@ const char ScanDir_fileid[] = "Hatari scandir.c : " __DATE__ " " __TIME__;
 #elif defined(__BEOS__)
 # define dirfd(d) ((d)->fd)
 #endif
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * Alphabetic order comparison routine.
- */
-int alphasort(const void *d1, const void *d2)
-{
-	return strcmp((*(struct dirent * const *)d1)->d_name, (*(struct dirent * const *)d2)->d_name);
-}
 
 
 /*-----------------------------------------------------------------------*/
@@ -140,9 +144,9 @@ error_out:
 		closedir(dirp);
 	return -1;
 }
+#endif	/* !HAVE_SCANDIR */
 
-
-#endif /* __BEOS__ || __sun */
+#endif /* !WIN32 */
 
 
 /*-----------------------------------------------------------------------

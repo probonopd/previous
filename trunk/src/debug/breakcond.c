@@ -17,17 +17,22 @@ const char BreakCond_fileid[] = "Hatari breakcond.c : " __DATE__ " " __TIME__;
 #include <stdlib.h>
 #include "config.h"
 #include "main.h"
+#include "file.h"
 #include "m68000.h"
 #include "memorySnapShot.h"
 #include "nextMemory.h"
 #include "str.h"
+#include "screen.h" /* for defines needed by video.h */
 #include "video.h"	/* for Hatari video variable addresses */
 
 #include "debug_priv.h"
 #include "breakcond.h"
 #include "debugcpu.h"
+#include "debugInfo.h"
+#include "debugui.h"
 #include "evaluate.h"
 #include "symbols.h"
+#include "68kDisass.h"
 
 
 /* set to 1 to enable parsing function tracing / debug output */
@@ -41,7 +46,7 @@ const char BreakCond_fileid[] = "Hatari breakcond.c : " __DATE__ " " __TIME__;
 
 #define BC_DEFAULT_DSP_SPACE 'P'
 
-enum {	
+typedef enum {	
 	/* plain number */
 	VALUE_TYPE_NUMBER     = 0,
 
@@ -54,7 +59,7 @@ enum {
 	/* size must match register size used in BreakCond_ParseRegister() */
 	VALUE_TYPE_REG16      = 16,
 	VALUE_TYPE_REG32      = 32
-} typedef value_t;
+} value_t;
 
 static inline bool is_register_type(value_t vtype) {
 	/* type used for CPU/DSP registers */
@@ -84,13 +89,19 @@ typedef struct {
 } bc_condition_t;
 
 typedef struct {
+    char *filename;	/* file where to read commands to do on hit */
+    int skip;	/* how many times to hit before breaking */
+    bool once;	/* remove after hit&break */
+    bool trace;	/* trace mode, don't break */
+    bool lock;	/* tracing + show locked info */
+} bc_options_t;
+
+typedef struct {
 	char *expression;
+    bc_options_t options;
 	bc_condition_t conditions[BC_MAX_CONDITIONS_PER_BREAKPOINT];
 	int ccount;	/* condition count */
 	int hits;	/* how many times breakpoint hit */
-	int skip;	/* how many times to hit before breaking */
-	bool once;	/* remove after hit&break */
-	bool trace;	/* trace mode, don't break */
 } bc_breakpoint_t;
 
 static bc_breakpoint_t BreakPointsCpu[BC_MAX_CONDITION_BREAKPOINTS];
@@ -114,9 +125,11 @@ bool BreakCond_Save(const char *filename)
 	int i;
 
 	if (!(BreakPointCpuCount || BreakPointDspCount)) {
-		if (remove(filename)) {
-			perror("ERROR");
-			return false;
+        if (File_Exists(filename)) {
+            if (remove(filename)) {
+                perror("ERROR");
+                return false;
+            }
 		}
 		return true;
 	}
@@ -308,20 +321,31 @@ static int BreakCond_MatchBreakPoints(bc_breakpoint_t *bp, int count, const char
 		if (BreakCond_MatchConditions(bp->conditions, bp->ccount)) {
 			BreakCond_ShowTracked(bp->conditions, bp->ccount);
 			bp->hits++;
-			if (bp->skip && (bp->hits % bp->skip) == 0) {
-				return 0;
+			if (bp->options.skip &&
+                (bp->hits % bp->options.skip) == 0) {
+                return 0;
 			}
 			fprintf(stderr, "%d. %s breakpoint condition(s) matched %d times.\n",
 				i+1, name, bp->hits);
-			if (bp->trace) {
-				return 0;
-			}
-			BreakCond_Print(bp);
-			if (bp->once) {
+            
+            BreakCond_Print(bp);
+			if (bp->options.once) {
 				BreakCond_Remove(i+1, (bp-i == BreakPointsDsp));
 			}
-			/* indexes for BreakCond_Remove() start from 1 */
-			return i + 1;
+			if (bp->options.lock) {
+                DebugCpu_InitSession();
+                DebugDsp_InitSession();
+                DebugInfo_ShowSessionInfo();
+            }
+            if (bp->options.filename) {
+                DebugUI_ParseFile(bp->options.filename);
+            }
+            if (bp->options.trace) {
+                return 0;
+            } else {
+                /* indexes for BreakCond_Remove() start from 1 */
+                return i + 1;
+            }
 		}
 	}
 	return 0;
@@ -392,11 +416,112 @@ static Uint32 GetFrameCycles(void)
 	return fcycles;
 }
 
+/* helpers for TOS OS call opcode accessor functions */
+#define INVALID_OPCODE 0xFFFFu
+
+static inline Uint16 getLineOpcode(Uint8 line)
+{
+    Uint32 pc;
+    Uint16 instr;
+    pc = M68000_GetPC();
+    instr = nextMemory_ReadWord(pc);
+    /* for opcode X, Line-A = 0xA00X, Line-F = 0xF00X */
+    if ((instr >> 12) == line) {
+        return instr & 0xFF;
+    }
+    return INVALID_OPCODE;
+}
+static inline bool isTrap(Uint8 trap)
+{
+    Uint32 pc;
+    Uint16 instr;
+    pc = M68000_GetPC();
+    instr = nextMemory_ReadWord(pc);
+    return (instr == (Uint16)0x4e40u + trap);
+}
+static inline Uint16 getControlOpcode(void)
+{
+    /* Control[] address from D1, opcode in Control[0] */
+    return nextMemory_ReadWord(STMemory_ReadLong(Regs[REG_D1]));
+}
+static inline Uint16 getStackOpcode(void)
+{
+    return nextMemory_ReadWord(Regs[REG_A7]);
+}
+
+/* Actual TOS OS call opcode accessor functions */
+static Uint32 GetLineAOpcode(void)
+{
+    return getLineOpcode(0xA);
+}
+static Uint32 GetLineFOpcode(void)
+{
+    return getLineOpcode(0xF);
+}
+static Uint32 GetGemdosOpcode(void)
+{
+    if (isTrap(1)) {
+        return getStackOpcode();
+    }
+    return INVALID_OPCODE;
+}
+static Uint32 GetBiosOpcode(void)
+{
+    if (isTrap(13)) {
+        return getStackOpcode();
+    }
+    return INVALID_OPCODE;
+}
+static Uint32 GetXbiosOpcode(void)
+{
+    if (isTrap(14)) {
+        return getStackOpcode();
+    }
+    return INVALID_OPCODE;
+}
+static Uint32 GetAesOpcode(void)
+{
+    if (isTrap(2)) {
+        Uint16 d0 = Regs[REG_D0];
+        if (d0 == 0xC8) {
+            return getControlOpcode();
+        } else if (d0 == 0xC9) {
+            /* same as appl_yield() */
+            return 0x11;
+        }
+    }
+    return INVALID_OPCODE;
+}
+static Uint32 GetVdiOpcode(void)
+{
+    if (isTrap(2)) {
+        Uint16 d0 = Regs[REG_D0];
+        if (d0 == 0x73) {
+            return getControlOpcode();
+        } else if (d0 == 0xFFFE) {
+            /* -2 = vq_[v]gdos() */
+            return 0xFFFE;
+        }
+    }
+    return INVALID_OPCODE;
+}
 
 /* sorted by variable name so that this can be bisected */
 static const var_addr_t hatari_vars[] = {
+    { "AesOpcode", (Uint32*)GetAesOpcode, VALUE_TYPE_FUNCTION32, 16, "by default FFFF" },
+    { "BiosOpcode", (Uint32*)GetBiosOpcode, VALUE_TYPE_FUNCTION32, 16, "by default FFFF" },
+    { "BSS", (Uint32*)DebugInfo_GetBSS, VALUE_TYPE_FUNCTION32, 0, "invalid before Desktop is up" },
+    { "DATA", (Uint32*)DebugInfo_GetDATA, VALUE_TYPE_FUNCTION32, 0, "invalid before Desktop is up" },
 	{ "FrameCycles", (Uint32*)GetFrameCycles, VALUE_TYPE_FUNCTION32, 0, NULL },
-	{ "LineCycles", (Uint32*)GetLineCycles, VALUE_TYPE_FUNCTION32, 0, "is always divisable by 4" }
+    { "GemdosOpcode", (Uint32*)GetGemdosOpcode, VALUE_TYPE_FUNCTION32, 16, "by default FFFF" },
+    { "LineAOpcode", (Uint32*)GetLineAOpcode, VALUE_TYPE_FUNCTION32, 16, "by default FFFF" },
+	{ "LineCycles", (Uint32*)GetLineCycles, VALUE_TYPE_FUNCTION32, 0, "is always divisable by 4" },
+    { "LineFOpcode", (Uint32*)GetLineFOpcode, VALUE_TYPE_FUNCTION32, 16, "by default FFFF" },
+    { "TEXT", (Uint32*)DebugInfo_GetTEXT, VALUE_TYPE_FUNCTION32, 0, "invalid before Desktop is up" },
+    { "VBL", (Uint32*)&nVBLs, VALUE_TYPE_VAR32, sizeof(nVBLs)*8, NULL },
+    { "VdiOpcode", (Uint32*)GetVdiOpcode, VALUE_TYPE_FUNCTION32, 16, "by default FFFF" },
+    { "XbiosOpcode", (Uint32*)GetXbiosOpcode, VALUE_TYPE_FUNCTION32, 16, "by default FFFF" }
+
 };
 
 
@@ -416,11 +541,11 @@ char *BreakCond_MatchCpuVariable(const char *text, int state)
 		i = 0;
 	}
 	/* next match */
-	while (i < ARRAYSIZE(hatari_vars)) {
-		name = hatari_vars[i++].name;
-		if (strncasecmp(name, text, len) == 0)
-			return (strdup(name));
-	}
+//	while (i < ARRAYSIZE(hatari_vars)) {
+//		name = hatari_vars[i++].name;
+//		if (strncasecmp(name, text, len) == 0)
+//			return (strdup(name));
+//	}
 	/* no variable match, check all CPU symbols */
 	return Symbols_MatchCpuAddress(text, state);
 }
@@ -441,34 +566,51 @@ char *BreakCond_MatchDspVariable(const char *text, int state)
  * If given string is a Hatari variable name, set bc_value
  * fields accordingly and return true, otherwise return false.
  */
-static bool BreakCond_ParseVariable(const char *name, bc_value_t *bc_value)
-{
+//static bool BreakCond_ParseVariable(const char *name, bc_value_t *bc_value)
+//{
 	/* left, right, middle, direction */
         int l, r, m, dir;
 
-	ENTERFUNC(("BreakCond_ParseVariable('%s')\n", name));
+//	ENTERFUNC(("BreakCond_ParseVariable('%s')\n", name));
 	/* bisect */
-	l = 0;
-	r = ARRAYSIZE(hatari_vars) - 1;
-	do {
-		m = (l+r) >> 1;
-		dir = strcasecmp(name, hatari_vars[m].name);
-		if (dir == 0) {
-			bc_value->value.reg32 = hatari_vars[m].addr;
-			bc_value->valuetype = hatari_vars[m].vtype;
-			bc_value->bits = hatari_vars[m].bits;
-			assert(bc_value->bits == 32 || bc_value->valuetype !=  VALUE_TYPE_VAR32);
-			EXITFUNC(("-> true\n"));
-			return true;
-		}
-		if (dir < 0) {
-			r = m-1;
-		} else {
-			l = m+1;
-		}
-	} while (l <= r);
-	EXITFUNC(("-> false\n"));
-	return false;
+//	l = 0;
+//	r = ARRAYSIZE(hatari_vars) - 1;
+//	do {
+//		m = (l+r) >> 1;
+//		dir = strcasecmp(name, hatari_vars[m].name);
+//		if (dir == 0) {
+//			bc_value->value.reg32 = hatari_vars[m].addr;
+//			bc_value->valuetype = hatari_vars[m].vtype;
+//			bc_value->bits = hatari_vars[m].bits;
+//			assert(bc_value->bits == 32 || bc_value->valuetype !=  VALUE_TYPE_VAR32);
+//			EXITFUNC(("-> true\n"));
+//			return true;
+//		}
+//		if (dir < 0) {
+//			r = m-1;
+//		} else {
+//			l = m+1;
+//		}
+//	} while (l <= r);
+//	EXITFUNC(("-> false\n"));
+//	return false;
+//}
+
+
+/**
+ * If given string is a Hatari variable name, set value to given
+ * variable value and return true, otherwise return false.
+ */
+bool BreakCond_GetHatariVariable(const char *name, Uint32 *value)
+{
+    bc_value_t bc_value;
+//    if (!BreakCond_ParseVariable(name, &bc_value)) {
+//        return false;
+//    }
+    bc_value.mask = 0xffffffff;
+    bc_value.is_indirect = false;
+    *value = BreakCond_GetValue(&bc_value);
+    return true;
 }
 
 
@@ -741,13 +883,13 @@ static bool BreakCond_ParseValue(parser_state_t *pstate, bc_value_t *bc_value)
 			/* a valid Hatari variable or register name?
 			 * variables cannot be used for ST memory indirection.
 			 */
-			if (!BreakCond_ParseVariable(str, bc_value) &&
-			    !BreakCond_ParseRegister(str, bc_value) &&
-			    !BreakCond_ParseSymbol(str, bc_value)) {
-				pstate->error = "invalid variable/register/symbol name";
-				EXITFUNC(("arg:%d -> false\n", pstate->arg));
-				return false;
-			}
+//			if (!BreakCond_ParseVariable(str, bc_value) &&
+//			    !BreakCond_ParseRegister(str, bc_value) &&
+//			    !BreakCond_ParseSymbol(str, bc_value)) {
+//				pstate->error = "invalid variable/register/symbol name";
+//				EXITFUNC(("arg:%d -> false\n", pstate->arg));
+//				return false;
+//			}
 		}
 	} else {
 		/* a number */
@@ -1156,7 +1298,7 @@ static void BreakCond_CheckTracking(bc_breakpoint_t *bp)
  * Parse given breakpoint expression and store it.
  * Return true for success and false for failure.
  */
-static bool BreakCond_Parse(const char *expression, bool bForDsp, bool trace, bool once, int skip)
+static bool BreakCond_Parse(const char *expression, bc_options_t *options, bool bForDsp)
 {
 	parser_state_t pstate;
 	bc_breakpoint_t *bp;
@@ -1190,18 +1332,26 @@ static bool BreakCond_Parse(const char *expression, bool bForDsp, bool trace, bo
 		fprintf(stderr, "%s condition breakpoint %d with %d condition(s) added:\n\t%s\n",
 			name, *bcount, ccount, bp->expression);
 		BreakCond_CheckTracking(bp);
-		if (skip) {
-			fprintf(stderr, "-> Break only on every %d hit.\n", skip);
-			bp->skip = skip;
+		if (options->skip) {
+            fprintf(stderr, "-> Break only on every %d hit.\n", options->skip);
+            bp->options.skip = options->skip;
 		}
-		if (once) {
-			fprintf(stderr, "-> Once, delete after breaking.\n");
-			bp->once = once;
+		if (options->once) {
+  			fprintf(stderr, "-> Once, delete after breaking.\n");
+            bp->options.once = true;
 		}
-		if (trace) {
+		if (options->trace) {
 			fprintf(stderr, "-> Trace instead of breaking, but show still hits.\n");
-			bp->trace = trace;
-		}
+            if (options->lock) {
+                fprintf(stderr, "-> Show also info selected with lock command.\n");
+                bp->options.lock = true;
+            }
+            bp->options.trace = true;
+        }
+        if (options->filename) {
+            fprintf(stderr, "-> Execute debugger commands from '%s' file on hit.\n", options->filename);
+            bp->options.filename = strdup(options->filename);
+        }
 	} else {
 		if (normalized) {
 			int offset, i = 0;
@@ -1237,14 +1387,21 @@ static bool BreakCond_Parse(const char *expression, bool bForDsp, bool trace, bo
 static void BreakCond_Print(bc_breakpoint_t *bp)
 {
 		fprintf(stderr, "\t%s", bp->expression);
-		if (bp->skip) {
-			fprintf(stderr, " :%d", bp->skip);
+    if (bp->options.skip) {
+        fprintf(stderr, " :%d", bp->options.skip);
 		}
-		if (bp->once) {
+		if (bp->options.once) {
 			fprintf(stderr, " :once");
 		}
-		if (bp->trace) {
-			fprintf(stderr, " :trace");
+    if (bp->options.trace) {
+        if (bp->options.lock) {
+            fprintf(stderr, " :lock");
+        } else {
+            fprintf(stderr, " :trace");
+        }
+    }
+    if (bp->options.filename) {
+        fprintf(stderr, " :file %s", bp->options.filename);
 		}
 		fprintf(stderr, "\n");
 }
@@ -1283,7 +1440,7 @@ static bool BreakCond_Remove(int position, bool bForDsp)
 	
 	bcount = BreakCond_GetListInfo(&bp, &name, bForDsp);
 	if (!*bcount) {
-		fprintf(stderr, "No (more) breakpoints to remove.\n");
+		fprintf(stderr, "No (more) %s breakpoints to remove.\n", name);
 		return false;
 	}
 	if (position < 1 || position > *bcount) {
@@ -1294,6 +1451,9 @@ static bool BreakCond_Remove(int position, bool bForDsp)
 	fprintf(stderr, "Removed %s breakpoint %d:\n", name, position);
 	BreakCond_Print(&(bp[offset]));
 	free(bp[offset].expression);
+    if (bp[offset].options.filename) {
+        free(bp[offset].options.filename);
+    }
 	bp[offset].expression = NULL;
 
 	if (position < *bcount) {
@@ -1339,52 +1499,49 @@ static void BreakCond_Help(void)
 	Uint32 value;
 	int i;
 	fputs(
-"  breakpoint = <condition> [ && <condition> ... ] [option]\n"
-"  condition = <value>[.mode] [& <number>] <comparison> <value>[.mode]\n"
+"  condition = <value>[.mode] [& <mask>] <comparison> <value>[.mode]\n"
 "\n"
 "  where:\n"
 "  	value = [(] <register/symbol/variable name | number> [)]\n"
-"  	number = [#|$|%]<digits>\n"
+"  	number/mask = [#|$|%]<digits>\n"
 "  	comparison = '<' | '>' | '=' | '!'\n"
 "  	addressing mode (width) = 'b' | 'w' | 'l'\n"
 "  	addressing mode (space) = 'p' | 'x' | 'y'\n"
-"  	option = : <count> | 'once' | 'trace'\n"
 "\n"
 "  If the value is in parenthesis like in '($ff820)' or '(a0)', then\n"
 "  the used value will be read from the memory address pointed by it.\n"
 "\n"
-"  If the value expressions on both sides of the comparison are exactly\n"
-"  the same, right side is replaced with its current value and for\n"
-"  inequality ('!') comparison, the breakpoint tracks all further changes\n"
-"  for the given address/register expression.  'trace' option for continuing\n"
-"  without breaking can be useful with this. 'once' option removes breakpoint\n"
-"  after hit and giving count as option will break only on every <count> hit.\n"
+"  If the parsed value expressions on both sides of it are exactly\n"
+"  the same, right side is replaced with its current value.  For\n"
+"  inequality ('!') comparison, the breakpoint will additionally track\n"
+"  all further changes for the given address/register expression value.\n"
+"  (This is useful for tracking register and memory value changes.)\n"
 "\n"
 "  M68k addresses can have byte (b), word (w) or long (l, default) width.\n"
 "  DSP addresses belong to different address spaces: P, X or Y. Note that\n"
 "  on DSP only R0-R7 registers can be used for memory addressing.\n"
 "\n"
 "  Valid Hatari variable names (and their current values) are:\n", stderr);
-	for (i = 0; i < ARRAYSIZE(hatari_vars); i++) {
-		switch (hatari_vars[i].vtype) {
-		case VALUE_TYPE_FUNCTION32:
-			value = ((Uint32(*)(void))(hatari_vars[i].addr))();
-			break;
-		case VALUE_TYPE_VAR32:
-			value = *(hatari_vars[i].addr);
-			break;
-		default:
-			fprintf(stderr, "ERROR: variable '%s' has unsupported type '%d'\n",
-				hatari_vars[i].name, hatari_vars[i].vtype);
-			continue;
-		}
-		fprintf(stderr, "  - %s (%d)", hatari_vars[i].name, value);
-		if (hatari_vars[i].constraints) {
-			fprintf(stderr, ", %s\n", hatari_vars[i].constraints);
-		} else {
-			fprintf(stderr, "\n");
-		}
-	}
+//	for (i = 0; i < ARRAYSIZE(hatari_vars); i++) {
+//		switch (hatari_vars[i].vtype) {
+//		case VALUE_TYPE_FUNCTION32:
+//			value = ((Uint32(*)(void))(hatari_vars[i].addr))();
+//			break;
+//		case VALUE_TYPE_VAR32:
+//			value = *(hatari_vars[i].addr);
+//			break;
+//		default:
+//			fprintf(stderr, "ERROR: variable '%s' has unsupported type '%d'\n",
+//				hatari_vars[i].name, hatari_vars[i].vtype);
+//			continue;
+//		}
+//		fprintf(stderr, "  - %s ($%x)", hatari_vars[i].name, value);
+//		if (hatari_vars[i].constraints) {
+//			fprintf(stderr, ", %s\n", hatari_vars[i].constraints);
+//		} else {
+//			fprintf(stderr, "\n");
+//		}
+//	}
 	fputs(
 "\n"
 "  Examples:\n"
@@ -1397,14 +1554,77 @@ static void BreakCond_Help(void)
 /* ------------- breakpoint condition parsing, public API ------------ */
 
 const char BreakCond_Description[] =
-	"[ <condition> [:<count>|once|trace] | <index> | help | all ]\n"
-	"\tSet breakpoint with given <condition>, remove breakpoint with\n"
-	"\tgiven <index> or list all breakpoints when no args are given.\n"
-	"\tAdding ':trace' to end of condition causes breakpoint match\n"
-	"\tjust to be printed, not break.  Adding ':once' will delete\n"
-	"\tthe breakpoint after it's hit.  Adding ':<count>' will break\n"
-	"\tonly on every <count> hit.  'help' outputs breakpoint condition\n"
-	"\tsyntax help, 'all' removes all breakpoints.";
+"<condition> [&& <condition> ...] [:<option>] | <index> | help | all\n"
+"\n"
+"\tSet breakpoint with given <conditions>, remove breakpoint with\n"
+"\tgiven <index>, remove all breakpoints with 'all' or output\n"
+"\tbreakpoint condition syntax with 'help'.  Without arguments,\n"
+"\tlists currently active breakpoints.\n"
+"\n"
+"\tMultiple breakpoint action options can be specified after\n"
+"\tthe breakpoint condition(s):\n"
+"\t- 'trace', print the breakpoint match without stopping\n"
+"\t- 'lock', print the debugger entry info without stopping\n"
+"\t- 'file <file>', execute debugger commands from given <file>\n"
+"\t- 'once', delete the breakpoint after it's hit\n"
+"\t- '<count>', break only on every <count> hit";
+
+/**
+ * Parse options for the given breakpoint command.
+ * Return true for success and false for failure.
+ */
+static bool BreakCond_Options(char *str, bc_options_t *options, char marker)
+{
+    char *option, *next, *filename;
+    int skip;
+
+    memset(options, 0, sizeof(*options));
+
+    option = strchr(str, marker);
+    if (option) {
+        /* end breakcond command at options */
+        *option = 0;
+    }
+    for (next = option; option; option = next) {
+
+        /* skip marker + end & trim this option */
+        option = next + 1;
+        next = strchr(option, marker);
+        if (next) {
+            *next = 0;
+        }
+        option = Str_Trim(option);
+
+        if (strcmp(option, "once") == 0) {
+            options->once = true;
+        } else if (strcmp(option, "trace") == 0) {
+            options->trace = true;
+        } else if (strcmp(option, "lock") == 0) {
+            options->trace = true;
+            options->lock = true;
+        } else if (strncmp(option, "file ", 5) == 0) {
+            filename = Str_Trim(option+4);
+            if (!File_Exists(filename)) {
+                fprintf(stderr, "ERROR: given file '%s' doesn't exist!\n", filename);
+                fprintf(stderr, "(if you use 'cd' command, do it before setting breakpoints)\n");
+                return false;
+            }
+            options->filename = filename;
+        } else if (isdigit(*option)) {
+            /* :<value> */
+            skip = atoi(option);
+            if (skip < 2) {
+                fprintf(stderr, "ERROR: invalid breakpoint skip count '%s'!\n", option);
+                return false;
+            }
+            options->skip = skip;
+        } else {
+            fprintf(stderr, "ERROR: unrecognized breakpoint option '%s'!\n", option);
+            return false;
+        }
+    }
+    return true;
+}
 
 /**
  * Parse given command expression to set/remove/list
@@ -1413,11 +1633,11 @@ const char BreakCond_Description[] =
  */
 bool BreakCond_Command(const char *args, bool bForDsp)
 {
-	bool trace, once, ret = true;
-	char *cut, *expression, *argscopy;
+	char *expression, *argscopy;
 	unsigned int position;
+    bc_options_t options;
 	const char *end;
-	int skip;
+	bool ret = true;
 	
 	if (!args) {
 		BreakCond_List(bForDsp);
@@ -1428,7 +1648,7 @@ bool BreakCond_Command(const char *args, bool bForDsp)
 	
 	expression = Str_Trim(argscopy);
 	
-	/* subcommands */
+	/* subcommands? */
 	if (strncmp(expression, "help", 4) == 0) {
 		BreakCond_Help();
 		goto cleanup;
@@ -1438,29 +1658,13 @@ bool BreakCond_Command(const char *args, bool bForDsp)
 		goto cleanup;
 	}
 
-
-	/* postfix options */
-	skip = 0;
-	once = false;
-	trace = false;
-	if ((cut = strchr(expression, ':'))) {
-		*cut = '\0';
-		cut = Str_Trim(cut+1);
-		if (strcmp(cut, "trace") == 0) {
-			trace = true;
-		} else if (strcmp(cut, "once") == 0) {
-			once = true;
-		} else {
-			skip = atoi(cut);
-			if (skip < 2) {
-				ret = false;
-				fprintf(stderr, "ERROR: invalid breakpoint skip count '%s'!\n", cut);
-				goto cleanup;
-			}
-		}
-	}
-
-	/* index (for removal) */
+    /* postfix options? */
+    if (!BreakCond_Options(expression, &options, ':')) {
+        ret = false;
+        goto cleanup;
+    }
+    
+    /* index (for breakcond removal)? */
 	end = expression;
 	while (isdigit(*end)) {
 		end++;
@@ -1470,7 +1674,7 @@ bool BreakCond_Command(const char *args, bool bForDsp)
 		ret = BreakCond_Remove(position, bForDsp);
 	} else {
 		/* add breakpoint? */
-		ret = BreakCond_Parse(expression, bForDsp, trace, once, skip);
+		ret = BreakCond_Parse(expression, &options, bForDsp);
 	}
 cleanup:
 	free(argscopy);
@@ -1479,12 +1683,16 @@ cleanup:
 
 
 const char BreakAddr_Description[] =
-	"<address> [:<count>|once|trace]\n"
+	"<address> [:<option>]\n"
 	"\tCreate conditional breakpoint for given PC <address>.\n"
-	"\tAdding ':trace' causes breakpoint match just to be printed,\n"
-	"\tnot break. Adding ':once' will delete the breakpoint after\n"
-	"\tit's hit.  Adding ':<count>' will break only on every <count>\n"
-	"\thit.  Use conditional breakpoint commands to manage the created\n"
+    "\n"
+    "\tBreakpoint action option alternatives:\n"
+    "\t- 'trace', print the breakpoint match without stopping\n"
+    "\t- 'lock', print the debugger entry info without stopping\n"
+    "\t- 'once', delete the breakpoint after it's hit\n"
+    "\t- '<count>', break only on every <count> hit\n"
+    "\n"
+    "\tUse conditional breakpoint commands to manage the created\n"
 	"\tbreakpoints.";
 
 /**
@@ -1499,12 +1707,21 @@ bool BreakAddr_Command(char *args, bool bForDsp)
 	Uint32 addr;
 	int offset;
 
+    if (!args) {
+        if (bForDsp) {
+            DebugUI_PrintCmdHelp("dspaddress");
+        } else {
+            DebugUI_PrintCmdHelp("address");
+        }
+        return true;
+    }
+
 	/* split options */
 	if ((cut = strchr(args, ':'))) {
 		*cut = '\0';
 		cut = Str_Trim(cut+1);
-		if (strlen(cut) > 8) {
-			cut[8] = '\0';
+		if (strlen(cut) > 5) {
+			cut[5] = '\0';
 		}
 	}
 

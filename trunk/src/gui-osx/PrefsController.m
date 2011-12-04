@@ -22,7 +22,6 @@
 #include "change.h"
 #include "dialog.h"
 #include "file.h"
-#include "floppy.h"
 #include "screen.h"
 #include "sdlgui.h"
 
@@ -280,7 +279,7 @@ static const int nSoundFreqs[] =
 		strncpy(szPath, constSzPath, cbPath);
 
 		// Insert the floppy image at this path
-		Floppy_SetDiskFileName(drive, szPath, NULL);
+//		Floppy_SetDiskFileName(drive, szPath, NULL);
 	}
 }
 
@@ -366,7 +365,7 @@ static const int nSoundFreqs[] =
 */
 - (IBAction)ejectFloppyA:(id)sender
 {
-	Floppy_SetDiskFileNameNone(0);
+//	Floppy_SetDiskFileNameNone(0);
 	
 	// Refresh the control
 	[floppyImageA setStringValue:@""];
@@ -374,7 +373,7 @@ static const int nSoundFreqs[] =
 
 - (IBAction)ejectFloppyB:(id)sender
 {
-	Floppy_SetDiskFileNameNone(1);
+//	Floppy_SetDiskFileNameNone(1);
 
 	// Refresh the control
 	[floppyImageB setStringValue:@""];
@@ -516,7 +515,7 @@ static const int nSoundFreqs[] =
 - (void)initKeysDropDown:(NSPopUpButton*)dropDown
 {
 	[dropDown removeAllItems];
-	int i;
+	unsigned int i;
 	for (i = 0; i < Preferences_cKeysForJoysticks; i++)
 	{
 		SDLKey key = Preferences_KeysForJoysticks[i];
@@ -611,7 +610,7 @@ static const int nSoundFreqs[] =
 	IMPORT_SWITCH(autoInsertB, ConfigureParams.DiskImage.bAutoInsertDiskB);
     IMPORT_SWITCH(blitter, ConfigureParams.System.bBlitter);
 	IMPORT_SWITCH(bootFromHD, ConfigureParams.HardDisk.bBootFromHardDisk);	
-    IMPORT_SWITCH(captureOnChange, ConfigureParams.Screen.bCaptureChange);
+//    IMPORT_SWITCH(captureOnChange, ConfigureParams.Screen.bCrop);
     IMPORT_TEXTFIELD(cartridgeImage, ConfigureParams.Rom.szCartridgeImageFileName);
     IMPORT_RADIO(colorDepth, ConfigureParams.Screen.nVdiColors);
     IMPORT_SWITCH(compatibleCpu, ConfigureParams.System.bCompatibleCpu);
@@ -822,7 +821,7 @@ static const int nSoundFreqs[] =
 	EXPORT_SWITCH(autoInsertB, ConfigureParams.DiskImage.bAutoInsertDiskB);
     EXPORT_SWITCH(blitter, ConfigureParams.System.bBlitter);
 	EXPORT_SWITCH(bootFromHD, ConfigureParams.HardDisk.bBootFromHardDisk);
-    EXPORT_SWITCH(captureOnChange, ConfigureParams.Screen.bCaptureChange);
+//    EXPORT_SWITCH(captureOnChange, ConfigureParams.Screen.bCrop);
     EXPORT_TEXTFIELD(cartridgeImage, ConfigureParams.Rom.szCartridgeImageFileName);
     EXPORT_RADIO(colorDepth, ConfigureParams.Screen.nVdiColors);
     EXPORT_SWITCH(compatibleCpu, ConfigureParams.System.bCompatibleCpu);

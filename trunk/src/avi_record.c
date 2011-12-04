@@ -17,7 +17,7 @@
    - PNG : compressed RBG images. Depending on the compression level, this
      can require more cpu and could slow down Hatari. As compressed images
      are much smaller than BMP images, this will require less space on disk
-     and much less disk bandwidth. Compression levels 3 or 4 give could
+     and much less disk bandwidth. Compression levels 3 or 4 give good
      tradeoff between cpu usage and file size and should not slow down Hatari
      with recent computers.
 
@@ -29,7 +29,7 @@
   video frequency ; this means 44.1 kHz is the best choice for 50/60 Hz video.
 
   The AVI file is divided into multiple chunks. Hatari will save one video stream
-  and one audio stream, so the overall strucutre of the file is the following :
+  and one audio stream, so the overall structure of the file is the following :
 
   RIFF avi
       LIST
@@ -273,7 +273,8 @@ typedef struct {
   int		CropTop;
   int		CropBottom;
 
-  int		Fps;
+  int		Fps;					/* Fps << 24 */
+  int		Fps_scale;				/* 1 << 24 */
 
   int		AudioCodec;
   int		AudioFreq;
@@ -292,15 +293,6 @@ typedef struct {
 
 
 bool		bRecordingAvi = false;
-#if HAVE_LIBPNG
-int		AviRecordDefaultVcodec = AVI_RECORD_VIDEO_CODEC_PNG;
-#else
-int		AviRecordDefaultVcodec = AVI_RECORD_VIDEO_CODEC_BMP;
-#endif
-bool		AviRecordDefaultCrop = true;
-int		AviRecordDefaultFps = 50;
-char		AviRecordFile[FILENAME_MAX] = "hatari.avi";
-
 
 static RECORD_AVI_PARAMS	AviParams;
 static AVI_FILE_HEADER		AviFileHeader;
@@ -448,23 +440,14 @@ static bool	Avi_RecordVideoStream_PNG ( RECORD_AVI_PARAMS *pAviParams )
 	Avi_Store4cc ( Chunk.ChunkName , "00dc" );				/* stream 0, compressed DIB bytes */
 	Avi_StoreU32 ( Chunk.ChunkSize , 0 );					/* size of PNG image (-> completed later) */
 	if ( fwrite ( &Chunk , sizeof ( Chunk ) , 1 , pAviParams->FileOut ) != 1 )
-	{
-		perror ( "Avi_RecordVideoStream_PNG" );
-		Log_AlertDlg ( LOG_ERROR, "AVI recording : failed to write png frame header" );
-		return false;
-	}
-
-
-	/* Write the video frame data */
-	SizeImage = ScreenSnapShot_SavePNG_ToFile ( pAviParams->Surface , pAviParams->FileOut ,
-		pAviParams->VideoCodecCompressionLevel , PNG_FILTER_NONE ,
-		pAviParams->CropLeft , pAviParams->CropRight , pAviParams->CropTop , pAviParams->CropBottom );
-	if ( SizeImage <= 0 )
-	{
-		perror ( "Avi_RecordVideoStream_PNG" );
-		Log_AlertDlg ( LOG_ERROR, "AVI recording : failed to write png video frame" );
-		return false;
-	}
+        goto png_error;
+    
+  	/* Write the video frame data */
+  	SizeImage = ScreenSnapShot_SavePNG_ToFile ( pAviParams->Surface , pAviParams->FileOut ,
+                                               pAviParams->VideoCodecCompressionLevel , PNG_FILTER_NONE ,
+                                               pAviParams->CropLeft , pAviParams->CropRight , pAviParams->CropTop , pAviParams->CropBottom );
+  	if ( SizeImage <= 0 )
+        goto png_error;
 	if ( SizeImage & 1 )
 	{
 		SizeImage++;							/* add an extra '\0' byte to get an even size */
@@ -474,28 +457,19 @@ static bool	Avi_RecordVideoStream_PNG ( RECORD_AVI_PARAMS *pAviParams )
 	/* Update the size of the video chunk */
 	Avi_StoreU32 ( TempSize , SizeImage );
 	if ( fseek ( pAviParams->FileOut , ChunkPos+4 , SEEK_SET ) != 0 )
-	{
-		perror ( "Avi_RecordVideoStream_PNG" );
-		Log_AlertDlg ( LOG_ERROR, "AVI recording : failed to update png frame header" );
-		return false;
-	}
-	if ( fwrite ( TempSize , sizeof ( TempSize ) , 1 , pAviParams->FileOut ) != 1 )
-	{
-		perror ( "Avi_RecordVideoStream_PNG" );
-		Log_AlertDlg ( LOG_ERROR, "AVI recording : failed to update png frame header" );
-		return false;
-	}
-
-
-	/* Go to the end of the video frame data */
-	if ( fseek ( pAviParams->FileOut , 0 , SEEK_END ) != 0 )
-	{
-		perror ( "Avi_RecordVideoStream_PNG" );
-		Log_AlertDlg ( LOG_ERROR, "AVI recording : failed to seek png video frame" );
-		return false;
-	}
-
+        goto png_error;
+  	if ( fwrite ( TempSize , sizeof ( TempSize ) , 1 , pAviParams->FileOut ) != 1 )
+        goto png_error;
+    
+  	/* Go to the end of the video frame data */
+  	if ( fseek ( pAviParams->FileOut , 0 , SEEK_END ) != 0 )
+        goto png_error;
 	return true;
+
+png_error:
+    perror ( "Avi_RecordVideoStream_PNG" );
+    Log_AlertDlg ( LOG_ERROR, "AVI recording : failed to write png frame" );
+    return false;
 }
 #endif  /* HAVE_LIBPNG */
 
@@ -524,7 +498,16 @@ bool	Avi_RecordVideoStream ( void )
 		return false;
 	}
 
-	AviParams.TotalVideoFrames++;
+    if (++AviParams.TotalVideoFrames % ( AviParams.Fps / AviParams.Fps_scale ) == 0)
+    {
+        int secs = AviParams.TotalVideoFrames / ( AviParams.Fps / AviParams.Fps_scale );
+        char str[6] = "00:00";
+        str[0] = '0' + (secs / 60) / 10;
+        str[1] = '0' + (secs / 60) % 10;
+        str[3] = '0' + (secs % 60) / 10;
+        str[4] = '0' + (secs % 60) % 10;
+        Main_SetTitle(str);
+    }
 	return true;
 }
 
@@ -589,7 +572,7 @@ bool	Avi_RecordAudioStream ( Sint16 pSamples[][2] , int SampleIndex , int Sample
 
 static void	Avi_BuildFileHeader ( RECORD_AVI_PARAMS *pAviParams , AVI_FILE_HEADER *pAviFileHeader )
 {
-	int	Width , Height , BitCount , Fps , SizeImage;
+	int	Width , Height , BitCount , Fps , Fps_scale , SizeImage;
 	int	AudioFreq;
 
 	memset ( pAviFileHeader , 0 , sizeof ( *pAviFileHeader ) );
@@ -598,6 +581,7 @@ static void	Avi_BuildFileHeader ( RECORD_AVI_PARAMS *pAviParams , AVI_FILE_HEADE
 	Height =pAviParams->Height;
 	BitCount = pAviParams->BitCount;
 	Fps = pAviParams->Fps;
+    Fps_scale = pAviParams->Fps_scale;
 	AudioFreq = pAviParams->AudioFreq;
 
 	SizeImage = 0;
@@ -619,8 +603,8 @@ static void	Avi_BuildFileHeader ( RECORD_AVI_PARAMS *pAviParams , AVI_FILE_HEADE
 
 	Avi_Store4cc ( pAviFileHeader->AviHeader.Header.ChunkName , "avih" );
 	Avi_StoreU32 ( pAviFileHeader->AviHeader.Header.ChunkSize , sizeof ( AVI_STREAM_AVIH ) - 8 );
-	Avi_StoreU32 ( pAviFileHeader->AviHeader.Header.microsec_per_frame , 1000000 / Fps );
-	Avi_StoreU32 ( pAviFileHeader->AviHeader.Header.max_bytes_per_second , SizeImage * Fps + AudioFreq * 4 );
+	Avi_StoreU32 ( pAviFileHeader->AviHeader.Header.microsec_per_frame , (Uint32)( ( 1000000 * (Sint64)Fps_scale ) / Fps ) );
+	Avi_StoreU32 ( pAviFileHeader->AviHeader.Header.max_bytes_per_second , (Uint32)( ( (Sint64)SizeImage * Fps ) / Fps_scale + AudioFreq * 4 ) );
 	Avi_StoreU32 ( pAviFileHeader->AviHeader.Header.padding_granularity , 0 );
 	Avi_StoreU32 ( pAviFileHeader->AviHeader.Header.flags , AVIF_HASINDEX | AVIF_ISINTERLEAVED | AVIF_TRUSTCKTYPE );
 	Avi_StoreU32 ( pAviFileHeader->AviHeader.Header.total_frames , 0 );			/* number of video frames (-> completed later) */
@@ -651,7 +635,7 @@ static void	Avi_BuildFileHeader ( RECORD_AVI_PARAMS *pAviParams , AVI_FILE_HEADE
 	Avi_StoreU16 ( pAviFileHeader->VideoStream.Header.priority , 0 );
 	Avi_StoreU16 ( pAviFileHeader->VideoStream.Header.language , 0 );
 	Avi_StoreU32 ( pAviFileHeader->VideoStream.Header.initial_frames , 0 );
-	Avi_StoreU32 ( pAviFileHeader->VideoStream.Header.time_scale , 1 );
+	Avi_StoreU32 ( pAviFileHeader->VideoStream.Header.time_scale , Fps_scale );
 	Avi_StoreU32 ( pAviFileHeader->VideoStream.Header.data_rate , Fps );
 	Avi_StoreU32 ( pAviFileHeader->VideoStream.Header.start_time , 0 );
 	Avi_StoreU32 ( pAviFileHeader->VideoStream.Header.data_length , 0 );			/* number of video frames (-> completed later) */
@@ -751,11 +735,7 @@ static bool	Avi_BuildIndex ( RECORD_AVI_PARAMS *pAviParams )
 	Avi_Store4cc ( Chunk.ChunkName , "idx1" );				/* stream 0, uncompressed DIB bytes */
 	Avi_StoreU32 ( Chunk.ChunkSize , 0 );					/* index size (-> completed later) */
 	if ( fwrite ( &Chunk , sizeof ( Chunk ) , 1 , pAviParams->FileOut ) != 1 )
-	{
-		perror ( "Avi_BuildIndex" );
-		Log_AlertDlg ( LOG_ERROR, "AVI recording : failed to write index header" );
-		return false;
-	}
+        goto index_error;
 	PosWrite = ftell ( pAviParams->FileOut );				/* position to start writing indexes */
 
 	/* Go to the first data chunk in the 'movi' chunk */
@@ -769,10 +749,7 @@ static bool	Avi_BuildIndex ( RECORD_AVI_PARAMS *pAviParams )
 	{
 		/* Read the header for this data chunk: ChunkName and ChunkSize */
 		if (fread(&Chunk, sizeof(Chunk), 1, pAviParams->FileOut) != 1)
-		{
-			perror("Avi_BuildIndex");
-			return false;
-		}
+            goto index_error;
 		Size = Avi_ReadU32 ( Chunk.ChunkSize );
 
 		/* Write the index infos for this chunk */
@@ -781,7 +758,8 @@ static bool	Avi_BuildIndex ( RECORD_AVI_PARAMS *pAviParams )
 		Avi_StoreU32 ( ChunkIndex.flags , AVIIF_KEYFRAME );		/* AVIIF_KEYFRAME */
 		Avi_StoreU32 ( ChunkIndex.offset , Pos - pAviParams->MoviChunkPosStart - 8  );	/* pos relative to 'movi' */
 		Avi_StoreU32 ( ChunkIndex.length , Size );
-		fwrite ( &ChunkIndex , sizeof ( ChunkIndex ) , 1 , pAviParams->FileOut );
+		if (fwrite ( &ChunkIndex , sizeof ( ChunkIndex ) , 1 , pAviParams->FileOut ) != 1)
+            goto index_error;
 		PosWrite = ftell ( pAviParams->FileOut );			/* position for the next index */
 
 		/* Go to the next data chunk in the 'movi' chunk */
@@ -792,19 +770,16 @@ static bool	Avi_BuildIndex ( RECORD_AVI_PARAMS *pAviParams )
 	/* Update the size of the 'idx1' chunk */
 	Avi_StoreU32 ( TempSize , PosWrite - IndexChunkPosStart - 8 );
 	if ( fseek ( pAviParams->FileOut , IndexChunkPosStart+4 , SEEK_SET ) != 0 )
-	{
-		perror ( "Avi_BuildIndex" );
-		Log_AlertDlg ( LOG_ERROR, "AVI recording : failed to update idx1 header" );
-		return false;
-	}
-	if ( fwrite ( TempSize , sizeof ( TempSize ) , 1 , pAviParams->FileOut ) != 1 )
-	{
-		perror ( "Avi_BuildIndex" );
-		Log_AlertDlg ( LOG_ERROR, "AVI recording : failed to update idx1 header" );
-		return false;
-	}
-
+        goto index_error;
+  	if ( fwrite ( TempSize , sizeof ( TempSize ) , 1 , pAviParams->FileOut ) != 1 )
+        goto index_error;
 	return true;
+
+index_error:
+    perror ( "Avi_BuildIndex" );
+    Log_AlertDlg ( LOG_ERROR, "AVI recording : failed to create index header" );
+    return false;
+
 }
 
 
@@ -979,7 +954,7 @@ bool	Avi_AreWeRecording ( void )
 
 
 
-bool	Avi_StartRecording ( char *FileName , bool CropGui , int Fps , int VideoCodec )
+bool	Avi_StartRecording ( char *FileName , bool CropGui , Uint32 Fps , Uint32 Fps_scale , int VideoCodec )
 {
 	memset ( &AviParams , 0 , sizeof ( AviParams ) );
 
@@ -988,7 +963,11 @@ bool	Avi_StartRecording ( char *FileName , bool CropGui , int Fps , int VideoCod
 	AviParams.AudioCodec = AVI_RECORD_AUDIO_CODEC_PCM;
 	AviParams.AudioFreq = ConfigureParams.Sound.nPlaybackFreq;
 	AviParams.Surface = sdlscrn;
-	AviParams.Fps = Fps;
+
+    /* Some video players (quicktime, ...) don't support a value of Fps_scale */
+    /* above 100000. So we decrease the precision from << 24 to << 16 for Fps and Fps_scale */
+    AviParams.Fps = Fps >> 8;			/* refresh rate << 16 */
+    AviParams.Fps_scale = Fps_scale >> 8;		/* 1 << 16 */
 
 	if ( !CropGui )					/* Keep gui's status bar */
 	{
@@ -1005,14 +984,23 @@ bool	Avi_StartRecording ( char *FileName , bool CropGui , int Fps , int VideoCod
 		AviParams.CropBottom = Statusbar_GetHeight();
 	}
 	
-	
-	return Avi_StartRecording_WithParams ( &AviParams , FileName );
+	if (Avi_StartRecording_WithParams ( &AviParams , FileName ))
+    {
+        Main_SetTitle("00:00");
+        return true;
+    }
+    return false;
 }
 
 
 bool	Avi_StopRecording ( void )
 {
-	return Avi_StopRecording_WithParams ( &AviParams );
+    if (Avi_StopRecording_WithParams ( &AviParams ))
+    {
+        Main_SetTitle(NULL);
+        return true;
+    }
+    return false;
 }
 
 

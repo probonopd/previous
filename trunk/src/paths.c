@@ -199,10 +199,10 @@ static void Paths_InitHomeDirs(void)
 		strncpy(sUserHomeDir, psHome, FILENAME_MAX);
 		sUserHomeDir[FILENAME_MAX-1] = 0;
 
-		/* Try to use a .hatari directory in the users home directory */
-		snprintf(sHatariHomeDir, FILENAME_MAX, "%s%c.hatari",
+		/* Try to use a .previous directory in the users home directory */
+		snprintf(sHatariHomeDir, FILENAME_MAX, "%s%c.previous",
 		         sUserHomeDir, PATHSEP);
-		if (!File_DirectoryExists(sHatariHomeDir))
+		if (!File_DirExists(sHatariHomeDir))
 		{
 			/* Hatari home directory does not exists yet...
 			 * ...so let's try to create it: */

@@ -17,6 +17,7 @@ const char HatariGlue_fileid[] = "Hatari hatari-glue.c : " __DATE__ " " __TIME__
 #include "cycInt.h"
 #include "cart.h"
 #include "nextMemory.h"
+#include "screen.h"
 #include "video.h"
 
 #include "sysdeps.h"

@@ -17,9 +17,11 @@ const char DebugInfo_fileid[] = "Hatari debuginfo.c : " __DATE__ " " __TIME__;
 #include "debugcpu.h"
 #include "debugui.h"
 #include "evaluate.h"
+#include "file.h"
 #include "ioMem.h"
 #include "m68000.h"
 #include "nextMemory.h"
+#include "screen.h"
 #include "video.h"
 
 
@@ -57,6 +59,49 @@ static Uint32 DebugInfo_GetSysbase(Uint16 *osversion)
 static Uint32 DebugInfo_CurrentBasepage(void)
 {
 	return 0;
+}
+
+/**
+ * GetSegmentAddress: return segment address at given offset in
+ * TOS process basepage or zero if that is missing/invalid.
+ */
+static Uint32 GetSegmentAddress(unsigned offset)
+{
+    Uint32 basepage = DebugInfo_CurrentBasepage();
+    if (!basepage) {
+        return 0;
+    }
+    if (!NEXTMemory_ValidArea(basepage, BASEPAGE_SIZE) ||
+        NEXTMemory_ReadLong(basepage) != basepage) {
+        fprintf(stderr, "Basepage address 0x%06x is invalid!\n", basepage);
+        return 0;
+    }
+    return NEXTMemory_ReadLong(basepage+offset);
+}
+
+/**
+ * DebugInfo_GetTEXT: return current program TEXT segment address
+ * or zero if basepage missing/invalid.  For virtual debugger variable.
+ */
+Uint32 DebugInfo_GetTEXT(void)
+{
+    return GetSegmentAddress(0x08);
+}
+/**
+ * DebugInfo_GetDATA: return current program DATA segment address
+ * or zero if basepage missing/invalid.  For virtual debugger variable.
+ */
+Uint32 DebugInfo_GetDATA(void)
+{
+    return GetSegmentAddress(0x010);
+}
+/**
+ * DebugInfo_GetBSS: return current program BSS segment address
+ * or zero if basepage missing/invalid.  For virtual debugger variable.
+ */
+Uint32 DebugInfo_GetBSS(void)
+{
+    return GetSegmentAddress(0x18);
 }
 
 /**
@@ -208,6 +253,48 @@ static Uint32 DebugInfo_RegAddrArgs(int argc, char *argv[])
 
 
 /* ------------------------------------------------------------------
+ * wrappers for command to parse debugger input file
+ */
+
+/* file name to be given before calling the Parse function,
+ * needs to be set separately as it's a host pointer which
+ * can be 64-bit i.e. may not fit into Uint32.
+ */
+static char *parse_filename;
+
+/**
+ * Parse and exec commands in the previously given debugger input file
+ */
+static void DebugInfo_FileParse(Uint32 dummy)
+{
+    if (parse_filename) {
+        DebugUI_ParseFile(parse_filename);
+    } else {
+        fputs("ERROR: debugger input file name to parse isn't set!\n", stderr);
+    }
+}
+
+/**
+ * Set which input file to parse.
+ * Return true if file exists, false on error
+ */
+static Uint32 DebugInfo_FileArgs(int argc, char *argv[])
+{
+    if (argc != 1) {
+        return false;
+    }
+    if (!File_Exists(argv[0])) {
+        fprintf(stderr, "ERROR: given file '%s' doesn't exist!\n", argv[0]);
+        return false;
+    }
+    if (parse_filename) {
+        free(parse_filename);
+    }
+    parse_filename = strdup(argv[0]);
+    return true;
+}
+
+/* ------------------------------------------------------------------
  * Debugger & readline TAB completion integration
  */
 
@@ -224,7 +311,7 @@ static void DebugInfo_Default(Uint32 dummy)
 }
 
 static const struct {
-	/* whether callback is used only for locking */
+	/* if overlaps with other functionality, list only for lock command */
 	bool lock;
 	const char *name;
 	void (*func)(Uint32 arg);
@@ -232,23 +319,28 @@ static const struct {
 	Uint32 (*args)(int argc, char *argv[]);
 	const char *info;
 } infotable[] = {
+//    { false,"aes",       AES_Info,             NULL, "Show AES vector contents (with <value>, show opcodes)" },
 	{ false,"basepage",  DebugInfo_Basepage,   NULL, "Show program basepage info at given <address>" },
+//    { false,"cookiejar", DebugInfo_Cookiejar,  NULL, "Show TOS Cookiejar contents" },
 	{ false,"crossbar",  DebugInfo_Crossbar,   NULL, "Show Falcon crossbar HW register values" },
 	{ true, "default",   DebugInfo_Default,    NULL, "Show default debugger entry information" },
 	{ true, "disasm",    DebugInfo_CpuDisAsm,  NULL, "Disasm CPU from PC or given <address>" },
 #if ENABLE_DSP_EMU
 	{ true, "dspdisasm", DebugInfo_DspDisAsm,  NULL, "Disasm DSP from given <address>" },
 	{ true, "dspmemdump",DebugInfo_DspMemDump, DebugInfo_DspMemArgs, "Dump DSP memory from given <space> <address>" },
-	{ true, "dspregs",   DebugInfo_DspRegister,NULL, "Show DSP register values" },
+	{ true, "dspregs",   DebugInfo_DspRegister,NULL, "Show DSP registers values" },
 #endif
+    { true, "file",      DebugInfo_FileParse, DebugInfo_FileArgs, "Parse commands from given debugger input <file>" },
+//    { false,"gemdos",    GemDOS_Info,          NULL, "Show GEMDOS HDD emu info (with <value>, show opcodes)" },
 	{ true, "memdump",   DebugInfo_CpuMemDump, NULL, "Dump CPU memory from given <address>" },
 	{ false,"osheader",  DebugInfo_OSHeader,   NULL, "Show TOS OS header information" },
 	{ true, "regaddr",   DebugInfo_RegAddr, DebugInfo_RegAddrArgs, "Show <disasm|memdump> from CPU/DSP address pointed by <register>" },
-	{ true, "registers", DebugInfo_CpuRegister,NULL, "Show CPU register values" },
+	{ true, "registers", DebugInfo_CpuRegister,NULL, "Show CPU registers values" },
+//    { false,"video",     DebugInfo_Video,      NULL, "Show Video related values" },
 	{ false,"rtc",     DebugInfo_Rtc,      NULL, "Show Next's RTC registers" }
 };
 
-static int LockedFunction = 2; /* index for the "default" function */
+static int LockedFunction = 4; /* index for the "default" function */
 static Uint32 LockedArgument;
 
 /**

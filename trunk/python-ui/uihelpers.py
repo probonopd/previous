@@ -2,7 +2,7 @@
 #
 # Misc common helper classes and functions for the Hatari UI
 #
-# Copyright (C) 2008-2009 by Eero Tamminen <eerot at berlios>
+# Copyright (C) 2008-2011 by Eero Tamminen <eerot at berlios>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -38,7 +38,7 @@ class UInfo:
     name = "Hatari UI"
     logo = "hatari.png"
     icon = "hatari-icon.png"
-    copyright = "UI copyright (C) 2008-2010 by Eero Tamminen"
+    copyright = "UI copyright (C) 2008-2011 by Eero Tamminen"
 
     # path to the directory where the called script resides
     path = os.path.dirname(sys.argv[0])
@@ -83,12 +83,10 @@ class UIHelp:
         # could also try running the binary with "--version" arg
         # and check the exec return value
         if os.sys.platform == "win32":
-            for i in os.environ['PATH'].split(';'):
-                fname = os.path.join(i, name)
-                if os.access(fname, os.X_OK) and not os.path.isdir(fname):
-                    return fname
+            splitter = ';'
         else:
-            for i in os.environ['PATH'].split(':'):
+            splitter = ':'
+        for i in os.environ['PATH'].split(splitter):
                 fname = os.path.join(i, name)
                 if os.access(fname, os.X_OK) and not os.path.isdir(fname):
                     return fname
@@ -105,7 +103,7 @@ class UIHelp:
         if os.path.exists(path + "manual.html"):
             return path
         # if not, point to latest Hatari HG version docs
-        print "WARNING: Hatari manual not found at:", path + "manual.html"
+        print("WARNING: Hatari manual not found at:", path + "manual.html")
         return "http://hg.berlios.de/repos/hatari/raw-file/tip/doc/"
 
     def set_mainwin(self, widget):
@@ -114,7 +112,7 @@ class UIHelp:
     def view_url(self, url, name):
         """view given URL or file path, or error use 'name' as its name"""
         if self._view and "://" in url or os.path.exists(url):
-            print "RUN: '%s' '%s'" % (self._view, url)
+            print("RUN: '%s' '%s'" % (self._view, url))
             os.spawnlp(os.P_NOWAIT, self._view, self._view, url)
             return
         if not self._view:
@@ -164,22 +162,27 @@ class HatariTextInsert:
         self.text = text
         self.pressed = False
         self.hatari = hatari
-        print "OUTPUT '%s'" % text
+        print("OUTPUT '%s'" % text)
         gobject.timeout_add(100, _text_insert_cb, self)
 
-# callback to insert text object to Hatari character at the time, at given interval
+# callback to insert text object to Hatari character at the time
+# (first key down, on next call up), at given interval
 def _text_insert_cb(textobj):
     char = textobj.text[textobj.index]
+    if char == ' ':
+        # white space gets stripped, use scancode instead
+        char = "57"
     if textobj.pressed:
         textobj.pressed = False
-        textobj.hatari.insert_event("keyrelease %c" % char)
+        textobj.hatari.insert_event("keyup %s" % char)
         textobj.index += 1
         if textobj.index >= len(textobj.text):
             del(textobj)
             return False
     else:
         textobj.pressed = True
-        textobj.hatari.insert_event("keypress %c" % char)
+        textobj.hatari.insert_event("keydown %s" % char)
+    # call again
     return True
 
 
@@ -343,13 +346,41 @@ def get_save_filename(title, parent, path = None):
     fsel.destroy()
     return filename
 
+
+# File selection button with eject button
+class FselAndEjectFactory:
+    def __init__(self):
+        pass
+
+    def get(self, label, path, filename, action):
+        "returns file selection button and box having that + eject button"
+        fsel = gtk.FileChooserButton(label)
+        # Hatari cannot access URIs
+        fsel.set_local_only(True)
+        fsel.set_width_chars(12)
+        fsel.set_action(action)
+        if filename:
+            fsel.set_filename(filename)
+        elif path:
+            fsel.set_current_folder(path)
+        eject = create_button("Eject", self._eject, fsel)
+
+        box = gtk.HBox()
+        box.pack_start(fsel)
+        box.pack_start(eject, False, False)
+        return (fsel, box)
+
+    def _eject(self, widget, fsel):
+        fsel.unselect_all()
+
+
 # Gtk is braindead, there's no way to set a default filename
 # for file chooser button unless it already exists
 # - set_filename() works only for files that already exist
 # - set_current_name() works only for SAVE action,
 #   but file chooser button doesn't support that
 # i.e. I had to do my own (less nice) container widget...
-class FselEntry():
+class FselEntry:
     def __init__(self, parent, validate = None, data = None):
         self._parent = parent
         self._validate = validate

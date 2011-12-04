@@ -14,9 +14,11 @@ const char DlgScreen_fileid[] = "Hatari dlgScreen.c : " __DATE__ " " __TIME__;
 #include "sdlgui.h"
 #include "screen.h"
 #include "screenSnapShot.h"
+#include "resolution.h"
 #include "video.h"
 #include "avi_record.h"
 #include "statusbar.h"
+#include "clocks_timings.h"
 
 #define ITEMS_IN_ARRAY(a) (sizeof(a)/sizeof(a[0]))
 
@@ -45,54 +47,57 @@ static char sVdiHeight[5];
 
 static SGOBJ monitordlg[] =
 {
-	{ SGBOX, 0, 0, 0,0, 34,19, NULL },
+	{ SGBOX, 0, 0, 0,0, 34,18, NULL },
+    
+    { SGBOX,      0, 0,  1,1, 32,6, NULL },
+    { SGTEXT,     0, 0, 10,1, 14,1, "Atari monitor" },
+    { SGRADIOBUT, 0, 0,  4,3,  6,1, "Mono" },
+    { SGRADIOBUT, 0, 0, 12,3,  6,1, "RGB" },
+    { SGRADIOBUT, 0, 0, 19,3,  6,1, "VGA" },
+    { SGRADIOBUT, 0, 0, 26,3,  6,1, "TV" },
+    { SGCHECKBOX, 0, 0,  6,5, 22,1, "Show ST/STE borders" },
 
-	{ SGBOX, 0, 0, 1,1, 32,6, NULL },
-	{ SGTEXT, 0, 0, 10,1, 14,1, "Atari monitor" },
-	{ SGRADIOBUT, 0, 0, 4,3, 6,1, "Mono" },
-	{ SGRADIOBUT, 0, 0, 12,3, 6,1, "RGB" },
-	{ SGRADIOBUT, 0, 0, 19,3, 6,1, "VGA" },
-	{ SGRADIOBUT, 0, 0, 26,3, 6,1, "TV" },
-	{ SGCHECKBOX, 0, 0, 6,5, 22,1, "Show ST/STE borders" },
-
-	{ SGBOX, 0, 0, 1,8, 32,7, NULL },
-	{ SGCHECKBOX, 0, 0, 4,9, 33,1, "Use extended VDI screen" },
-	{ SGTEXT, 0, 0, 4,11, 5,1, "Size:" },
-	{ SGBUTTON, 0, 0, 6,12, 1,1, "\x04" },     /* Arrow left */
-	{ SGTEXT, 0, 0, 8,12, 4,1, sVdiWidth },
-	{ SGBUTTON, 0, 0, 13,12, 1,1, "\x03" },     /* Arrow right */
-	{ SGTEXT, 0, 0, 4,13, 1,1, "x" },
-	{ SGBUTTON, 0, 0, 6,13, 1,1, "\x04" },     /* Arrow left */
-	{ SGTEXT, 0, 0, 8,13, 4,1, sVdiHeight },
-	{ SGBUTTON, 0, 0, 13,13, 1,1, "\x03" },     /* Arrow right */
+    { SGBOX,      0, 0,  1,8, 32,7, NULL },
+    { SGCHECKBOX, 0, 0,  4,9, 33,1, "Use extended VDI screen" },
+    { SGTEXT,     0, 0,  4,11, 5,1, "Size:" },
+    { SGBUTTON,   0, 0,  6,12, 1,1, "\x04" },     /* Arrow left */
+    { SGTEXT,     0, 0,  8,12, 4,1, sVdiWidth },
+    { SGBUTTON,   0, 0, 13,12, 1,1, "\x03" },     /* Arrow right */
+    { SGTEXT,     0, 0,  4,13, 1,1, "x" },
+    { SGBUTTON,   0, 0,  6,13, 1,1, "\x04" },     /* Arrow left */
+    { SGTEXT,     0, 0,  8,13, 4,1, sVdiHeight },
+    { SGBUTTON,   0, 0, 13,13, 1,1, "\x03" },     /* Arrow right */
 
 	{ SGRADIOBUT, SG_EXIT, 0, 18,11, 11,1, " 2 colors" },
 	{ SGRADIOBUT, SG_EXIT, 0, 18,12, 11,1, " 4 colors" },
 	{ SGRADIOBUT, SG_EXIT, 0, 18,13, 11,1, "16 colors" },
 
-	{ SGBUTTON, SG_DEFAULT, 0, 7,17, 20,1, "Back to main menu" },
+	{ SGBUTTON, SG_DEFAULT, 0, 7,16, 20,1, "Back to main menu" },
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 
 
 /* The window dialog: */
 #define DLGSCRN_FULLSCRN    3
-#define DLGSCRN_STATUSBAR   4
-#define DLGSCRN_MAX_WLESS   6
-#define DLGSCRN_MAX_WTEXT   7
-#define DLGSCRN_MAX_WMORE   8
-#define DLGSCRN_MAX_HLESS   10
-#define DLGSCRN_MAX_HTEXT   11
-#define DLGSCRN_MAX_HMORE   12
-#define DLGSCRN_SKIP0       14
-#define DLGSCRN_SKIP1       15
-#define DLGSCRN_SKIP2       16
-#define DLGSCRN_SKIP3       17
-#define DLGSCRN_SKIP4       18
-#define DLGSCRN_ONCHANGE    21
-#define DLGSCRN_CAPTURE     22
-#define DLGSCRN_RECANIM     23
-#define DLGSCRN_EXIT_WINDOW 24
+#define DLGSCRN_STATUSBAR   5
+#define DLGSCRN_DRIVELED     6
+#define DLGSCRN_NONE        7
+#define DLGSCRN_SKIP0       9
+#define DLGSCRN_SKIP1       10
+#define DLGSCRN_SKIP2       11
+#define DLGSCRN_SKIP3       12
+#define DLGSCRN_SKIP4       13
+#define DLGSCRN_KEEP_RES    15
+#define DLGSCRN_MAX_WLESS   18
+#define DLGSCRN_MAX_WTEXT   19
+#define DLGSCRN_MAX_WMORE   20
+#define DLGSCRN_MAX_HLESS   22
+#define DLGSCRN_MAX_HTEXT   23
+#define DLGSCRN_MAX_HMORE   24
+#define DLGSCRN_CROP        27
+#define DLGSCRN_CAPTURE     28
+#define DLGSCRN_RECANIM     29
+#define DLGSCRN_EXIT_WINDOW 30
 
 /* needs to match Frame skip values in windowdlg[]! */
 static const int skip_frames[] = { 0, 1, 2, 4, AUTO_FRAMESKIP_LIMIT };
@@ -106,34 +111,40 @@ static char sMaxHeight[5];
 /* The window dialog: */
 static SGOBJ windowdlg[] =
 {
-	{ SGBOX, 0, 0, 0,0, 35,21, NULL },
+	{ SGBOX, 0, 0, 0,0, 52,20, NULL },
+    
+    { SGBOX,      0, 0,  1,1, 50,10, NULL },
+    { SGTEXT,     0, 0,  4,2, 20,1, "Hatari screen options" },
+    { SGCHECKBOX, 0, 0,  4,4, 12,1, "Fullscreen" },
+    { SGTEXT,     0, 0,  4,6, 12,1, "Indicators:" },
+    { SGRADIOBUT, 0, 0,  6,7, 11,1, "Statusbar" },
+    { SGRADIOBUT, 0, 0,  6,8, 11,1, "Drive led" },
+    { SGRADIOBUT, 0, 0,  6,9, 11,1, "None" },
+    { SGTEXT,     0, 0, 19,4, 12,1, "Frame skip:" },
+    { SGRADIOBUT, 0, 0, 21,5,  7,1, "Off" },
+    { SGRADIOBUT, 0, 0, 21,6,  7,1, "1" },
+    { SGRADIOBUT, 0, 0, 21,7,  7,1, "2" },
+    { SGRADIOBUT, 0, 0, 21,8,  7,1, "4" },
+    { SGRADIOBUT, 0, 0, 21,9,  7,1, "Auto" },
+    { SGTEXT,     0, 0, 33,2, 15,1, "Falcon/TT only:" },
+    { SGCHECKBOX, 0, 0, 33,4, 14,2, "Keep desktop" },
+    { SGTEXT,     0, 0, 35,5, 12,1, "resolution" },
+    { SGTEXT,     0, 0, 33,7, 15,1, "Max zoomed win:" },
+    { SGBUTTON,   0, 0, 35,8,  1,1, "\x04" },     /* Arrow left */
+    { SGTEXT,     0, 0, 37,8,  4,1, sMaxWidth },
+    { SGBUTTON,   0, 0, 43,8,  1,1, "\x03" },     /* Arrow right */
+    { SGTEXT,     0, 0, 33,9,  1,1, "x" },
+    { SGBUTTON,   0, 0, 35,9,  1,1, "\x04" },     /* Arrow left */
+    { SGTEXT,     0, 0, 37,9,  4,1, sMaxHeight },
+    { SGBUTTON,   0, 0, 43,9,  1,1, "\x03" },     /* Arrow right */
 
-	{ SGBOX, 0, 0, 1,1, 33,9, NULL },
-	{ SGTEXT, 0, 0, 7,1, 20,1, "Hatari screen options" },
-	{ SGCHECKBOX, 0, 0, 4,3, 12,1, "Fullscreen" },
-	{ SGCHECKBOX, 0, 0, 4,4, 12,1, "Statusbar" },
-	{ SGTEXT, 0, 0, 4,6, 12,1, "Max zoomed:" },
-	{ SGBUTTON, 0, 0, 6,7, 1,1, "\x04" },     /* Arrow left */
-	{ SGTEXT, 0, 0, 8,7, 4,1, sMaxWidth },
-	{ SGBUTTON, 0, 0, 13,7, 1,1, "\x03" },     /* Arrow right */
-	{ SGTEXT, 0, 0, 4,8, 1,1, "x" },
-	{ SGBUTTON, 0, 0, 6,8, 1,1, "\x04" },     /* Arrow left */
-	{ SGTEXT, 0, 0, 8,8, 4,1, sMaxHeight },
-	{ SGBUTTON, 0, 0, 13,8, 1,1, "\x03" },     /* Arrow right */
-	{ SGTEXT, 0, 0, 20,3, 11,1, "Frame skip:" },
-	{ SGRADIOBUT, 0, 0, 22,4, 6,1, "Off" },
-	{ SGRADIOBUT, 0, 0, 22,5, 6,1, "1" },
-	{ SGRADIOBUT, 0, 0, 22,6, 6,1, "2" },
-	{ SGRADIOBUT, 0, 0, 22,7, 6,1, "4" },
-	{ SGRADIOBUT, 0, 0, 22,8, 6,1, "Auto" },
-
-	{ SGBOX, 0, 0, 1,11, 33,6, NULL },
-	{ SGTEXT, 0, 0, 10,11, 14,1, "Screen capture" },
-	{ SGCHECKBOX, 0, 0, 4,13, 39,1, "Capture only when changed" },
-	{ SGBUTTON, 0, 0, 4,15, 12,1, "Screenshot" },
-	{ SGBUTTON, 0, 0, 19,15, 12,1, "Record AVI" },
-
-	{ SGBUTTON, SG_DEFAULT, 0, 8,19, 20,1, "Back to main menu" },
+    { SGBOX,      0, 0,  1,12, 50,5, NULL },
+    { SGTEXT,     0, 0,  7,13, 16,1, "Screen capture" },
+    { SGCHECKBOX, 0, 0,  8,15, 16,1, "Crop statusbar" },
+    { SGBUTTON,   0, 0, 29,13, 14,1, " Screenshot " },
+    { SGBUTTON,   0, 0, 29,15, 14,1, " Record AVI " },
+    
+    { SGBUTTON, SG_DEFAULT, 0, 17,18, 20,1, "Back to main menu" },
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 
@@ -281,7 +292,7 @@ void Dialog_MonitorDlg(void)
  */
 void Dialog_WindowDlg(void)
 {
-	int but, skip = 0;
+	int deskw, deskh, but, skip = 0;
 	unsigned int i;
 
 	SDLGui_CenterDlg(windowdlg);
@@ -293,10 +304,21 @@ void Dialog_WindowDlg(void)
 	else
 		windowdlg[DLGSCRN_FULLSCRN].state &= ~SG_SELECTED;
 
+//    if (ConfigureParams.Screen.bKeepResolution)
+//            windowdlg[DLGSCRN_KEEP_RES].state |= SG_SELECTED;
+//    else
+            windowdlg[DLGSCRN_KEEP_RES].state &= ~SG_SELECTED;
+
+            windowdlg[DLGSCRN_STATUSBAR].state |= SG_SELECTED;
+
+    windowdlg[DLGSCRN_STATUSBAR].state &= ~SG_SELECTED;
+    windowdlg[DLGSCRN_DRIVELED].state &= ~SG_SELECTED;
+    windowdlg[DLGSCRN_NONE].state &= ~SG_SELECTED;
+    
 	if (ConfigureParams.Screen.bShowStatusbar)
 		windowdlg[DLGSCRN_STATUSBAR].state |= SG_SELECTED;
-	else
-		windowdlg[DLGSCRN_STATUSBAR].state &= ~SG_SELECTED;
+	else if (ConfigureParams.Screen.bShowDriveLed)
+        windowdlg[DLGSCRN_DRIVELED].state |= SG_SELECTED;
 
 	for (i = 0; i < ITEMS_IN_ARRAY(skip_frames); i++)
 	{
@@ -306,16 +328,16 @@ void Dialog_WindowDlg(void)
 	}
 	windowdlg[DLGSCRN_SKIP0+skip].state |= SG_SELECTED;
 
+    Resolution_GetDesktopSize(&deskw, &deskh);
 	sprintf(sMaxWidth, "%4i", ConfigureParams.Screen.nMaxWidth);
 	sprintf(sMaxHeight, "%4i", ConfigureParams.Screen.nMaxHeight);
 
 	/* Initialize window capture options: */
 
-	if (ConfigureParams.Screen.bCaptureChange)
-		windowdlg[DLGSCRN_ONCHANGE].state |= SG_SELECTED;
-	else
-		windowdlg[DLGSCRN_ONCHANGE].state &= ~SG_SELECTED;
-
+//	if (ConfigureParams.Screen.bCrop)
+//            windowdlg[DLGSCRN_CROP].state |= SG_SELECTED;
+//  	else
+            windowdlg[DLGSCRN_CROP].state &= ~SG_SELECTED;
 
 	/* The window dialog main loop */
 	do
@@ -325,28 +347,29 @@ void Dialog_WindowDlg(void)
 		{
 		 case DLGSCRN_MAX_WLESS:
 //			ConfigureParams.Screen.nMaxWidth = VDI_Limit(ConfigureParams.Screen.nMaxWidth - MAX_SIZE_STEP,
-//			                                MAX_SIZE_STEP, MIN_VDI_WIDTH, MAX_VDI_WIDTH);
+//			                                MAX_SIZE_STEP, MIN_VDI_WIDTH, deskw);
 			sprintf(sMaxWidth, "%4i", ConfigureParams.Screen.nMaxWidth);
 			break;
 		 case DLGSCRN_MAX_WMORE:
 //			ConfigureParams.Screen.nMaxWidth = VDI_Limit(ConfigureParams.Screen.nMaxWidth + MAX_SIZE_STEP,
-//			                                MAX_SIZE_STEP, MIN_VDI_WIDTH, MAX_VDI_WIDTH);
+//			                                MAX_SIZE_STEP, MIN_VDI_WIDTH, deskw);
 			sprintf(sMaxWidth, "%4i", ConfigureParams.Screen.nMaxWidth);
 			break;
 
 		 case DLGSCRN_MAX_HLESS:
 //			ConfigureParams.Screen.nMaxHeight = VDI_Limit(ConfigureParams.Screen.nMaxHeight - MAX_SIZE_STEP,
-//			                                 MAX_SIZE_STEP, MIN_VDI_HEIGHT, MAX_VDI_HEIGHT);
+//			                                 MAX_SIZE_STEP, MIN_VDI_HEIGHT, deskh);
 			sprintf(sMaxHeight, "%4i", ConfigureParams.Screen.nMaxHeight);
 			break;
 		 case DLGSCRN_MAX_HMORE:
 //			ConfigureParams.Screen.nMaxHeight = VDI_Limit(ConfigureParams.Screen.nMaxHeight + MAX_SIZE_STEP,
-//			                                 MAX_SIZE_STEP, MIN_VDI_HEIGHT, MAX_VDI_HEIGHT);
+//			                                 MAX_SIZE_STEP, MIN_VDI_HEIGHT, deskh);
 			sprintf(sMaxHeight, "%4i", ConfigureParams.Screen.nMaxHeight);
 			break;
 
 		 case DLGSCRN_CAPTURE:
 			SDL_UpdateRect(sdlscrn, 0,0,0,0);
+//            ConfigureParams.Screen.bCrop = (windowdlg[DLGSCRN_CROP].state & SG_SELECTED);
 			ScreenSnapShot_SaveScreen();
 			break;
 
@@ -375,5 +398,5 @@ void Dialog_WindowDlg(void)
 		}
 	}
 
-	ConfigureParams.Screen.bCaptureChange = (windowdlg[DLGSCRN_ONCHANGE].state & SG_SELECTED);
+//	ConfigureParams.Screen.bCrop = (windowdlg[DLGSCRN_CROP].state & SG_SELECTED);
 }
