@@ -46,8 +46,12 @@ const char Keymap_fileid[] = "Hatari keymap.c : " __DATE__ " " __TIME__;
  */
 
 
-//void Keymap_Init(void) {
-//}
+void Keymap_Init(void) {
+    if(ConfigureParams.Keyboard.bDisableKeyRepeat)
+        SDL_EnableKeyRepeat(0, 0);
+    else
+        SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+}
 
 Uint8 nextkeycode;
 Uint8 modkeys;
@@ -91,8 +95,9 @@ void KeyTranslator(SDL_keysym *sdlkey) { // Translate SDL Keys to NeXT Keycodes
 
     int symkey = sdlkey->sym;
 	int modkey = sdlkey->mod;
-    if (ShortCut_CheckKeys(modkey, symkey, 1))
-		return;
+    if (ShortCut_CheckKeys(modkey, symkey, 1)) // Check if we pressed a shortcut
+        ShortCut_ActKey();
+    else
 
     switch (sdlkey->sym) {
         
