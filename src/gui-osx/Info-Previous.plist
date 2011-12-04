@@ -54,20 +54,20 @@
 		</dict>
 	</array>
 	<key>CFBundleExecutable</key>
-	<string>Hatari</string>
+	<string>Previous</string>
 	<key>CFBundleIconFile</key>
-	<string>Hatari</string>
+	<string>Previous</string>
 	<key>CFBundleIdentifier</key>
-	<string>com.sourceforge.hatari</string>
+	<string>com.sourceforge.previous</string>
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleSignature</key>
-	<string>HATA</string>
+	<string>PREV</string>
 	<key>CFBundleVersion</key>
-	<string>1.4</string>
-	<key>Hatari</key>
+	<string>0.1</string>
+	<key>Previous</key>
 	<string>SDL Cocoa App</string>
 	<key>NSMainNibFile</key>
 	<string>SDLMain.nib</string>

@@ -30,7 +30,7 @@ const char Log_fileid[] = "Hatari log.c : " __DATE__ " " __TIME__;
 
 
 static struct {
-	Uint32 Level;
+	Uint64 Level;
 	const char *Name;
 }
 TraceOptions[] = {
@@ -77,6 +77,7 @@ TraceOptions[] = {
 	{ TRACE_OS_XBIOS	 , "xbios" },
 	{ TRACE_OS_GEMDOS	 , "gemdos" },
 	{ TRACE_OS_VDI  	 , "vdi" },
+    { TRACE_OS_AES  	 , "aes" },
 	{ TRACE_OS_ALL  	 , "os_all" } ,
 
 	{ TRACE_IOMEM_RD	 , "io_read" } ,
@@ -86,12 +87,23 @@ TraceOptions[] = {
 	{ TRACE_DMASND  	 , "dmasound" } ,
 
 	{ TRACE_CROSSBAR  	 , "crossbar" } ,
+    { TRACE_VIDEL  	         , "videl" } ,
+
+    { TRACE_DSP_HOST_INTERFACE, "dsp_host_interface" },
+    { TRACE_DSP_HOST_COMMAND , "dsp_host_command" },
+    { TRACE_DSP_HOST_SSI	 , "dsp_host_ssi" },
+    { TRACE_DSP_INTERRUPT	 , "dsp_interrupt" },
+    { TRACE_DSP_DISASM	 , "dsp_disasm" },
+    { TRACE_DSP_DISASM_REG	 , "dsp_disasm_reg" },
+    { TRACE_DSP_DISASM_MEM	 , "dsp_disasm_mem" },
+    { TRACE_DSP_STATE	 , "dsp_state" },
+    { TRACE_DSP_ALL		 , "dsp_all" },
 
 	{ TRACE_ALL		 , "all" }
 };
 
 
-Uint32	LogTraceFlags = TRACE_NONE;
+Uint64	LogTraceFlags = TRACE_NONE;
 FILE *TraceFile = NULL;
 
 static FILE *hLogFile = NULL;

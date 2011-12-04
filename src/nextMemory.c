@@ -35,6 +35,39 @@ void NEXTMemory_Clear(Uint32 StartAddress, Uint32 EndAddress)
 	memset(&NEXTRam[StartAddress], 0, EndAddress-StartAddress);
 }
 
+/** --useful for next?
+ * Copy given memory area safely to Atari RAM.
+ * If the memory area isn't fully within RAM, only the valid parts are written.
+ * Useful for all kinds of IO operations.
+ * 
+ * addr - destination Atari RAM address
+ * src - source Hatari memory address
+ * len - number of bytes to copy
+ * name - name / description if this memory copy for error messages
+ * 
+ * Return true if whole copy was safe / valid.
+ */
+/**
+bool NEXTMemory_SafeCopy(Uint32 addr, Uint8 *src, unsigned int len, const char *name)
+{
+    Uint32 end;
+
+    if (NEXTMemory_ValidArea(addr, len))
+    {
+        memcpy(&NEXTRam[addr], src, len);
+        return true;
+    }
+    Log_Printf(LOG_WARN, "Invalid '%s' RAM range 0x%x+%i!\n", name, addr, len);
+
+    for (end = addr + len; addr < end; addr++, src++)
+    {
+        if (NEXTMemory_ValidArea(addr, 1))
+            NEXTRam[addr] = *src;
+    }
+    return false;
+}
+*/
+
 
 /**
  * TODO 

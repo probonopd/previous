@@ -22,21 +22,22 @@ Requirements
 ------------
 
 My guess at the required versions for the dependencies are:
-- Python >=2.4
-- PyGtk >= 2.8   (on Ubuntu PyGtk is in python-gtk2 package)
+- Python >= 2.4
+- PyGtk >= 2.12   (on Debian/Ubuntu PyGtk is in python-gtk2 package)
 
 Hatari UI is included with the Hatari sources:
 	http://hg.berlios.de/repos/hatari/file/tip/
 
-Hatari UI has been tested only on Linux (Ubuntu v7.04 and Debian Etch
-& Lenny). I would assume it works also on other unix systems such as
+Hatari UI has been tested only on Linux (Ubuntu v7.04 and Debian Lenny
+& Squeeze). I would assume it works also on other unix systems such as
 Apple OSX. It won't work on Windows as the required Windows socket
 support is missing from the Hatari emulator.
 
 Embedding the Hatari emulator window is currently supported only for
 systems using an X window system (from libSDL sources it would seem
 that Windows would also support window embedding, but support for that
-would need to be added both to Hatari and Hatari UI).
+would need to be added both to Hatari and Hatari UI because SDL's
+own embedding disables all keyboard events in SDL program).
 
 
 Running
@@ -52,9 +53,6 @@ Or you can run just the debugger:
 
 But you can also install it to system along with Hatari:
 	make install
-
-There's also a command line interface for Hatari's remote API
-called hatari-console.py.
 
 
 Notes

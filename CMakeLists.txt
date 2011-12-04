@@ -9,7 +9,7 @@ set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
 
 include(CheckIncludeFiles)
 include(CheckFunctionExists)
-
+include(CheckCCompilerFlag)
 include(DistClean)
 
 # Set build type to "Release" if user did not specify any build type yet
@@ -26,10 +26,12 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 set(ENABLE_TRACING 1
     CACHE BOOL "Enable tracing messages for debugging")
+set(ENABLE_WINUAE_CPU 1
+    CACHE BOOL "Enable WinUAE CPU core (experimental!)")
 
 if(APPLE)
 	set(ENABLE_OSX_BUNDLE 1
-	    CACHE BOOL "Built Hatari as Mac OS X application bundle")
+	    CACHE BOOL "Built Previous as Mac OS X application bundle")
 	# set(CMAKE_OSX_ARCHITECTURES "i386" CACHE STRING "Target architectures" FORCE)
 	# set(CMAKE_OSX_SYSROOT "/Developer/SDKs/MacOSX10.6.sdk" CACHE STRING "10.6 SDK" FORCE)
 	# set(CMAKE_OSX_DEPLOYMENT_TARGET "10.5" CACHE STRING "Target Min 10.5" FORCE)
@@ -129,6 +131,12 @@ check_function_exists(select HAVE_SELECT)
 check_function_exists(posix_memalign HAVE_POSIX_MEMALIGN)
 check_function_exists(memalign HAVE_MEMALIGN)
 
+check_function_exists(gettimeofday HAVE_GETTIMEOFDAY)
+check_function_exists(nanosleep HAVE_NANOSLEEP)
+check_function_exists(alphasort HAVE_ALPHASORT)
+check_function_exists(scandir HAVE_SCANDIR)
+
+
 # #############
 # Other CFLAGS:
 # #############
@@ -138,10 +146,12 @@ if(CMAKE_COMPILER_IS_GNUCC)
 	set(CMAKE_C_FLAGS "-Wcast-qual -g -O0 -Wbad-function-cast -Wpointer-arith ${CMAKE_C_FLAGS}")
 	set(CMAKE_C_FLAGS "-Wmissing-prototypes -Wstrict-prototypes ${CMAKE_C_FLAGS}")
 	set(CMAKE_C_FLAGS "-Wall -Wwrite-strings -Wsign-compare ${CMAKE_C_FLAGS}")
-	# set(CMAKE_C_FLAGS "-Wshadow -Werror ${CMAKE_C_FLAGS}")
+	#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wno-unused-parameter -Wno-empty-body")
+	set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wformat-security")
+	#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wshadow -D_FORTIFY_SOURCE=2 -Werror")
 endif(CMAKE_COMPILER_IS_GNUCC)
 
-# Building Hatari w/o optimization is no fun...
+# Building Previous w/o optimization is no fun...
 IF (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	set(CMAKE_C_FLAGS "-O ${CMAKE_C_FLAGS}")
 ENDIF (CMAKE_BUILD_TYPE STREQUAL "Debug")

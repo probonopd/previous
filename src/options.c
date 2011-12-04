@@ -29,6 +29,7 @@ const char Options_fileid[] = "Hatari options.c : " __DATE__ " " __TIME__;
 #include "screen.h"
 #include "video.h"
 #include "log.h"
+#include "paths.h"
 #include "avi_record.h"
 
 #include "hatari-glue.h"
@@ -48,30 +49,32 @@ enum {
 	OPT_VERSION,
 	OPT_CONFIRMQUIT,
 	OPT_CONFIGFILE,
+	OPT_KEYMAPFILE,
 	OPT_FASTFORWARD,
-	OPT_MONO,		/* display options */
+	OPT_MONO,		/* common display options */
 	OPT_MONITOR,
 	OPT_FULLSCREEN,
 	OPT_WINDOW,
 	OPT_GRAB,
-	OPT_ZOOM,
-	OPT_MAXWIDTH,
-	OPT_MAXHEIGHT,
-	OPT_ASPECT,
-	OPT_BORDERS,
 	OPT_FRAMESKIPS,
 	OPT_STATUSBAR,
 	OPT_DRIVE_LED,
-	OPT_SPEC512,
 	OPT_FORCEBPP,
+	OPT_BORDERS,		/* ST/STE display options */
+	OPT_SPEC512,
+	OPT_ZOOM,
+	OPT_RESOLUTION,		/* Falcon/TT display options */
+	OPT_MAXWIDTH,
+	OPT_MAXHEIGHT,
+	OPT_ASPECT,
 	OPT_VDI,		/* VDI options */
 	OPT_VDI_PLANES,
 	OPT_VDI_WIDTH,
 	OPT_VDI_HEIGHT,
-	OPT_AVIRECORD,          /* record options */
+	OPT_SCREEN_CROP,        /* screen capture options */
+	OPT_AVIRECORD,
 	OPT_AVIRECORD_VCODEC,
 	OPT_AVIRECORD_FPS,
-	OPT_AVIRECORD_CROP,
 	OPT_AVIRECORD_FILE,
 	OPT_JOYSTICK,		/* device options */
 	OPT_JOYSTICK0,
@@ -101,13 +104,22 @@ enum {
 	OPT_CPULEVEL,		/* CPU options */
 	OPT_CPUCLOCK,
 	OPT_COMPATIBLE,
+#if ENABLE_WINUAE_CPU
+	OPT_CPU_CYCLE_EXACT,	/* WinUAE CPU/FPU/bus options */
+	OPT_CPU_ADDR24,
+	OPT_FPU_TYPE,
+	OPT_FPU_COMPATIBLE,
+	OPT_MMU,
+#endif
 	OPT_MACHINE,		/* system options */
 	OPT_BLITTER,
-	OPT_TIMERD,
 	OPT_DSP,
+	OPT_MICROPHONE,
 	OPT_SOUND,
 	OPT_SOUNDBUFFERSIZE,
-	OPT_KEYMAPFILE,
+	OPT_YM_MIXING,
+	OPT_TIMERD,
+	OPT_RTC,
 	OPT_DEBUG,		/* debug options */
 	OPT_BIOSINTERCEPT,
 	OPT_TRACE,
@@ -144,10 +156,12 @@ static const opt_t HatariOptions[] = {
 	  "<bool>", "Whether Hatari confirms quit" },
 	{ OPT_CONFIGFILE, "-c", "--configfile",
 	  "<file>", "Use <file> instead of the default hatari config file" },
+	{ OPT_KEYMAPFILE, "-k", "--keymap",
+	  "<file>", "Read (additional) keyboard mappings from <file>" },
 	{ OPT_FASTFORWARD, NULL, "--fast-forward",
 	  "<bool>", "Help skipping stuff on fast machine" },
 
-	{ OPT_HEADER, NULL, NULL, NULL, "Display" },
+	{ OPT_HEADER, NULL, NULL, NULL, "Common display" },
 	{ OPT_MONO,      "-m", "--mono",
 	  NULL, "Start in monochrome mode instead of color" },
 	{ OPT_MONITOR,      NULL, "--monitor",
@@ -158,26 +172,32 @@ static const opt_t HatariOptions[] = {
 	  NULL, "Start emulator in window mode" },
 	{ OPT_GRAB, NULL, "--grab",
 	  NULL, "Grab mouse (also) in window mode" },
-	{ OPT_ZOOM, "-z", "--zoom",
-	  "<x>", "Double small resolutions (1=no, 2=yes)" },
-	{ OPT_MAXWIDTH, NULL, "--max-width",
-	  "<x>", "Maximum window width for zooming (Falcon/TT only)" },
-	{ OPT_MAXHEIGHT, NULL, "--max-height",
-	  "<x>", "Maximum window height for zooming (Falcon/TT only)" },
-	{ OPT_ASPECT, NULL, "--aspect",
-	  "<bool>", "Monitor aspect ratio correction (Falcon/TT only)" },
-	{ OPT_BORDERS, NULL, "--borders",
-	  "<bool>", "Show ST/STE screen borders (for overscan demos etc)" },
 	{ OPT_FRAMESKIPS, NULL, "--frameskips",
 	  "<x>", "Skip <x> frames after each shown frame (0=off, >4=auto/max)" },
 	{ OPT_STATUSBAR, NULL, "--statusbar",
 	  "<bool>", "Show statusbar (floppy leds etc)" },
 	{ OPT_DRIVE_LED,   NULL, "--drive-led",
 	  "<bool>", "Show overlay drive led when statusbar isn't shown" },
-	{ OPT_SPEC512, NULL, "--spec512",
-	  "<x>", "Spec512 palette threshold (0 <= x <= 512, 0=disable)" },
 	{ OPT_FORCEBPP, NULL, "--bpp",
 	  "<x>", "Force internal bitdepth (x = 8/15/16/32, 0=disable)" },
+
+	{ OPT_HEADER, NULL, NULL, NULL, "ST/STE specific display" },
+	{ OPT_BORDERS, NULL, "--borders",
+	  "<bool>", "Show screen borders (for overscan demos etc)" },
+	{ OPT_SPEC512, NULL, "--spec512",
+	  "<x>", "Spec512 palette threshold (0 <= x <= 512, 0=disable)" },
+	{ OPT_ZOOM, "-z", "--zoom",
+	  "<x>", "Double small resolutions (1=no, 2=yes)" },
+
+	{ OPT_HEADER, NULL, NULL, NULL, "Falcon/TT specific display" },
+	{ OPT_RESOLUTION, NULL, "--desktop",
+	  "<bool>", "Keep desktop resolution on fullscreen" },
+	{ OPT_MAXWIDTH, NULL, "--max-width",
+	  "<x>", "Maximum window width for zooming" },
+	{ OPT_MAXHEIGHT, NULL, "--max-height",
+	  "<x>", "Maximum window height for zooming" },
+	{ OPT_ASPECT, NULL, "--aspect",
+	  "<bool>", "Monitor aspect ratio correction" },
 
 	{ OPT_HEADER, NULL, NULL, NULL, "VDI" },
 	{ OPT_VDI,	NULL, "--vdi",
@@ -189,15 +209,15 @@ static const opt_t HatariOptions[] = {
 	{ OPT_VDI_HEIGHT,     NULL, "--vdi-height",
 	  "<h>", "VDI mode height (200 < h <= 960)" },
 
-	{ OPT_HEADER, NULL, NULL, NULL, "Video recording" },
+	{ OPT_HEADER, NULL, NULL, NULL, "Screen capture" },
+	{ OPT_SCREEN_CROP, NULL, "--crop",
+	  "<bool>", "Remove statusbar from screen capture" },
 	{ OPT_AVIRECORD, NULL, "--avirecord",
 	  NULL, "Start AVI recording" },
 	{ OPT_AVIRECORD_VCODEC, NULL, "--avi-vcodec",
 	  "<x>", "Select avi video codec (x = bmp/png)" },
 	{ OPT_AVIRECORD_FPS, NULL, "--avi-fps",
 	  "<x>", "Force avi frame rate (x = 50/60/71/...)" },
-	{ OPT_AVIRECORD_CROP, NULL, "--avi-crop",
-	  "<bool>", "Remove status bar from the recorded file" },
 	{ OPT_AVIRECORD_FILE, NULL, "--avi-file",
 	  "<file>", "Use <file> to record avi" },
 
@@ -269,28 +289,46 @@ static const opt_t HatariOptions[] = {
 	  "<x>", "Set the CPU clock (x = 8/16/32)" },
 	{ OPT_COMPATIBLE, NULL, "--compatible",
 	  "<bool>", "Use a more compatible (but slower) 68000 CPU mode" },
-	
+
+#if ENABLE_WINUAE_CPU
+	{ OPT_HEADER, NULL, NULL, NULL, "WinUAE CPU/FPU/bus" },
+	{ OPT_CPU_CYCLE_EXACT, NULL, "--cpu-exact",
+	  "<bool>", "Use cycle exact CPU emulation" },
+	{ OPT_CPU_ADDR24, NULL, "--addr24",
+	  "<bool>", "Use 24-bit instead of 32-bit addressing mode" },
+	{ OPT_FPU_TYPE, NULL, "--fpu-type",
+	  "<x>", "FPU type (x=none/68881/68882/internal)" },
+	{ OPT_FPU_COMPATIBLE, NULL, "--fpu-compatible",
+	  "<bool>", "Use more compatible, but slower FPU emulation" },
+	{ OPT_MMU, NULL, "--mmu",
+	  "<bool>", "Use MMU emulation" },
+#endif
+
 	{ OPT_HEADER, NULL, NULL, NULL, "Misc system" },
 	{ OPT_MACHINE,   NULL, "--machine",
 	  "<x>", "Select machine type (x = st/ste/tt/falcon)" },
 	{ OPT_BLITTER,   NULL, "--blitter",
 	  "<bool>", "Use blitter emulation (ST only)" },
-	{ OPT_TIMERD,    NULL, "--timer-d",
-	  "<bool>", "Patch Timer-D (about doubles Hatari speed)" },
 	{ OPT_DSP,       NULL, "--dsp",
 	  "<x>", "DSP emulation (x = none/dummy/emu, Falcon only)" },
+	{ OPT_MICROPHONE,   NULL, "--mic",
+	  "<bool>", "Enable/disable (Falcon only) microphone" },
 	{ OPT_SOUND,   NULL, "--sound",
 	  "<x>", "Sound frequency (x=off/6000-50066, off=fastest)" },
 	{ OPT_SOUNDBUFFERSIZE,   NULL, "--sound-buffer-size",
-	  "<x>", "Sound buffer size for SDL in ms (x=0/10-100, 0=use default buffer size)" },
-	{ OPT_KEYMAPFILE, "-k", "--keymap",
-	  "<file>", "Read (additional) keyboard mappings from <file>" },
-	
+	  "<x>", "Sound buffer size for SDL in ms (x=0/10-100, 0=default)" },
+	{ OPT_YM_MIXING,   NULL, "--ym-mixing",
+	  "<x>", "YM sound mixing method (x=linear/table)" },
+	{ OPT_TIMERD,    NULL, "--timer-d",
+	  "<bool>", "Patch Timer-D (about doubles ST emulation speed)" },
+	{ OPT_RTC,    NULL, "--rtc",
+	  "<bool>", "Enable real-time clock" },
+
 	{ OPT_HEADER, NULL, NULL, NULL, "Debug" },
 	{ OPT_DEBUG,     "-D", "--debug",
 	  NULL, "Toggle whether CPU exceptions invoke debugger" },
 	{ OPT_BIOSINTERCEPT, NULL, "--bios-intercept",
-	  NULL, "Enable Bios/XBios interception (experimental)" },
+	  NULL, "Toggle X/Bios interception & CON: redirection" },
 	{ OPT_TRACE,   NULL, "--trace",
 	  "<trace1,...>", "Activate emulation tracing, see '--trace help'" },
 	{ OPT_TRACEFILE, NULL, "--trace-file",
@@ -431,7 +469,7 @@ static void Opt_ShowHelp(void)
 	const opt_t *opt = HatariOptions;
 
 	Opt_ShowVersion();
-	printf("Usage:\n hatari [options] [disk image name]\n");
+	printf("Usage:\n hatari [options] [directory|disk image|Atari program]\n");
 
 	while(opt->id != OPT_ERROR)
 	{
@@ -600,7 +638,7 @@ static int Opt_CheckBracketValue(const opt_t *opt, const char *str)
  * Checks also that if option is supposed to have argument,
  * whether there's one.
  */
-static int Opt_WhichOption(int argc, const char *argv[], int idx)
+static int Opt_WhichOption(int argc, const char * const argv[], int idx)
 {
 	const opt_t *opt;
 	const char *str = argv[idx];
@@ -699,10 +737,83 @@ Uint32 Opt_GetNoParachuteFlag(void)
 
 
 /**
+ * Handle last (non-option) argument.  It can be a path or filename.
+ * Filename can be a disk image or Atari program.
+ * Return false if it's none of these.
+ */
+static bool Opt_HandleArgument(const char *path)
+{
+	char *dir = NULL;
+	Uint8 test[2];
+	FILE *fp;
+
+	/* Atari program? */
+	if (File_Exists(path) && (fp = fopen(path, "rb"))) {
+
+		/* file starts with GEMDOS magic? */
+		if (fread(test, 1, 2, fp) == 2 &&
+		    test[0] == 0x60 && test[1] == 0x1A) {
+
+			const char *prgname = strrchr(path, PATHSEP);
+			if (prgname) {
+				dir = strdup(path);
+				dir[prgname-path] = '\0';
+				prgname++;
+			} else {
+				dir = strdup(Paths_GetWorkingDir());
+				prgname = path;
+			}
+			/* after above, dir should point to valid dir,
+			 * then make sure that given program from that
+			 * dir will be started.
+			 */
+//			TOS_AutoStart(prgname);
+		}
+		fclose(fp);
+	}
+	if (dir) {
+		path = dir;
+	}
+
+	/* GEMDOS HDD directory (as argument, or for the Atari program)? */
+	if (File_DirExists(path)) {
+		if (Opt_StrCpy(OPT_HARDDRIVE, false, ConfigureParams.HardDisk.szHardDiskDirectories[0],
+			       path, sizeof(ConfigureParams.HardDisk.szHardDiskDirectories[0]),
+			       &ConfigureParams.HardDisk.bUseHardDiskDirectories)
+		    && ConfigureParams.HardDisk.bUseHardDiskDirectories)
+		{
+			ConfigureParams.HardDisk.bBootFromHardDisk = true;
+		}
+		bLoadAutoSave = false;
+		if (dir) {
+			free(dir);
+		}
+		return true;
+	} else {
+		if (dir) {
+			/* if dir is set, it should be valid... */
+			Log_Printf(LOG_ERROR, "Given atari program path '%s' doesn't exist (anymore?)!\n", dir);
+			free(dir);
+			exit(1);
+		}
+	}
+
+	/* disk image? */
+//	if (Floppy_SetDiskFileName(0, path, NULL))
+//	{
+//		ConfigureParams.HardDisk.bBootFromHardDisk = false;
+//		bLoadAutoSave = false;
+//		return true;
+//	}
+
+	return Opt_ShowError(OPT_ERROR, path, "Not a disk image, Atari program or directory");
+}
+
+/**
  * parse all Hatari command line options and set Hatari state accordingly.
  * Returns true if everything was OK, false otherwise.
  */
-bool Opt_ParseParameters(int argc, const char *argv[])
+bool Opt_ParseParameters(int argc, const char * const argv[])
 {
 	int ncpu, skips, zoom, planes, cpuclock, threshold, memsize, port, freq, temp;
 	const char *errstr;
@@ -715,10 +826,9 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 
 	for(i = 1; i < argc; i++)
 	{
-		if (argv[i][0] != '-')
-		{
-			continue;
-		}
+		/* last argument can be a non-option */
+		if (argv[i][0] != '-' && i+1 == argc)
+			return Opt_HandleArgument(argv[i]);
     
 		/* WhichOption() checks also that there is an argument,
 		 * so we don't need to check that below
@@ -755,7 +865,7 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 			}
 			break;
 		
-			/* display options */
+			/* common display options */
 		case OPT_MONO:
 			ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_MONO;
 			bLoadAutoSave = false;
@@ -797,36 +907,6 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 		case OPT_GRAB:
 			bGrabMouse = true;
 			break;
-
-		case OPT_ZOOM:
-			zoom = atoi(argv[++i]);
-			if (zoom < 1)
-			{
-				return Opt_ShowError(OPT_ZOOM, argv[i], "Invalid zoom value");
-			}
-			if (zoom > 1)
-			{
-				ConfigureParams.Screen.nMaxWidth = 1024;
-				ConfigureParams.Screen.nMaxHeight = 768;
-			}
-			else
-			{
-				ConfigureParams.Screen.nMaxWidth = 1024;
-				ConfigureParams.Screen.nMaxHeight = 768;
-			}
-			break;
-			
-		case OPT_MAXWIDTH:
-			ConfigureParams.Screen.nMaxWidth = atoi(argv[++i]);
-			break;
-
-		case OPT_MAXHEIGHT:
-			ConfigureParams.Screen.nMaxHeight = atoi(argv[++i]);
-			break;
-			
-		case OPT_ASPECT:
-			ok = Opt_Bool(argv[++i], OPT_ASPECT, &ConfigureParams.Screen.bAspectCorrect);
-			break;
 			
 		case OPT_FRAMESKIPS:
 			skips = atoi(argv[++i]);
@@ -842,26 +922,12 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 			ConfigureParams.Screen.nFrameSkips = skips;
 			break;
 			
-		case OPT_BORDERS:
-			ok = Opt_Bool(argv[++i], OPT_BORDERS, &ConfigureParams.Screen.bAllowOverscan);
-			break;
-			
 		case OPT_STATUSBAR:
 			ok = Opt_Bool(argv[++i], OPT_STATUSBAR, &ConfigureParams.Screen.bShowStatusbar);
 			break;
 			
 		case OPT_DRIVE_LED:
 			ok = Opt_Bool(argv[++i], OPT_DRIVE_LED, &ConfigureParams.Screen.bShowDriveLed);
-			break;
-			
-		case OPT_SPEC512:
-			threshold = atoi(argv[++i]);
-			if (threshold < 0 || threshold > 512)
-			{
-				return Opt_ShowError(OPT_SPEC512, argv[i],
-						     "Invalid palette writes per line threshold for Spec512");
-			}
-			ConfigureParams.Screen.nSpec512Threshold = threshold;
 			break;
 			
 		case OPT_FORCEBPP:
@@ -881,8 +947,62 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 			}
 			ConfigureParams.Screen.nForceBpp = planes;
 			break;
+			
+			/* ST/STE display options */
+		case OPT_BORDERS:
+			ok = Opt_Bool(argv[++i], OPT_BORDERS, &ConfigureParams.Screen.bAllowOverscan);
+			break;
+			
+		case OPT_SPEC512:
+			threshold = atoi(argv[++i]);
+			if (threshold < 0 || threshold > 512)
+			{
+				return Opt_ShowError(OPT_SPEC512, argv[i],
+						     "Invalid palette writes per line threshold for Spec512");
+			}
+			ConfigureParams.Screen.nSpec512Threshold = threshold;
+			break;
 
-			/* avi recording options */
+		case OPT_ZOOM:
+			zoom = atoi(argv[++i]);
+			if (zoom < 1)
+			{
+				return Opt_ShowError(OPT_ZOOM, argv[i], "Invalid zoom value");
+			}
+			if (zoom > 1)
+			{
+				ConfigureParams.Screen.nMaxWidth = 320;
+				ConfigureParams.Screen.nMaxHeight = 200;
+			}
+			else
+			{
+				ConfigureParams.Screen.nMaxWidth = 1024;
+				ConfigureParams.Screen.nMaxHeight = 768;
+			}
+			break;
+
+			/* Falcon/TT display options */
+		case OPT_RESOLUTION:
+			ok = Opt_Bool(argv[++i], OPT_RESOLUTION, &ConfigureParams.Screen.bKeepResolution);
+			break;
+			
+		case OPT_MAXWIDTH:
+			ConfigureParams.Screen.nMaxWidth = atoi(argv[++i]);
+			break;
+
+		case OPT_MAXHEIGHT:
+			ConfigureParams.Screen.nMaxHeight = atoi(argv[++i]);
+			break;
+			
+		case OPT_ASPECT:
+			ok = Opt_Bool(argv[++i], OPT_ASPECT, &ConfigureParams.Screen.bAspectCorrect);
+			break;
+
+			/* screen capture options */
+		case OPT_SCREEN_CROP:
+			ok = Opt_Bool(argv[++i], OPT_SCREEN_CROP, &ConfigureParams.Screen.bCrop);
+			break;
+
 		case OPT_AVIRECORD:
 			AviRecordOnStartup = true;
 			break;
@@ -891,11 +1011,11 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 			i += 1;
 			if (strcasecmp(argv[i], "bmp") == 0)
 			{
-//				AviRecordDefaultVcodec = AVI_RECORD_VIDEO_CODEC_BMP;
+				ConfigureParams.Video.AviRecordVcodec = AVI_RECORD_VIDEO_CODEC_BMP;
 			}
 			else if (strcasecmp(argv[i], "png") == 0)
 			{
-//				AviRecordDefaultVcodec = AVI_RECORD_VIDEO_CODEC_PNG;
+				ConfigureParams.Video.AviRecordVcodec = AVI_RECORD_VIDEO_CODEC_PNG;
 			}
 			else
 			{
@@ -910,20 +1030,222 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 				return Opt_ShowError(OPT_AVIRECORD_FPS, argv[i],
 							"Invalid frame rate for avi recording");
 			}
-//			AviRecordDefaultFps = val;
-			break;
-
-		case OPT_AVIRECORD_CROP:
-//			ok = Opt_Bool(argv[++i], OPT_AVIRECORD_CROP, &AviRecordDefaultCrop);
+			ConfigureParams.Video.AviRecordFps = val;
 			break;
 
 		case OPT_AVIRECORD_FILE:
 			i += 1;
 			/* false -> file is created if it doesn't exist */
-//			ok = Opt_StrCpy(OPT_AVIRECORD_FILE, false, AviRecordFile,
-//					argv[i], sizeof(AviRecordFile), NULL);
+			ok = Opt_StrCpy(OPT_AVIRECORD_FILE, false, ConfigureParams.Video.AviRecordFile,
+					argv[i], sizeof(ConfigureParams.Video.AviRecordFile), NULL);
 			break;
 
+			/* VDI options */
+		case OPT_VDI:
+			ok = Opt_Bool(argv[++i], OPT_VDI, &ConfigureParams.Screen.bUseExtVdiResolutions);
+			if (ok)
+			{
+				bLoadAutoSave = false;
+			}
+			break;
+
+		case OPT_VDI_PLANES:
+			planes = atoi(argv[++i]);
+			switch(planes)
+			{
+			 case 1:
+//				ConfigureParams.Screen.nVdiColors = GEMCOLOR_2;
+				break;
+			 case 2:
+//				ConfigureParams.Screen.nVdiColors = GEMCOLOR_4;
+				break;
+			 case 4:
+//				ConfigureParams.Screen.nVdiColors = GEMCOLOR_16;
+				break;
+			 default:
+				return Opt_ShowError(OPT_VDI_PLANES, argv[i], "Unsupported VDI bit-depth");
+			}
+			ConfigureParams.Screen.bUseExtVdiResolutions = true;
+			bLoadAutoSave = false;
+			break;
+
+		case OPT_VDI_WIDTH:
+			ConfigureParams.Screen.nVdiWidth = atoi(argv[++i]);
+			ConfigureParams.Screen.bUseExtVdiResolutions = true;
+			bLoadAutoSave = false;
+			break;
+
+		case OPT_VDI_HEIGHT:
+			ConfigureParams.Screen.nVdiHeight = atoi(argv[++i]);
+			ConfigureParams.Screen.bUseExtVdiResolutions = true;
+			bLoadAutoSave = false;
+			break;
+
+			/* devices options */
+		case OPT_JOYSTICK:
+			i++;
+//			if (strlen(argv[i]) != 1 ||
+//			    !Joy_SetCursorEmulation(argv[i][0] - '0'))
+//			{
+//				return Opt_ShowError(OPT_JOYSTICK, argv[i], "Invalid joystick port");
+//			}
+			break;
+
+		case OPT_JOYSTICK0:
+		case OPT_JOYSTICK1:
+		case OPT_JOYSTICK2:
+		case OPT_JOYSTICK3:
+		case OPT_JOYSTICK4:
+		case OPT_JOYSTICK5:
+			port = argv[i][strlen(argv[i])-1] - '0';
+			assert(port >= 0 && port < JOYSTICK_COUNT);
+			i += 1;
+			if (strcasecmp(argv[i], "none") == 0)
+			{
+				ConfigureParams.Joysticks.Joy[port].nJoystickMode = JOYSTICK_DISABLED;
+			}
+			else if (strcasecmp(argv[i], "keys") == 0)
+			{
+				ConfigureParams.Joysticks.Joy[port].nJoystickMode = JOYSTICK_KEYBOARD;
+			}
+			else if (strcasecmp(argv[i], "real") == 0)
+			{
+				ConfigureParams.Joysticks.Joy[port].nJoystickMode = JOYSTICK_REALSTICK;
+			}
+			else
+			{
+				return Opt_ShowError(OPT_JOYSTICK0+port, argv[i], "Invalid joystick type");
+			}
+			break;
+			
+		case OPT_PRINTER:
+			i += 1;
+			/* "none" can be used to disable printer */
+			ok = Opt_StrCpy(OPT_PRINTER, false, ConfigureParams.Printer.szPrintToFileName,
+					argv[i], sizeof(ConfigureParams.Printer.szPrintToFileName),
+					&ConfigureParams.Printer.bEnablePrinting);
+			break;
+			
+		case OPT_MIDI_IN:
+			i += 1;
+			ok = Opt_StrCpy(OPT_MIDI_IN, true, ConfigureParams.Midi.sMidiInFileName,
+					argv[i], sizeof(ConfigureParams.Midi.sMidiInFileName),
+					&ConfigureParams.Midi.bEnableMidi);
+			break;
+			
+		case OPT_MIDI_OUT:
+			i += 1;
+			ok = Opt_StrCpy(OPT_MIDI_OUT, false, ConfigureParams.Midi.sMidiOutFileName,
+					argv[i], sizeof(ConfigureParams.Midi.sMidiOutFileName),
+					&ConfigureParams.Midi.bEnableMidi);
+			break;
+      
+		case OPT_RS232_IN:
+			i += 1;
+			ok = Opt_StrCpy(OPT_RS232_IN, true, ConfigureParams.RS232.szInFileName,
+					argv[i], sizeof(ConfigureParams.RS232.szInFileName),
+					&ConfigureParams.RS232.bEnableRS232);
+			break;
+      
+		case OPT_RS232_OUT:
+			i += 1;
+			ok = Opt_StrCpy(OPT_RS232_OUT, false, ConfigureParams.RS232.szOutFileName,
+					argv[i], sizeof(ConfigureParams.RS232.szOutFileName),
+					&ConfigureParams.RS232.bEnableRS232);
+			break;
+
+			/* disk options */
+		case OPT_DISKA:
+			i += 1;
+//			if (Floppy_SetDiskFileName(0, argv[i], NULL))
+//			{
+//				ConfigureParams.HardDisk.bBootFromHardDisk = false;
+//				bLoadAutoSave = false;
+//			}
+//			else
+//				return Opt_ShowError(OPT_ERROR, argv[i], "Not a disk image");
+//			break;
+
+		case OPT_DISKB:
+			i += 1;
+//			if (Floppy_SetDiskFileName(1, argv[i], NULL))
+//				bLoadAutoSave = false;
+//			else
+//				return Opt_ShowError(OPT_ERROR, argv[i], "Not a disk image");
+//			break;
+
+		case OPT_SLOWFLOPPY:
+			ok = Opt_Bool(argv[++i], OPT_SLOWFLOPPY, &ConfigureParams.DiskImage.bSlowFloppy);
+			break;
+
+		case OPT_WRITEPROT_FLOPPY:
+			i += 1;
+			if (strcasecmp(argv[i], "off") == 0)
+				ConfigureParams.DiskImage.nWriteProtection = WRITEPROT_OFF;
+			else if (strcasecmp(argv[i], "on") == 0)
+				ConfigureParams.DiskImage.nWriteProtection = WRITEPROT_ON;
+			else if (strcasecmp(argv[i], "auto") == 0)
+				ConfigureParams.DiskImage.nWriteProtection = WRITEPROT_AUTO;
+			else
+				return Opt_ShowError(OPT_WRITEPROT_FLOPPY, argv[i], "Unknown option value");
+			break;
+
+		case OPT_WRITEPROT_HD:
+			i += 1;
+			if (strcasecmp(argv[i], "off") == 0)
+				ConfigureParams.HardDisk.nWriteProtection = WRITEPROT_OFF;
+			else if (strcasecmp(argv[i], "on") == 0)
+				ConfigureParams.HardDisk.nWriteProtection = WRITEPROT_ON;
+			else if (strcasecmp(argv[i], "auto") == 0)
+				ConfigureParams.HardDisk.nWriteProtection = WRITEPROT_AUTO;
+			else
+				return Opt_ShowError(OPT_WRITEPROT_HD, argv[i], "Unknown option value");
+			break;
+
+		case OPT_HARDDRIVE:
+			i += 1;
+			ok = Opt_StrCpy(OPT_HARDDRIVE, false, ConfigureParams.HardDisk.szHardDiskDirectories[0],
+					argv[i], sizeof(ConfigureParams.HardDisk.szHardDiskDirectories[0]),
+					&ConfigureParams.HardDisk.bUseHardDiskDirectories);
+			if (ok && ConfigureParams.HardDisk.bUseHardDiskDirectories)
+			{
+				ConfigureParams.HardDisk.bBootFromHardDisk = true;
+			}
+			bLoadAutoSave = false;
+			break;
+
+		case OPT_ACSIHDIMAGE:
+			i += 1;
+			ok = Opt_StrCpy(OPT_ACSIHDIMAGE, true, ConfigureParams.HardDisk.szHardDiskImage,
+					argv[i], sizeof(ConfigureParams.HardDisk.szHardDiskImage),
+					&ConfigureParams.HardDisk.bUseHardDiskImage);
+			if (ok)
+			{
+				bLoadAutoSave = false;
+			}
+			break;
+			
+		case OPT_IDEMASTERHDIMAGE:
+			i += 1;
+			ok = Opt_StrCpy(OPT_IDEMASTERHDIMAGE, true, ConfigureParams.HardDisk.szIdeMasterHardDiskImage,
+					argv[i], sizeof(ConfigureParams.HardDisk.szIdeMasterHardDiskImage),
+					&ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage);
+			if (ok)
+			{
+				bLoadAutoSave = false;
+			}
+			break;
+
+		case OPT_IDESLAVEHDIMAGE:
+			i += 1;
+			ok = Opt_StrCpy(OPT_IDESLAVEHDIMAGE, true, ConfigureParams.HardDisk.szIdeSlaveHardDiskImage,
+					argv[i], sizeof(ConfigureParams.HardDisk.szIdeSlaveHardDiskImage),
+					&ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage);
+			if (ok)
+			{
+				bLoadAutoSave = false;
+			}
+			break;
 			
 			/* Memory options */
 		case OPT_MEMSIZE:
@@ -1023,6 +1345,9 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 			}
 			else if (strcasecmp(argv[i], "falcon") == 0)
 			{
+#if ENABLE_DSP_EMU
+		ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
+#endif
 				ConfigureParams.System.nMachineType = MACHINE_FALCON;
 				ConfigureParams.System.nCpuLevel = 3;
 				ConfigureParams.System.nCpuFreq = 16;
@@ -1034,11 +1359,125 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 			bLoadAutoSave = false;
 			break;
 			
+		case OPT_BLITTER:
+			ok = Opt_Bool(argv[++i], OPT_BLITTER, &ConfigureParams.System.bBlitter);
+			if (ok)
+			{
+				bLoadAutoSave = false;
+			}
+			break;			
 			
 		case OPT_TIMERD:
 			ok = Opt_Bool(argv[++i], OPT_TIMERD, &ConfigureParams.System.bPatchTimerD);
 			break;			
+			
+		case OPT_RTC:
+			ok = Opt_Bool(argv[++i], OPT_RTC, &ConfigureParams.System.bRealTimeClock);
+			break;			
 
+		case OPT_DSP:
+			i += 1;
+			if (strcasecmp(argv[i], "none") == 0)
+			{
+				ConfigureParams.System.nDSPType = DSP_TYPE_NONE;
+			}
+			else if (strcasecmp(argv[i], "dummy") == 0)
+			{
+				ConfigureParams.System.nDSPType = DSP_TYPE_DUMMY;
+			}
+			else if (strcasecmp(argv[i], "emu") == 0)
+			{
+#if ENABLE_DSP_EMU
+				ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
+#else
+				return Opt_ShowError(OPT_DSP, argv[i], "DSP type 'emu' support not compiled in");
+#endif
+			}
+			else
+			{
+				return Opt_ShowError(OPT_DSP, argv[i], "Unknown DSP type");
+			}
+			bLoadAutoSave = false;
+			break;
+
+#if ENABLE_WINUAE_CPU
+		case OPT_CPU_ADDR24:
+			ok = Opt_Bool(argv[++i], OPT_CPU_ADDR24, &ConfigureParams.System.bAddressSpace24);
+			bLoadAutoSave = false;
+			break;			
+
+		case OPT_CPU_CYCLE_EXACT:
+			ok = Opt_Bool(argv[++i], OPT_CPU_CYCLE_EXACT, &ConfigureParams.System.bCycleExactCpu);
+			bLoadAutoSave = false;
+			break;			
+
+		case OPT_FPU_TYPE:
+			i += 1;
+			if (strcasecmp(argv[i], "none") == 0)
+			{
+				ConfigureParams.System.n_FPUType = FPU_NONE;
+			}
+			else if (strcasecmp(argv[i], "68881") == 0)
+			{
+				ConfigureParams.System.n_FPUType = FPU_68881;
+			}
+			else if (strcasecmp(argv[i], "68882") == 0)
+			{
+				ConfigureParams.System.n_FPUType = FPU_68882;
+			}
+			else if (strcasecmp(argv[i], "internal") == 0)
+			{
+				ConfigureParams.System.n_FPUType = FPU_CPU;
+			}
+			else
+			{
+				return Opt_ShowError(OPT_FPU_TYPE, argv[i], "Unknown FPU type");
+			}
+			bLoadAutoSave = false;
+			break;
+
+		case OPT_FPU_COMPATIBLE:
+			ok = Opt_Bool(argv[++i], OPT_FPU_COMPATIBLE, &ConfigureParams.System.bCompatibleFPU);
+			break;			
+
+		case OPT_MMU:
+			ok = Opt_Bool(argv[++i], OPT_MMU, &ConfigureParams.System.bMMU);
+			bLoadAutoSave = false;
+			break;			
+#endif
+		case OPT_YM_MIXING:
+			i += 1;
+			if (strcasecmp(argv[i], "linear") == 0)
+			{
+//				ConfigureParams.Sound.YmVolumeMixing = YM_LINEAR_MIXING;
+			}
+			else if (strcasecmp(argv[i], "table") == 0)
+			{
+//				ConfigureParams.Sound.YmVolumeMixing = YM_TABLE_MIXING;
+			}
+			else
+			{
+				return Opt_ShowError(OPT_YM_MIXING, argv[i], "Unknown YM mixing method");
+			}
+			break;
+
+		case OPT_SOUND:
+			i += 1;
+			if (strcasecmp(argv[i], "off") == 0)
+			{
+				ConfigureParams.Sound.bEnableSound = false;
+			}
+			else
+			{
+				freq = atoi(argv[i]);
+				if (freq < 6000 || freq > 50066)
+				{
+					return Opt_ShowError(OPT_SOUND, argv[i], "Unsupported sound frequency");
+				}
+				ConfigureParams.Sound.nPlaybackFreq = freq;
+				ConfigureParams.Sound.bEnableSound = true;
+			}
+			break;
 
 		case OPT_SOUNDBUFFERSIZE:
 			i += 1;
@@ -1051,6 +1490,10 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 				}
 			ConfigureParams.Sound.SdlAudioBufferSize = temp;
 			break;
+			
+		case OPT_MICROPHONE:
+			ok = Opt_Bool(argv[++i], OPT_MICROPHONE, &ConfigureParams.Sound.bEnableMicrophone);
+			break;			
 
 		case OPT_KEYMAPFILE:
 			i += 1;
@@ -1074,6 +1517,19 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 			{
 				fprintf(stderr, "Exception debugging enabled.\n");
 				bExceptionDebugging = true;
+			}
+			break;
+
+		case OPT_BIOSINTERCEPT:
+			if (bBiosIntercept)
+			{
+				fprintf(stderr, "X/Bios interception disabled.\n");
+				bBiosIntercept = false;
+			}
+			else
+			{
+				fprintf(stderr, "X/Bios interception enabled.\n");
+				bBiosIntercept = true;
 			}
 			break;
 
@@ -1148,7 +1604,7 @@ bool Opt_ParseParameters(int argc, const char *argv[])
 			break;
 
 		case OPT_RUNVBLS:
-			nRunVBLs = atol(argv[++i]);
+			Main_SetRunVBLs(atol(argv[++i]));
 			break;
 		       
 		case OPT_ERROR:

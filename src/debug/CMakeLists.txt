@@ -4,5 +4,5 @@ if(READLINE_FOUND)
 endif(READLINE_FOUND)
 
 add_library(Debug
-            log.c debugui.c breakcond.c debugcpu.c debugInfo.c
-            ${DSPDBG_C} evaluate.c symbols.c)
+            68kDisass.c log.c debugui.c breakcond.c debugcpu.c debugInfo.c
+            ${DSPDBG_C} evaluate.c profile.c symbols.c 68kDisass.c)

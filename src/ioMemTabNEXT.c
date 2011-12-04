@@ -17,6 +17,7 @@ const char IoMemTabST_fileid[] = "Previous ioMemTabST.c : " __DATE__ " " __TIME_
 #include "configuration.h"
 #include "sysdeps.h"
 #include "m68000.h"
+#include "keymap.h"
 
 #define IO_SEG_MASK	0x1FFFF
 /*
@@ -119,11 +120,11 @@ void SCR2_Read1(void)
 
 // Uint8 rtc_ram[32];
 
-Uint8 rtc_ram[32]={
-0x94,0x0f,0x40,0x00,0x00,0x00,0x00,0x00,
-0x00,0x00,0xfb,0x6d,0x00,0x00,0x7B,0x00,
-0x00,0x00,0x65,0x6e,0x00,0x00,0x00,0x00,
-0x00,0x00,0x00,0x00,0x00,0x00,0x50,0x13
+Uint8 rtc_ram[32]={ // values from nextcomputers.org forums
+0x94,0x0f,0x40,0x03,0x00,0x00,0x00,0x00,
+0x00,0x00,0xfb,0x6d,0x00,0x00,0x4b,0x00,
+0x41,0x00,0x20,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0x00,0x00,0x00,0x00,0x84,0x7e
 };
 
 static char rtc_ram_info[1024];
@@ -370,41 +371,49 @@ void SCR2_Read3(void)
 
 /*
 *
-bits 0:2 cpu speed 02 25MHz
-bits 3:4 mem speed 0 120ns
-bits 5:6 video mem speed 0 120ns
-bits 8:11 board revision 0
-bits 12:15 cpu type 30 : station non turbo rev 0
-bits 16:23 dma type 01
-bits 24:27 reserved 0
-bits 28:31 slot id 0
+bits 0:1 cpu speed; 0 = 40 MHz, 1 = 20 MHz, 2 = 25MHz, 3 = 33 MHz (meaningless on color Slab)
+bits 2:3 reserved: 0
+bits 4:5 mem speed; 0 = 120ns, 1 = 100ns, 2 = 80ns, 3 = 60ns (meaningless on color Slab)
+bits 6:7 video mem speed; 0 = 120ns, 1 = 100ns, 2 = 80ns, 3 = 60ns (meaningless on color Slab)
+bits 8:11 board revision; for 030 Cube: 0 = DCD input inverted, 1 = DCD polarity fixed, 2 = must disable DSP mem before reset; for all other systems: 0
+bits 12:15 cpu type; 0 = Cube 030, 1 = mono Slab, 2 = Cube 040, 3 = color Slab
+bits 16:23 dma rev: 1
+bits 24:27 reserved: 0
+bits 28:31 slot ID: 0
 
-			
-0000 xxxxxxxxxx 0001  0001 xx 10 011
 
-00 00 11 2E
+for Cube 040:
+0000 0000 0000 0001 0011 0000 0101 0011
+00 01 20 52
+ 
+for Cube 030:
+0000 0000 0000 0001 0000 0001 0101 0011
+00 01 01 52
 */
 
 
 void SCR1_Read0(void)
 {
 	Log_Printf(LOG_WARN,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x00; 
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x00; // slot ID 0
 }
 void SCR1_Read1(void)
 {
 	Log_Printf(LOG_WARN,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x01; // dma rev
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x01; // dma rev 1
 }
 void SCR1_Read2(void)
 {
 	Log_Printf(LOG_WARN,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x20; // cpu type + rev
+    if(ConfigureParams.System.nCpuLevel == 3)
+        IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x01; // Cube 030, board rev 1
+    else
+        IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x20; // Cube 040, board rev 0
 }
 void SCR1_Read3(void)
 {
 	Log_Printf(LOG_WARN,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x02; // speed + memory
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x52; // vmem speed 100ns, mem speed 100ns, cpu speed 25 MHz
 }
 
 void IntRegStatRead(void) {
@@ -469,12 +478,14 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 	{ 0x0200d001, SIZE_BYTE, SCR2_Read1, SCR2_Write1 },
 	{ 0x0200d002, SIZE_BYTE, SCR2_Read2, SCR2_Write2 },
 	{ 0x0200d003, SIZE_BYTE, SCR2_Read3, SCR2_Write3 },
-	{ 0x0200e001, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
-	{ 0x0200e002, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
-	{ 0x0200e003, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
+	{ 0x0200e000, SIZE_BYTE, Keyboard_Read0, IoMem_WriteWithoutInterception },
+	{ 0x0200e001, SIZE_BYTE, Keyboard_Read1, IoMem_WriteWithoutInterception },
+	{ 0x0200e002, SIZE_BYTE, Keyboard_Read2, IoMem_WriteWithoutInterception },
+    { 0x0200e003, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
 	{ 0x0200e004, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
 	{ 0x0200e005, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
 	{ 0x0200e006, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
+    { 0x0200e008, SIZE_LONG, Keycode_Read, IoMem_WriteWithoutInterception },
 	{ 0x02010000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x02012004, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x02012005, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },

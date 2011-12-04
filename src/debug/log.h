@@ -63,7 +63,7 @@ extern char *Log_MatchTrace(const char *text, int state);
  */
 #include "config.h"
 
-/* Up to 32 levels when using Uint32 for HatariTraceFlags */
+/* Up to 64 levels when using Uint32 for HatariTraceFlags */
 #define	TRACE_VIDEO_SYNC	 (1<<0)
 #define	TRACE_VIDEO_RES 	 (1<<1)
 #define	TRACE_VIDEO_COLOR	 (1<<2)
@@ -100,13 +100,24 @@ extern char *Log_MatchTrace(const char *text, int state);
 #define TRACE_OS_XBIOS  	 (1<<25)
 #define TRACE_OS_GEMDOS 	 (1<<26)
 #define TRACE_OS_VDI		 (1<<27)
+#define TRACE_OS_AES		 (1<<28)
 
-#define TRACE_IOMEM_RD  	 (1<<28)
-#define TRACE_IOMEM_WR  	 (1<<29)
+#define TRACE_IOMEM_RD  	 (1<<29)
+#define TRACE_IOMEM_WR  	 (1<<30)
 
-#define TRACE_DMASND		 (1<<30)
+#define TRACE_DMASND		 (1<<31)
 
-#define TRACE_CROSSBAR		 (1<<31)
+#define TRACE_CROSSBAR		 (1ll<<32)
+#define TRACE_VIDEL		 (1ll<<33)
+
+#define TRACE_DSP_HOST_INTERFACE (1ll<<34)
+#define TRACE_DSP_HOST_COMMAND	 (1ll<<35)
+#define TRACE_DSP_HOST_SSI	 (1ll<<36)
+#define TRACE_DSP_DISASM	 (1ll<<37)
+#define TRACE_DSP_DISASM_REG	 (1ll<<38)
+#define TRACE_DSP_DISASM_MEM	 (1ll<<39)
+#define TRACE_DSP_STATE		 (1ll<<40)
+#define TRACE_DSP_INTERRUPT	 (1ll<<41)
 
 #define	TRACE_NONE		 (0)
 #define	TRACE_ALL		 (~0)
@@ -128,9 +139,13 @@ extern char *Log_MatchTrace(const char *text, int state);
 
 #define	TRACE_IOMEM_ALL		( TRACE_IOMEM_RD | TRACE_IOMEM_WR )
 
+#define TRACE_DSP_ALL		( TRACE_DSP_HOST_INTERFACE | TRACE_DSP_HOST_COMMAND | TRACE_DSP_HOST_SSI | TRACE_DSP_DISASM \
+    | TRACE_DSP_DISASM_REG | TRACE_DSP_DISASM_MEM | TRACE_DSP_STATE | TRACE_DSP_INTERRUPT )
+
+
 
 extern FILE *TraceFile;
-extern Uint32 LogTraceFlags;
+extern Uint64 LogTraceFlags;
 
 #if ENABLE_TRACING
 
@@ -138,7 +153,7 @@ extern Uint32 LogTraceFlags;
 #define	LOG_TRACE(level, args...) \
 	if (unlikely(LogTraceFlags & level)) fprintf(TraceFile, args)
 #endif
-#define LOG_TRACE_LEVEL( level )	(LogTraceFlags & level)
+#define LOG_TRACE_LEVEL( level )	(unlikely(LogTraceFlags & level))
 
 #else		/* ENABLE_TRACING */
 

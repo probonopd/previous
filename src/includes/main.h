@@ -11,7 +11,7 @@
 
 /* Name and version for window title: */
 //#define PROG_NAME "Hatari devel (" __DATE__ ")"
-#define PROG_NAME "Previous 0.1"
+#define PROG_NAME "Previous 0.2"
 
 #include "config.h"
 
@@ -51,13 +51,14 @@
 #define CPU_FREQ   8012800
 
 extern bool bQuitProgram;
-extern Uint32 nRunVBLs;
 
 extern bool Main_PauseEmulation(bool visualize);
 extern bool Main_UnPauseEmulation(void);
 extern void Main_RequestQuit(void);
+extern void Main_SetRunVBLs(Uint32 vbls);
 extern void Main_WaitOnVbl(void);
 extern void Main_WarpMouse(int x, int y);
 extern void Main_EventHandler(void);
+extern void Main_SetTitle(const char *title);
 
 #endif /* ifndef HATARI_MAIN_H */

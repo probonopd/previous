@@ -48,13 +48,6 @@ enum
 #define ST_MEDIUM_RES_BIT 0x1
 #define ST_RES_MASK 0x3
 
-/* Update Palette defines */
-enum
-{
-  UPDATE_PALETTE_NONE,
-  UPDATE_PALETTE_UPDATE,
-  UPDATE_PALETTE_FULLUPDATE
-};
 
 /* Palette mask values for 'HBLPaletteMask[]' */
 #define PALETTEMASK_RESOLUTION  0x00040000
@@ -71,19 +64,6 @@ enum
   OVERSCANMODE_TOP,      /* 0x01 */
   OVERSCANMODE_BOTTOM    /* 0x02 (Top+Bottom) 0x03 */
 };
-
-/* Available fullscreen modes */
-#define NUM_DISPLAYMODEOPTIONS	6
-enum
-{
-  DISPLAYMODE_LOWCOL_LOWRES,     /* low color, low resolution (fastest) */
-  DISPLAYMODE_LOWCOL_HIGHRES,    /* low color, zoomed resolution */
-  DISPLAYMODE_LOWCOL_DUMMY,      /* unused */
-  DISPLAYMODE_HICOL_LOWRES,      /* high color, low resolution */
-  DISPLAYMODE_HICOL_HIGHRES,     /* high color, zoomed resolution (slowest) */
-  DISPLAYMODE_HICOL_DUMMY        /* unused */
-};
-
 
 extern bool bGrabMouse;
 extern bool bInFullScreen;

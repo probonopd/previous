@@ -12,10 +12,12 @@ const char ScreenSnapShot_fileid[] = "Hatari screenSnapShot.c : " __DATE__ " " _
 #include <dirent.h>
 #include <string.h>
 #include "main.h"
+#include "configuration.h"
 #include "log.h"
 #include "paths.h"
 #include "screen.h"
 #include "screenSnapShot.h"
+#include "statusbar.h"
 #include "video.h"
 /* after above that bring in config.h */
 #if HAVE_LIBPNG
@@ -25,7 +27,6 @@ const char ScreenSnapShot_fileid[] = "Hatari screenSnapShot.c : " __DATE__ " " _
 #endif
 
 
-bool bRecordingAnimation = false;           /* Recording animation? */
 static int nScreenShots = 0;                /* Number of screen shots saved */
 
 
@@ -76,13 +77,19 @@ static void ScreenSnapShot_GetNum(void)
 static int ScreenSnapShot_SavePNG(SDL_Surface *surface, const char *filename)
 {
 	FILE *fp = NULL;
-	int ret;
+	int ret, bottom;
   
 	fp = fopen(filename, "wb");
 	if (!fp)
 		return -1;
 
-	ret = ScreenSnapShot_SavePNG_ToFile(surface, fp, -1, -1, 0, 0, 0, 0);	/* default compression/filter and no cropping */
+    if (ConfigureParams.Screen.bCrop)
+        bottom = Statusbar_GetHeight();
+    else
+        bottom = 0;
+
+    /* default compression/filter and configured cropping */
+    ret = ScreenSnapShot_SavePNG_ToFile(surface, fp, -1, -1, 0, 0, 0, bottom);
 
 	fclose (fp);
 	return ret;					/* >0 if OK, -1 if error */
@@ -101,7 +108,7 @@ int ScreenSnapShot_SavePNG_ToFile(SDL_Surface *surface, FILE *fp, int png_compre
 	int y, ret = -1;
 	int w = surface->w - CropLeft - CropRight;
 	int h = surface->h - CropTop - CropBottom;
-	Uint8 *src_ptr, *row_ptr;
+	Uint8 *src_ptr;
 	Uint8 rowbuf[3*surface->w];
 	SDL_PixelFormat *fmt = surface->format;
 	png_colorp palette_ptr = NULL;
@@ -168,22 +175,18 @@ int ScreenSnapShot_SavePNG_ToFile(SDL_Surface *surface, FILE *fp, int png_compre
 		switch (fmt->BytesPerPixel) {
 		case 1:
 			/* unpack 8-bit data with RGB palette */
-			row_ptr = rowbuf;
-			PixelConvert_8to24Bits(row_ptr, src_ptr, w, fmt->palette->colors);
+			PixelConvert_8to24Bits(rowbuf, src_ptr, w, fmt->palette->colors);
 			break;
 		case 2:
 			/* unpack 16-bit RGB pixels */
-			row_ptr = rowbuf;
-			PixelConvert_16to24Bits(row_ptr, (Uint16*)src_ptr, w, fmt);
+			PixelConvert_16to24Bits(rowbuf, (Uint16*)src_ptr, w, fmt);
 			break;
 		case 3:
 			/* PNG can handle 24-bits */
-			row_ptr = src_ptr;
 			break;
 		case 4:
 			/* unpack 32-bit RGBA pixels */
-			row_ptr = rowbuf;
-			PixelConvert_32to24Bits(row_ptr, (Uint32*)src_ptr, w, fmt);
+			PixelConvert_32to24Bits(rowbuf, (Uint32*)src_ptr, w, fmt);
 			break;
 		}
 		/* and unlock surface before syscalls */

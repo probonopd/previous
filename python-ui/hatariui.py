@@ -4,7 +4,7 @@
 #
 # Requires PyGtk (python-gtk2) package and its dependencies to be present.
 #
-# Copyright (C) 2008-2010 by Eero Tamminen <eerot at berlios>
+# Copyright (C) 2008-2011 by Eero Tamminen <eerot at berlios>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -163,7 +163,7 @@ class UICallbacks:
             self.hatari.kill()
             return False
         width, height = self.hatari.get_embed_info()
-        print "New size = %d x %d" % (width, height)
+        print("New size = %d x %d" % (width, height))
         oldwidth, oldheight = self.hatariwin.get_size_request()
         self.hatariwin.set_size_request(width, height)
         if width < oldwidth or height < oldheight:
@@ -366,7 +366,6 @@ class UICallbacks:
     # ------- insert key special callback -----------
     def keypress(self, widget, code):
         self.hatari.insert_event("keypress %s" % code)
-        self.hatari.insert_event("keyrelease %s" % code)
 
     def textinsert(self, widget, text):
         HatariTextInsert(self.hatari, text)
@@ -457,7 +456,7 @@ class UIActions:
     def config_load(self, widget):
         # user loads a new configuration?
         if self.callbacks.config_load(widget):
-            print "TODO: reset toggle actions"
+            print("TODO: reset toggle actions")
 
     # ----- toolbar / panel additions ---------
     def set_actions(self, action_str, place):
@@ -537,7 +536,7 @@ class UIActions:
     def _create_key_control(self, name, textcode):
         "Simulate Atari key press/release and string inserting"
         if not textcode:
-            return (None, None)
+            return None
         widget = gtk.ToolButton(gtk.STOCK_PASTE)
         widget.set_label(name)
         try:
@@ -549,14 +548,15 @@ class UIActions:
             # no, assume a string macro is wanted instead
             widget.connect("clicked", self.callbacks.textinsert, textcode)
             tip = "string '%s'" % textcode
-        return (widget, tip)
+        widget.set_tooltip_text("Insert " + tip)
+        return widget
 
     def _get_container(self, actions, horiz = True):
         "return Gtk container with the specified actions or None for no actions"
         if not actions:
             return None
 
-        #print "ACTIONS:", actions
+        #print("ACTIONS:", actions)
         if len(actions) > 1:
             bar = gtk.Toolbar()
             if horiz:
@@ -566,20 +566,17 @@ class UIActions:
             bar.set_style(gtk.TOOLBAR_BOTH)
             # disable overflow menu to get toolbar sized correctly for panels
             bar.set_show_arrow(False)
-            bar.set_tooltips(True)
         else:
             bar = None
         
-        tooltips = gtk.Tooltips()
         for action in actions:
-            #print action
+            #print(action)
             offset = action.find("=")
             if offset >= 0:
                 # handle "<name>=<keycode>" action specification
                 name = action[:offset]
                 text = action[offset+1:]
-                (widget, tip) = self._create_key_control(name, text)
-                widget.set_tooltip(tooltips, "Insert " + tip)
+                widget = self._create_key_control(name, text)
             elif action == "|":
                 widget = gtk.SeparatorToolItem()
             elif action == "close":
@@ -669,21 +666,21 @@ class UIActions:
 def usage(actions, msg=None):
     name = os.path.basename(sys.argv[0])
     uiname = "%s %s" % (UInfo.name, UInfo.version)
-    print "\n%s" % uiname
-    print "=" * len(uiname)
-    print "\nUsage: %s [options] [floppy image]" % name
-    print "\nOptions:"
-    print "\t-h, --help\t\tthis help"
-    print "\t-n, --nomenu\t\tomit menus"
-    print "\t-e, --embed\t\tembed Hatari window in middle of controls"
-    print "\t-f, --fullscreen\tstart in fullscreen"
-    print "\t-l, --left <controls>\ttoolbar at left"
-    print "\t-r, --right <controls>\ttoolbar at right"
-    print "\t-t, --top <controls>\ttoolbar at top"
-    print "\t-b, --bottom <controls>\ttoolbar at bottom"
-    print "\t-p, --panel <name>,<controls>"
-    print "\t\t\t\tseparate window with given name and controls"
-    print "\nAvailable (panel/toolbar) controls:"
+    print("\n%s" % uiname)
+    print("=" * len(uiname))
+    print("\nUsage: %s [options] [directory|disk image|Atari program]" % name)
+    print("\nOptions:")
+    print("\t-h, --help\t\tthis help")
+    print("\t-n, --nomenu\t\tomit menus")
+    print("\t-e, --embed\t\tembed Hatari window in middle of controls")
+    print("\t-f, --fullscreen\tstart in fullscreen")
+    print("\t-l, --left <controls>\ttoolbar at left")
+    print("\t-r, --right <controls>\ttoolbar at right")
+    print("\t-t, --top <controls>\ttoolbar at top")
+    print("\t-b, --bottom <controls>\ttoolbar at bottom")
+    print("\t-p, --panel <name>,<controls>")
+    print("\t\t\t\tseparate window with given name and controls")
+    print("\nAvailable (panel/toolbar) controls:")
     for action, description in actions.list_actions():
         size = len(action)
         if size < 8:
@@ -692,8 +689,8 @@ def usage(actions, msg=None):
             tabs = "\t"
         else:
             tabs = "\n\t\t\t"
-        print "\t%s%s%s" % (action, tabs, description)
-    print """
+        print("\t%s%s%s" % (action, tabs, description))
+    print("""
 You can have as many panels as you wish.  For each panel you need to add
 a control with the name of the panel (see "MyPanel" below).
 
@@ -705,9 +702,9 @@ For example:
 \t-b "sound,|,fastforward,|,fullscreen"
 
 if no options are given, the UI uses basic controls.
-""" % name
+""" % name)
     if msg:
-        print "ERROR: %s\n" % msg
+        print("ERROR: %s\n" % msg)
     sys.exit(1)
 
 
@@ -719,7 +716,7 @@ def main():
             "left=", "right=", "top=", "bottom=", "panel="]
         opts, floppies = getopt.getopt(sys.argv[1:], "efnhl:r:t:b:p:", longopts)
         del longopts
-    except getopt.GetoptError, err:
+    except getopt.GetoptError as err:
         usage(actions, err)
 
     menu = True
@@ -728,7 +725,7 @@ def main():
 
     error = None
     for opt, arg in opts:
-        print opt, arg
+        print(opt, arg)
         if opt in ("-e", "--embed"):
             embed = True
         elif opt in ("-f", "--fullscreen"):

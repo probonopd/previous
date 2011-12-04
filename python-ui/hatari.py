@@ -3,7 +3,7 @@
 # Classes for Hatari emulator instance and mapping its congfiguration
 # variables with its command line option.
 #
-# Copyright (C) 2008-2010 by Eero Tamminen <eerot at berlios>
+# Copyright (C) 2008-2011 by Eero Tamminen <eerot at berlios>
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -70,7 +70,7 @@ class Hatari:
             self.control.send(msg)
             return True
         else:
-            print "ERROR: no Hatari (control socket)"
+            print("ERROR: no Hatari (control socket)")
             return False
         
     def change_option(self, option):
@@ -144,12 +144,12 @@ class Hatari:
         "get_lines(file) -> list of lines readable from given Hatari output file"
         # wait until data is available, then wait for some more
         # and only then the data can be read, otherwise its old
-        print "Request&wait data from Hatari..."
+        print("Request&wait data from Hatari...")
         select.select([fileobj], [], [])
         time.sleep(0.1)
-        print "...read the data lines"
+        print("...read the data lines")
         lines = fileobj.readlines()
-        print "".join(lines)
+        print("".join(lines))
         return lines
 
     def enable_embed_info(self):
@@ -171,8 +171,8 @@ class Hatari:
             return False
         try:
             os.waitpid(self.pid, os.WNOHANG)
-        except OSError, value:
-            print "Hatari PID %d had exited in the meanwhile:\n\t%s" % (self.pid, value)
+        except OSError as value:
+            print("Hatari PID %d had exited in the meanwhile:\n\t%s" % (self.pid, value))
             self.pid = 0
             return False
         return True
@@ -182,15 +182,15 @@ class Hatari:
         # if parent_win given, embed Hatari to it
         pid = os.fork()
         if pid < 0:
-            print "ERROR: fork()ing Hatari failed!"
+            print("ERROR: fork()ing Hatari failed!")
             return
         if pid:
             # in parent
             self.pid = pid
             if self.server:
-                print "WAIT hatari to connect to control socket...",
+                print("WAIT hatari to connect to control socket...")
                 (self.control, addr) = self.server.accept()
-                print "connected!"
+                print("connected!")
         else:
             # child runs Hatari
             env = os.environ
@@ -202,7 +202,7 @@ class Hatari:
                 args += ["--control-socket", self.controlpath]
             if extra_args:
                 args += extra_args
-            print "RUN:", args
+            print("RUN:", args)
             os.execvpe(self.hataribin, args, env)
 
     def _set_embed_env(self, env, parent_win):
@@ -227,7 +227,7 @@ class Hatari:
         "kill(), kill Hatari if it's running"
         if self.pid:
             os.kill(self.pid, signal.SIGKILL)
-            print "killed hatari with PID %d" % self.pid
+            print("killed hatari with PID %d" % self.pid)
             self.pid = 0
         if self.control:
             self.control.close()
@@ -374,7 +374,7 @@ class HatariConfigMapping(ConfigStore):
     def set_cpuclock(self, value):
         clocks = [8, 16, 32]
         if value < 0 or value > 2:
-            print "WARNING: CPU clock idx %d, clock fixed to 8 Mhz" % value
+            print("WARNING: CPU clock idx %d, clock fixed to 8 Mhz" % value)
             value = 8
         else:
             value = clocks[value]
@@ -407,6 +407,14 @@ class HatariConfigMapping(ConfigStore):
     def set_timerd(self, value):
         self.set("[System]", "bPatchTimerD", value)
         self._change_option("--timer-d %s" % str(value))
+
+    # ------------ RTC ---------------
+    def get_rtc(self):
+        return self.get("[System]", "bRealTimeClock")
+
+    def set_rtc(self, value):
+        self.set("[System]", "bRealTimeClock", value)
+        self._change_option("--rtc %s" % str(value))
 
     # ------------ fastforward ---------------
     def get_fastforward(self):
@@ -611,7 +619,7 @@ class HatariConfigMapping(ConfigStore):
     
     def get_frameskip(self):
         fs = self.get("[Screen]", "nFrameSkips")
-        print "Frameskip", fs
+        print("Frameskip", fs)
         if fs < 0 or fs > 5:
             return 5
         return fs
@@ -630,6 +638,14 @@ class HatariConfigMapping(ConfigStore):
         self.set("[Screen]", "nSpec512Threshold", value)
         self._change_option("--spec512 %d" % value)
 
+    # --------- keep desktop res -----------
+    def get_desktop(self):
+        return self.get("[Screen]", "bKeepResolution")
+    
+    def set_desktop(self, value):
+        self.set("[Screen]", "bKeepResolution", value)
+        self._change_option("--desktop %s" % str(value))
+
     # ------------ show borders ---------------
     def get_borders(self):
         return self.get("[Screen]", "bAllowOverscan")
@@ -645,6 +661,14 @@ class HatariConfigMapping(ConfigStore):
     def set_statusbar(self, value):
         self.set("[Screen]", "bShowStatusbar", value)
         self._change_option("--statusbar %s" % str(value))
+
+    # ------------ crop statusbar ---------------
+    def get_crop(self):
+        return self.get("[Screen]", "bCrop")
+    
+    def set_crop(self, value):
+        self.set("[Screen]", "bCrop", value)
+        self._change_option("--crop %s" % str(value))
 
     # ------------ show led ---------------
     def get_led(self):
@@ -678,7 +702,7 @@ class HatariConfigMapping(ConfigStore):
 
     # TODO: remove once UI doesn't need this anymore
     def set_zoom(self, value):
-        print "Just setting Zoom, configuration doesn't anymore have setting for this."
+        print("Just setting Zoom, configuration doesn't anymore have setting for this.")
         if value:
             zoom = 2
         else:
@@ -688,7 +712,7 @@ class HatariConfigMapping(ConfigStore):
     # ------------ configured Hatari window size ---------------
     def get_window_size(self):
         if self.get("[Screen]", "bFullScreen"):
-            print "WARNING: don't start Hatari UI with fullscreened Hatari!"
+            print("WARNING: don't start Hatari UI with fullscreened Hatari!")
 
         # VDI resolution?
         if self.get("[Screen]", "bUseExtVdiResolutions"):
@@ -698,7 +722,7 @@ class HatariConfigMapping(ConfigStore):
         
         # window sizes for other than ST & STE can differ
         if self.get("[System]", "nMachineType") not in (0, 1):
-            print "WARNING: neither ST nor STE machine, window size inaccurate!"
+            print("WARNING: neither ST nor STE machine, window size inaccurate!")
             videl = True
         else:
             videl = False

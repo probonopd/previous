@@ -38,6 +38,7 @@ const char Statusbar_fileid[] = "Hatari statusbar.c : " __DATE__ " " __TIME__;
 #include "screenSnapShot.h"
 #include "sdlgui.h"
 #include "statusbar.h"
+#include "screen.h"
 #include "video.h"
 #include "avi_record.h"
 
@@ -410,6 +411,7 @@ void Statusbar_UpdateInfo(void)
 
 	assert(end - DefaultMessage.msg < MAX_MESSAGE_LEN);
 	DEBUGPRINT(("Set default message: '%s'\n", DefaultMessage.msg));
+    /* make sure default message gets (re-)drawn when next checked */
 	DefaultMessage.shown = false;
 }
 
@@ -441,7 +443,7 @@ static void Statusbar_ShowMessage(SDL_Surface *surf, Uint32 ticks)
 
 	if (MessageList->shown) {
 		if (!MessageList->expire) {
-			/* last/default message */
+			/* last/default message never expires */
 			return;
 		}
 		if (MessageList->expire > ticks) {

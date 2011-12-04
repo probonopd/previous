@@ -100,6 +100,7 @@ static void M68000_InitPairing(void)
 	M68000_InitPairing_BitShift ( i_MOVE );
 	M68000_InitPairing_BitShift ( i_MOVEA );
 	M68000_InitPairing_BitShift ( i_LEA );
+	M68000_InitPairing_BitShift ( i_JMP );
 
 	PairingArray[ i_MULU ][ i_MOVEA] = 1; 
 	PairingArray[ i_MULS ][ i_MOVEA] = 1; 
@@ -157,8 +158,12 @@ void M68000_Reset(bool bCold)
 	}
 
 	/* Now directly reset the UAE CPU core: */
+	/* Laurent : for now, using parameter 0, but some other parameters can be used here (see newcpu.c) */
+#if ENABLE_WINUAE_CPU
+	m68k_reset(0);
+#else
 	m68k_reset();
-
+#endif
 	BusMode = BUS_MODE_CPU;
 }
 
@@ -185,14 +190,44 @@ void M68000_Start(void)
 
 /*-----------------------------------------------------------------------*/
 /**
- * Check wether the CPU mode has been changed.
+ * Check whether CPU settings have been changed.
  */
-void M68000_CheckCpuLevel(void)
+void M68000_CheckCpuSettings(void)
 {
+	if (ConfigureParams.System.nCpuFreq < 12)
+	{
+		ConfigureParams.System.nCpuFreq = 8;
+		nCpuFreqShift = 0;
+	}
+	else if (ConfigureParams.System.nCpuFreq > 26)
+	{
+		ConfigureParams.System.nCpuFreq = 32;
+		nCpuFreqShift = 2;
+	}
+	else
+	{
+		ConfigureParams.System.nCpuFreq = 16;
+		nCpuFreqShift = 1;
+	}
 	changed_prefs.cpu_level = ConfigureParams.System.nCpuLevel;
 	changed_prefs.cpu_compatible = ConfigureParams.System.bCompatibleCpu;
-#ifndef UAE_NEWCPU_H
-	changed_prefs.cpu_cycle_exact = 0;  // TODO
+
+#if ENABLE_WINUAE_CPU
+	switch (changed_prefs.cpu_level) {
+		case 0 : changed_prefs.cpu_model = 68000; break;
+		case 1 : changed_prefs.cpu_model = 68010; break;
+		case 2 : changed_prefs.cpu_model = 68020; break;
+		case 3 : changed_prefs.cpu_model = 68030; break;
+		case 4 : changed_prefs.cpu_model = 68040; break;
+		case 5 : changed_prefs.cpu_model = 68060; break;
+		default: fprintf (stderr, "Init680x0() : Error, cpu_level unknown\n");
+	}
+
+	changed_prefs.address_space_24 = ConfigureParams.System.bAddressSpace24;
+	changed_prefs.cpu_cycle_exact = ConfigureParams.System.bCycleExactCpu;
+	changed_prefs.fpu_model = ConfigureParams.System.n_FPUType;
+	changed_prefs.fpu_strict = ConfigureParams.System.bCompatibleFPU;
+	changed_prefs.mmu_model = ConfigureParams.System.bMMU;
 #endif
 	if (table68k)
 		check_prefs_changed_cpu();
@@ -206,6 +241,10 @@ void M68000_CheckCpuLevel(void)
 void M68000_MemorySnapShot_Capture(bool bSave)
 {
 	Uint32 savepc;
+#if ENABLE_WINUAE_CPU
+	int len;
+	uae_u8 *chunk = 0;
+#endif
 
 	/* For the UAE CPU core: */
 	MemorySnapShot_Store(&currprefs.address_space_24,
@@ -235,11 +274,7 @@ void M68000_MemorySnapShot_Capture(bool bSave)
 
 	if (bSave)
 	{
-#ifdef UAE_NEWCPU_H
 		MakeSR();
-#else
-		MakeSR(&regs);
-#endif
 		if (regs.s)
 		{
 			MemorySnapShot_Store(&regs.usp, sizeof(regs.usp));    /* USP */
@@ -262,8 +297,13 @@ void M68000_MemorySnapShot_Capture(bool bSave)
 	MemorySnapShot_Store(&regs.dfc, sizeof(regs.dfc));            /* DFC */
 	MemorySnapShot_Store(&regs.sfc, sizeof(regs.sfc));            /* SFC */
 	MemorySnapShot_Store(&regs.vbr, sizeof(regs.vbr));            /* VBR */
+#if ENABLE_WINUAE_CPU
+	MemorySnapShot_Store(&regs.caar, sizeof(regs.caar));          /* CAAR */
+	MemorySnapShot_Store(&regs.cacr, sizeof(regs.cacr));          /* CACR */
+#else
 	MemorySnapShot_Store(&caar, sizeof(caar));                    /* CAAR */
 	MemorySnapShot_Store(&cacr, sizeof(cacr));                    /* CACR */
+#endif
 	MemorySnapShot_Store(&regs.msp, sizeof(regs.msp));            /* MSP */
 
 	if (!bSave)
@@ -271,46 +311,43 @@ void M68000_MemorySnapShot_Capture(bool bSave)
 		M68000_SetPC(regs.pc);
 		/* MakeFromSR() must not swap stack pointer */
 		regs.s = (regs.sr >> 13) & 1;
-#ifdef UAE_NEWCPU_H
 		MakeFromSR();
 		/* set stack pointer */
 		if (regs.s)
 			m68k_areg(regs, 7) = regs.isp;
 		else
 			m68k_areg(regs, 7) = regs.usp;
-#else
-		MakeFromSR(&regs);
-		/* set stack pointer */
-		if (regs.s)
-			m68k_areg(&regs, 7) = regs.isp;
-		else
-			m68k_areg(&regs, 7) = regs.usp;
-#endif
 	}
 
+#if ENABLE_WINUAE_CPU
+	if (bSave)
+		save_fpu(&len,0);
+	else
+		restore_fpu(chunk);
+#else
 	if (bSave)
 		save_fpu();
 	else
 		restore_fpu();
+#endif
 }
 
 
 /*-----------------------------------------------------------------------*/
 /**
  * BUSERROR - Access outside valid memory range.
- * Use bReadWrite = 0 for write errors and bReadWrite = 1 for read errors!
+ * Use bRead = 0 for write errors and bRead = 1 for read errors!
  */
-void M68000_BusError(Uint32 addr, bool bReadWrite)
+void M68000_BusError(Uint32 addr, bool bRead)
 {
 	/* FIXME: In prefetch mode, m68k_getpc() seems already to point to the next instruction */
 	// BusErrorPC = M68000_GetPC();		/* [NP] We set BusErrorPC in m68k_run_1 */
 
-		fprintf(stderr, "M68000 Bus Error at address $%x.\n", addr);
-
+	
 	if ((regs.spcflags & SPCFLAG_BUSERROR) == 0)	/* [NP] Check that the opcode has not already generated a read bus error */
 	{
 		BusErrorAddress = addr;				/* Store for exception frame */
-		bBusErrorReadWrite = bReadWrite;
+		bBusErrorReadWrite = bRead;
 		M68000_SetSpecial(SPCFLAG_BUSERROR);		/* The exception will be done in newcpu.c */
 	}
 }
@@ -347,19 +384,23 @@ void M68000_Exception(Uint32 ExceptionVector , int ExceptionSource)
 		}
 
 		/* 68k exceptions are handled by Exception() of the UAE CPU core */
+#if ENABLE_WINUAE_CPU
+		Exception(exceptionNr, m68k_getpc(), ExceptionSource);
+#else
 #ifdef UAE_NEWCPU_H
 		Exception(exceptionNr, m68k_getpc(), ExceptionSource);
 #else
 		Exception(exceptionNr, &regs, m68k_getpc(&regs));
 #endif
-
+#endif
 		SR = M68000_GetSR();
 
 		/* Set Status Register so interrupt can ONLY be stopped by another interrupt
 		 * of higher priority! */
+		
 		SR = (SR&SR_CLEAR_IPL)|0x0600;     /* DSP, level 6 */
-
-		M68000_SetSR(SR);
+        
+        M68000_SetSR(SR);
 	}
 }
 
