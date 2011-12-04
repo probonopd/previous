@@ -127,7 +127,7 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 //			Dialog_JoyDlg();
 			break;
 		 case MAINDLG_KEYBD:
-//			Dialog_KeyboardDlg();
+			Dialog_KeyboardDlg();
 			break;
 		 case MAINDLG_DEVICES:
 			Dialog_DeviceDlg();

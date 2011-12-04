@@ -244,19 +244,19 @@ static SGOBJ systemdlg[] =
  
  	{ SGBOX, 0, 0, 2,3, 15,9, NULL },
  	{ SGTEXT, 0, 0, 3,3, 13,1, "Machine type" },
- 	{ SGRADIOBUT, 0, 0, 3,5, 8,1, "ST" },
- 	{ SGRADIOBUT, 0, 0, 3,6, 8,1, "STE" },
- 	{ SGRADIOBUT, 0, 0, 3,7, 8,1, "TT" },
- 	{ SGRADIOBUT, 0, 0, 3,8, 8,1, "Falcon" },
+ 	{ SGRADIOBUT, 0, 0, 3,5, 8,1, "Cube" },
+ 	{ SGRADIOBUT, 0, 0, 3,6, 8,1, "Mono station" },
+ 	{ SGRADIOBUT, 0, 0, 3,7, 8,1, "none" },
+ 	{ SGRADIOBUT, 0, 0, 3,8, 8,1, "none" },
  
  	{ SGBOX, 0, 0, 32,3, 12,9, NULL },
  	{ SGTEXT, 0, 0, 33,3, 15,1, "CPU clock" },
  	{ SGRADIOBUT, 0, 0, 33,5, 3,1, " 8 Mhz" },
- 	{ SGRADIOBUT, 0, 0, 33,6, 4,1, "16 Mhz" },
- 	{ SGRADIOBUT, 0, 0, 33,7, 4,1, "32 Mhz" },
+ 	{ SGRADIOBUT, 0, 0, 33,6, 4,1, "25 Mhz" },
+ 	{ SGRADIOBUT, 0, 0, 33,7, 4,1, "33 Mhz" },
  
  	{ SGBOX, 0, 0, 46,3, 12,9, NULL },
- 	{ SGTEXT, 0, 0, 47,3, 11,1, "Falcon DSP" },
+ 	{ SGTEXT, 0, 0, 47,3, 11,1, "DSP" },
  	{ SGRADIOBUT, 0, 0, 47,5, 5,1, "None" },
  	{ SGRADIOBUT, 0, 0, 47,6, 7,1, "Dummy" },
  	{ SGRADIOBUT, 0, 0, 47,7, 4,1, "Full" },
@@ -420,9 +420,9 @@ void Dialog_SystemDlg(void)
 	}
  
  	if (systemdlg[DLGSYS_32MHZ].state & SG_SELECTED)
- 		ConfigureParams.System.nCpuFreq = 32;
+ 		ConfigureParams.System.nCpuFreq = 33;
  	else if (systemdlg[DLGSYS_16MHZ].state & SG_SELECTED)
- 		ConfigureParams.System.nCpuFreq = 16;
+ 		ConfigureParams.System.nCpuFreq = 25;
  	else
  		ConfigureParams.System.nCpuFreq = 8;
  
