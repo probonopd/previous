@@ -424,7 +424,7 @@ static inline Uint16 getLineOpcode(Uint8 line)
     Uint32 pc;
     Uint16 instr;
     pc = M68000_GetPC();
-    instr = nextMemory_ReadWord(pc);
+    instr = NEXTMemory_ReadWord(pc);
     /* for opcode X, Line-A = 0xA00X, Line-F = 0xF00X */
     if ((instr >> 12) == line) {
         return instr & 0xFF;
@@ -436,17 +436,17 @@ static inline bool isTrap(Uint8 trap)
     Uint32 pc;
     Uint16 instr;
     pc = M68000_GetPC();
-    instr = nextMemory_ReadWord(pc);
+    instr = NEXTMemory_ReadWord(pc);
     return (instr == (Uint16)0x4e40u + trap);
 }
 static inline Uint16 getControlOpcode(void)
 {
     /* Control[] address from D1, opcode in Control[0] */
-    return nextMemory_ReadWord(STMemory_ReadLong(Regs[REG_D1]));
+    return NEXTMemory_ReadWord(NEXTMemory_ReadLong(Regs[REG_D1]));
 }
 static inline Uint16 getStackOpcode(void)
 {
-    return nextMemory_ReadWord(Regs[REG_A7]);
+    return NEXTMemory_ReadWord(Regs[REG_A7]);
 }
 
 /* Actual TOS OS call opcode accessor functions */
@@ -518,7 +518,7 @@ static const var_addr_t hatari_vars[] = {
 	{ "LineCycles", (Uint32*)GetLineCycles, VALUE_TYPE_FUNCTION32, 0, "is always divisable by 4" },
     { "LineFOpcode", (Uint32*)GetLineFOpcode, VALUE_TYPE_FUNCTION32, 16, "by default FFFF" },
     { "TEXT", (Uint32*)DebugInfo_GetTEXT, VALUE_TYPE_FUNCTION32, 0, "invalid before Desktop is up" },
-    { "VBL", (Uint32*)&nVBLs, VALUE_TYPE_VAR32, sizeof(nVBLs)*8, NULL },
+//    { "VBL", (Uint32*)&nVBLs, VALUE_TYPE_VAR32, sizeof(nVBLs)*8, NULL },
     { "VdiOpcode", (Uint32*)GetVdiOpcode, VALUE_TYPE_FUNCTION32, 16, "by default FFFF" },
     { "XbiosOpcode", (Uint32*)GetXbiosOpcode, VALUE_TYPE_FUNCTION32, 16, "by default FFFF" }
 
