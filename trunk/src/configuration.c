@@ -502,7 +502,7 @@ void Configuration_SetDefault(void)
 	strcpy(ConfigureParams.Rom.szCartridgeImageFileName, "");
 
 	/* Set defaults for System */
-	ConfigureParams.System.nCpuLevel = 4;
+	ConfigureParams.System.nCpuLevel = 3;
 	ConfigureParams.System.nCpuFreq = 32;
 	ConfigureParams.System.bCompatibleCpu = true;
 	ConfigureParams.System.nMachineType = MACHINE_ST;
@@ -515,7 +515,7 @@ void Configuration_SetDefault(void)
 #if ENABLE_WINUAE_CPU
     ConfigureParams.System.bAddressSpace24 = false;
     ConfigureParams.System.bCycleExactCpu = false;
-    ConfigureParams.System.n_FPUType = FPU_CPU;
+    ConfigureParams.System.n_FPUType = FPU_68882;
     ConfigureParams.System.bCompatibleFPU = true;
     ConfigureParams.System.bMMU = true;
 #endif

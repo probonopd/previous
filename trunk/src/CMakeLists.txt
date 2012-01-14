@@ -1,12 +1,12 @@
 set(SOURCES
 	cart.c cfgopts.c
 	clocks_timings.c configuration.c options.c  change.c
-	control.c cycInt.c cycles.c dialog.c file.c
+	control.c cycInt.c cycles.c dialog.c dma.c esp.c file.c
 	ioMem.c ioMemTabNEXT.c memorySnapShot.c keymap.c
-	m68000.c main.c
+	m68000.c main.c nextMemory.c
 	paths.c resolution.c reset.c
-	scandir.c nextMemory.c screen.c screenSnapShot.c shortcut.c
-	statusbar.c str.c zip.c unzip.c utils.c 
+	scandir.c screen.c screenSnapShot.c scsi.c shortcut.c
+	statusbar.c str.c sysReg.c zip.c unzip.c utils.c 
 	video.c )
 
 # When building for OSX, define specific sources for gui and ressources
@@ -123,7 +123,7 @@ endif(PORTAUDIO_FOUND)
 
 if(WIN32)
 	# Needed for socket() on Windows
-	target_link_libraries(hatari ws2_32)
+	target_link_libraries(previous ws2_32)
 endif(WIN32)
 
 if(ENABLE_OSX_BUNDLE)
