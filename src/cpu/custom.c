@@ -285,7 +285,7 @@ void fixup_cpu (struct uae_prefs *p)
 			p->fpu_model = 68060;
 		break;
 	}
-	if (p->cpu_model != 68040)
+	if ((p->cpu_model != 68040) && (p->cpu_model != 68030))
 		p->mmu_model = 0;
 }
 

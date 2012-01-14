@@ -62,7 +62,7 @@ const char Memory_fileid[] = "Hatari memory.c : " __DATE__ " " __TIME__;
 #define NEXT_RAM_START   	0x04000000
 #define NEXT_RAM_SPACE		0x40000000
 // #define NEXT_RAM_SIZE		0x007FE000
-#define NEXT_RAM_SIZE		0x07FFE000
+#define NEXT_RAM_SIZE		0x08000000
 
 uae_u32	NEXTmem_size; // unused
 #define NEXTmem_mask		0x00FFFFFF
@@ -310,7 +310,7 @@ static void NEXTmem_bput(uaecptr addr, uae_u32 b)
 static int NEXTmem_check(uaecptr addr, uae_u32 size)
 {
     addr &= NEXTmem_mask;
-    return (addr + size) <= 0x003FFFFF;
+    return (addr + size) < NEXT_RAM_SIZE;
 }
 
 static uae_u8 *NEXTmem_xlate(uaecptr addr)
@@ -764,7 +764,7 @@ void memory_init(uae_u32 nNewNEXTMemSize)
 {
     NEXTmem_size = (nNewNEXTMemSize + 65535) & 0xFFFF0000;
     
-    write_log("memory_init: NEXTmem_size=$%x\n",
+    write_log("memory_init: NEXTmem_size=$%x (not used yet)\n",
               nNewNEXTMemSize);
     
 	/* fill every 65536 bank with dummy */
@@ -800,6 +800,7 @@ void memory_init(uae_u32 nNewNEXTMemSize)
 	{
 		FILE* fin;
 		int ret;
+	// if processor is 68030, loads a cube rom
         if(ConfigureParams.System.nCpuLevel == 3)
             fin=fopen("./Rev_1.0_v41.BIN","rb");
         else
@@ -826,6 +827,7 @@ void memory_init(uae_u32 nNewNEXTMemSize)
  * Uninitialize the memory banks.
  */
 void memory_uninit (void)
+
 {
 }
 

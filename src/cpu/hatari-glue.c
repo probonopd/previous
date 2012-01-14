@@ -127,6 +127,7 @@ int Init680x0(void)
 	currprefs.fpu_model = changed_prefs.fpu_model = ConfigureParams.System.n_FPUType;
 	currprefs.fpu_strict = changed_prefs.fpu_strict = ConfigureParams.System.bCompatibleFPU;
 	currprefs.mmu_model = changed_prefs.mmu_model = ConfigureParams.System.bMMU;
+   	write_log("Init680x0() called\n");
 
 	init_m68k();
 
