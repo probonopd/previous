@@ -47,7 +47,7 @@ void NEXTMemory_Clear(Uint32 StartAddress, Uint32 EndAddress)
  * 
  * Return true if whole copy was safe / valid.
  */
-/**
+
 bool NEXTMemory_SafeCopy(Uint32 addr, Uint8 *src, unsigned int len, const char *name)
 {
     Uint32 end;
@@ -66,7 +66,7 @@ bool NEXTMemory_SafeCopy(Uint32 addr, Uint8 *src, unsigned int len, const char *
     }
     return false;
 }
-*/
+
 
 
 /**
