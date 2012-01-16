@@ -57,4 +57,6 @@ void IntRegStatWrite(void);
 void IntRegMaskRead(void);
 void IntRegMaskWrite(void);
 
+void rtc_checksum(int force);
+
 void set_interrupt(Uint32, Uint8);

@@ -285,8 +285,10 @@ void fixup_cpu (struct uae_prefs *p)
 			p->fpu_model = 68060;
 		break;
 	}
-	if ((p->cpu_model != 68040) && (p->cpu_model != 68030))
+	if (p->cpu_model < 68030) {
+		write_log("mmu disabled under 68030\n");
 		p->mmu_model = 0;
+	}
 }
 
 /* Code taken from main.cpp*/

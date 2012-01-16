@@ -30,6 +30,7 @@ const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 #include "shortcut.h"
 #include "statusbar.h"
 #include "nextMemory.h"
+#include "sysReg.h"
 #include "str.h"
 #include "video.h"
 #include "avi_record.h"
@@ -579,6 +580,7 @@ static void Main_Init(void)
 //	DmaSnd_Init();
 	Keymap_Init();
 
+	rtc_checksum(1);
 
 	if (Reset_Cold())             /* Reset all systems, load TOS image */
 	{

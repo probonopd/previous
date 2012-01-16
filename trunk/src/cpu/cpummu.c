@@ -277,6 +277,7 @@ void mmu_dump_tables(void)
 	mmu_dump_ttr(L"ITT1", regs.itt1);
 	mmu_dump_atc();
 #if DEBUG
+
 	mmu_dump_table("SRP", regs.srp);
 #endif
 }
@@ -313,7 +314,7 @@ static void mmu_bus_error(uaecptr addr, int fc, bool write, int size)
 	regs.mmu_fault_addr = addr;
 	regs.mmu_ssw = ssw | MMU_SSW_ATC;
 
-	fprintf(stderr, "BUS ERROR: fc=%d w=%d log=%08x ssw=%04x PC=%08x\n", fc, write, addr, ssw, m68k_getpc());
+	//fprintf(stderr, "BUS ERROR: fc=%d w=%d log=%08x ssw=%04x PC=%08x\n", fc, write, addr, ssw, m68k_getpc());
 
 	//write_log(L"BUS ERROR: fc=%d w=%d log=%08x ssw=%04x PC=%08x\n", fc, write, addr, ssw, m68k_getpc());
 
@@ -404,7 +405,7 @@ static ALWAYS_INLINE bool mmu_fill_atc_l1(uaecptr addr, bool super, bool data, b
 		mmu_fill_atc_l2(addr, super, data, write, l);
 	}
 	if (!(data ? l->valid_data : l->valid_inst)) {
-		fprintf(stderr, "MMU: non-resident page (%x,%x,%x)!\n", addr, regs.pc, regs.fault_pc);
+		// fprintf(stderr, "MMU: non-resident page (%x,%x,%x)!\n", addr, regs.pc, regs.fault_pc);
 		goto fail;
 	}
 	if (write) {
@@ -483,7 +484,8 @@ static uaecptr REGPARAM2 mmu_lookup_pagetable(uaecptr addr, bool super, bool wri
 	desc_addr = (desc & MMU_ROOT_PTR_ADDR_MASK) | i;
 	desc = phys_get_long(desc_addr);
 	if ((desc & 2) == 0) {
-		fprintf(stderr, "MMU: invalid ptr descriptor for %lx\n", addr);
+		fprintf(stderr, "MMU: invalid ptr descriptor for addr %lx desc addr %x = %x PC=%x\n", addr, desc_addr,desc,m68k_getpc());
+	    fprintf(stdout, "MMU: invalid ptr descriptor for addr %lx desc addr %x = %x PC=%x\n", addr, desc_addr,desc,m68k_getpc());
 		return 0;
 	}
 	wp |= desc;
