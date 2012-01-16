@@ -60,9 +60,8 @@ const char Memory_fileid[] = "Hatari memory.c : " __DATE__ " " __TIME__;
 
 // ram is flat?
 #define NEXT_RAM_START   	0x04000000
-#define NEXT_RAM_SPACE		0x40000000
 // #define NEXT_RAM_SIZE		0x007FE000
-#define NEXT_RAM_SIZE		0x08000000
+#define NEXT_RAM_SIZE		0x07FFE000
 
 uae_u32	NEXTmem_size; // unused
 #define NEXTmem_mask		0x00FFFFFF
@@ -142,7 +141,7 @@ uae_u8 ce_cachable[65536];
 static uae_u32 dummy_lget(uaecptr addr)
 {
     if (illegal_mem)
-	write_log ("Illegal lget at %08lx\n", (long)addr);
+	write_log ("Illegal lget at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     return 0;
 }
@@ -150,7 +149,7 @@ static uae_u32 dummy_lget(uaecptr addr)
 static uae_u32 dummy_wget(uaecptr addr)
 {
     if (illegal_mem)
-	write_log ("Illegal wget at %08lx\n", (long)addr);
+	write_log ("Illegal wget at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     return 0;
 }
@@ -158,7 +157,7 @@ static uae_u32 dummy_wget(uaecptr addr)
 static uae_u32 dummy_bget(uaecptr addr)
 {
     if (illegal_mem)
-	write_log ("Illegal bget at %08lx\n", (long)addr);
+	write_log ("Illegal bget at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     return 0;
 }
@@ -166,25 +165,25 @@ static uae_u32 dummy_bget(uaecptr addr)
 static void dummy_lput(uaecptr addr, uae_u32 l)
 {
     if (illegal_mem)
-	write_log ("Illegal lput at %08lx\n", (long)addr);
+	write_log ("Illegal lput at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 }
 
 static void dummy_wput(uaecptr addr, uae_u32 w)
 {
     if (illegal_mem)
-	write_log ("Illegal wput at %08lx\n", (long)addr);
+	write_log ("Illegal wput at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 }
 
 static void dummy_bput(uaecptr addr, uae_u32 b)
 {
     if (illegal_mem)
-	write_log ("Illegal bput at %08lx\n", (long)addr);
+	write_log ("Illegal bput at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 }
 
 static int dummy_check(uaecptr addr, uae_u32 size)
 {
     if (illegal_mem)
-	write_log ("Illegal check at %08lx\n", (long)addr);
+	write_log ("Illegal check at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     return 0;
 }
@@ -203,7 +202,7 @@ static uae_u8 *dummy_xlate(uaecptr addr)
 static uae_u32 BusErrMem_lget(uaecptr addr)
 {
     if (illegal_mem)
-	write_log ("Bus error lget at %08lx\n", (long)addr);
+	write_log ("Bus error lget at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     M68000_BusError(addr, 1);
     return 0;
@@ -212,7 +211,7 @@ static uae_u32 BusErrMem_lget(uaecptr addr)
 static uae_u32 BusErrMem_wget(uaecptr addr)
 {
     if (illegal_mem)
-	write_log ("Bus error wget at %08lx\n", (long)addr);
+	write_log ("Bus error wget at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     M68000_BusError(addr, 1);
     return 0;
@@ -221,7 +220,7 @@ static uae_u32 BusErrMem_wget(uaecptr addr)
 static uae_u32 BusErrMem_bget(uaecptr addr)
 {
     if (illegal_mem)
-	write_log ("Bus error bget at %08lx\n", (long)addr);
+	write_log ("Bus error bget at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     M68000_BusError(addr, 1);
     return 0;
@@ -230,7 +229,7 @@ static uae_u32 BusErrMem_bget(uaecptr addr)
 static void BusErrMem_lput(uaecptr addr, uae_u32 l)
 {
     if (illegal_mem)
-	write_log ("Bus error lput at %08lx\n", (long)addr);
+	write_log ("Bus error lput at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     M68000_BusError(addr, 0);
 }
@@ -238,7 +237,7 @@ static void BusErrMem_lput(uaecptr addr, uae_u32 l)
 static void BusErrMem_wput(uaecptr addr, uae_u32 w)
 {
     if (illegal_mem)
-	write_log ("Bus error wput at %08lx\n", (long)addr);
+	write_log ("Bus error wput at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     M68000_BusError(addr, 0);
 }
@@ -246,7 +245,7 @@ static void BusErrMem_wput(uaecptr addr, uae_u32 w)
 static void BusErrMem_bput(uaecptr addr, uae_u32 b)
 {
     if (illegal_mem)
-	write_log ("Bus error bput at %08lx\n", (long)addr);
+	write_log ("Bus error bput at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     M68000_BusError(addr, 0);
 }
@@ -254,7 +253,7 @@ static void BusErrMem_bput(uaecptr addr, uae_u32 b)
 static int BusErrMem_check(uaecptr addr, uae_u32 size)
 {
     if (illegal_mem)
-	write_log ("Bus error check at %08lx\n", (long)addr);
+	write_log ("Bus error check at %08lx  PC=%08x\n", (long)addr,m68k_getpc());
 
     return 0;
 }
