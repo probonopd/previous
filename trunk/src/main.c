@@ -26,11 +26,11 @@ const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 #include "reset.h"
 #include "resolution.h"
 #include "screen.h"
+#include "scsi.h"
 #include "sdlgui.h"
 #include "shortcut.h"
 #include "statusbar.h"
 #include "nextMemory.h"
-#include "sysReg.h"
 #include "str.h"
 #include "video.h"
 #include "avi_record.h"
@@ -580,7 +580,6 @@ static void Main_Init(void)
 //	DmaSnd_Init();
 	Keymap_Init();
 
-	rtc_checksum(1);
 
 	if (Reset_Cold())             /* Reset all systems, load TOS image */
 	{
@@ -597,6 +596,7 @@ static void Main_Init(void)
 	}
 
 	IoMem_Init();
+    SCSI_Init();
 	
 	/* done as last, needs CPU & DSP running... */
 	DebugUI_Init();
@@ -610,6 +610,7 @@ static void Main_Init(void)
 static void Main_UnInit(void)
 {
 	Screen_ReturnFromFullScreen();
+    SCSI_Uninit();
 	IoMem_UnInit();
 	SDLGui_UnInit();
 	Screen_UnInit();

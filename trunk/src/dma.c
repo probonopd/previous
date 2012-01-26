@@ -245,20 +245,15 @@ void dma_memory_read(Uint32 datalength) {
 }
 
 
-void nextdma_write(Uint8 *buf, int size, int type) {
+void dma_memory_write(Uint8 *buf, int size, int dma_channel) {
     Uint32 base_addr;
     Uint8 align = 16;
     int size_count = 0;
     Uint32 write_addr;
     
-    if(type == NEXTDMA_ENRX || type == NEXTDMA_ENTX)
+    if(dma_channel == NEXTDMA_ENRX || dma_channel == NEXTDMA_ENTX)
         align = 32;
-    
-//    if((dma_size % align) != 0) {
-//        dma_size -= dma_size % align;
-//        dma_size += align;
-//    }
-    
+        
     if((size % align) != 0) {
         size -= size % align;
         size += align;
@@ -272,11 +267,11 @@ void nextdma_write(Uint8 *buf, int size, int type) {
     
     for (size_count = 0; size_count < size; size_count++) {
         write_addr = base_addr + size_count;
-        NEXTMemory_WriteByte(write_addr, dma_write_buffer[size_count]);
+        NEXTMemory_WriteByte(write_addr, buf[size_count]);
     }
     
     /* Test read/write */
-    Log_Printf(LOG_WARN, "DMA Write Test: $%02x,$%02x,$%02x,$%02x\n", NEXTMemory_ReadByte(base_addr),NEXTMemory_ReadByte(base_addr+16),NEXTMemory_ReadByte(base_addr+32),NEXTMemory_ReadByte(base_addr+384));
+//    Log_Printf(LOG_WARN, "DMA Write Test: $%02x,$%02x,$%02x,$%02x\n", NEXTMemory_ReadByte(base_addr),NEXTMemory_ReadByte(base_addr+16),NEXTMemory_ReadByte(base_addr+32),NEXTMemory_ReadByte(base_addr+384));
 //    NEXTMemory_WriteByte(base_addr, 0x77);
 //    Uint8 testvar = NEXTMemory_ReadByte(base_addr);
 //    Log_Printf(LOG_WARN, "Write Test: $%02x at $%08x", testvar, base_addr);
@@ -295,6 +290,6 @@ void nextdma_write(Uint8 *buf, int size, int type) {
 
     read_dma_scsi_csr |= DMA_COMPLETE;
     
-    set_interrupt(INT_SCSI_DMA, SET_INT);
-    set_interrupt(INT_SCSI_DMA, RELEASE_INT);
+//    set_interrupt(INT_SCSI_DMA, SET_INT);
+//    set_interrupt(INT_SCSI_DMA, RELEASE_INT);
 }

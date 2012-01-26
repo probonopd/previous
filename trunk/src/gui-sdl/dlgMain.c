@@ -46,7 +46,7 @@ static SGOBJ maindlg[] =
 	{ SGBUTTON, 0, 0, 2,8, 13,1, "ROM" },
 	{ SGBUTTON, 0, 0, 2,10, 13,1, "Memory" },
 	{ SGBUTTON, 0, 0, 17,4, 16,1, "(not yet)" },
-	{ SGBUTTON, 0, 0, 17,6, 16,1, "(not yet)" },
+	{ SGBUTTON, 0, 0, 17,6, 16,1, "SCSI Disks" },
 	{ SGBUTTON, 0, 0, 17,8, 16,1, "(not yet)" },
 	{ SGBUTTON, 0, 0, 17,10, 16,1, "(not yet)" },
 	{ SGBUTTON, 0, 0, 35,4, 13,1, "(not yet)" },
@@ -101,7 +101,7 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 //			DlgFloppy_Main();
 			break;
 		 case MAINDLG_HARDDISK:
-//			DlgHardDisk_Main();
+			DlgHardDisk_Main();
 			break;
 		 case MAINDLG_ROM:
 			DlgRom_Main();

@@ -262,6 +262,34 @@ static const struct Config_Tag configs_Floppy[] =
 /* Used to load/save HD options */
 static const struct Config_Tag configs_HardDisk[] =
 {
+    { "szSCSIDiskImage0", String_Tag, ConfigureParams.HardDisk.szSCSIDiskImage0 },
+    { "bSCSIImageAttached0", Bool_Tag, &ConfigureParams.HardDisk.bSCSIImageAttached0 },
+    { "bCDROM0", Bool_Tag, &ConfigureParams.HardDisk.bCDROM0 },
+    
+    { "szSCSIDiskImage1", String_Tag, ConfigureParams.HardDisk.szSCSIDiskImage1 },
+    { "bSCSIImageAttached1", Bool_Tag, &ConfigureParams.HardDisk.bSCSIImageAttached1 },
+    { "bCDROM1", Bool_Tag, &ConfigureParams.HardDisk.bCDROM1 },
+    
+    { "szSCSIDiskImage2", String_Tag, ConfigureParams.HardDisk.szSCSIDiskImage2 },
+    { "bSCSIImageAttached2", Bool_Tag, &ConfigureParams.HardDisk.bSCSIImageAttached2 },
+    { "bCDROM2", Bool_Tag, &ConfigureParams.HardDisk.bCDROM2 },
+    
+    { "szSCSIDiskImage3", String_Tag, ConfigureParams.HardDisk.szSCSIDiskImage3 },
+    { "bSCSIImageAttached3", Bool_Tag, &ConfigureParams.HardDisk.bSCSIImageAttached3 },
+    { "bCDROM3", Bool_Tag, &ConfigureParams.HardDisk.bCDROM3 },
+    
+    { "szSCSIDiskImage4", String_Tag, ConfigureParams.HardDisk.szSCSIDiskImage4 },
+    { "bSCSIImageAttached4", Bool_Tag, &ConfigureParams.HardDisk.bSCSIImageAttached4 },
+    { "bCDROM4", Bool_Tag, &ConfigureParams.HardDisk.bCDROM4 },
+    
+    { "szSCSIDiskImage5", String_Tag, ConfigureParams.HardDisk.szSCSIDiskImage5 },
+    { "bSCSIImageAttached5", Bool_Tag, &ConfigureParams.HardDisk.bSCSIImageAttached5 },
+    { "bCDROM5", Bool_Tag, &ConfigureParams.HardDisk.bCDROM5 },
+    
+    { "szSCSIDiskImage6", String_Tag, ConfigureParams.HardDisk.szSCSIDiskImage6 },
+    { "bSCSIImageAttached6", Bool_Tag, &ConfigureParams.HardDisk.bSCSIImageAttached6 },
+    { "bCDROM6", Bool_Tag, &ConfigureParams.HardDisk.bCDROM6 },
+
 	{ "bBootFromHardDisk", Bool_Tag, &ConfigureParams.HardDisk.bBootFromHardDisk },
 	{ "bUseHardDiskDirectory", Bool_Tag, &ConfigureParams.HardDisk.bUseHardDiskDirectories },
 	{ "szHardDiskDirectory", String_Tag, ConfigureParams.HardDisk.szHardDiskDirectories[DRIVE_C] },
@@ -384,6 +412,35 @@ void Configuration_SetDefault(void)
 	File_AddSlashToEndFileName(ConfigureParams.DiskImage.szDiskImageDirectory);
 
 	/* Set defaults for hard disks */
+    strcpy(ConfigureParams.HardDisk.szSCSIDiskImage0, psWorkingDir);
+    ConfigureParams.HardDisk.bSCSIImageAttached0 = false;
+    ConfigureParams.HardDisk.bCDROM0 = false;
+    
+    strcpy(ConfigureParams.HardDisk.szSCSIDiskImage1, psWorkingDir);
+    ConfigureParams.HardDisk.bSCSIImageAttached1 = false;
+    ConfigureParams.HardDisk.bCDROM1 = false;
+    
+    strcpy(ConfigureParams.HardDisk.szSCSIDiskImage2, psWorkingDir);
+    ConfigureParams.HardDisk.bSCSIImageAttached2 = false;
+    ConfigureParams.HardDisk.bCDROM2 = false;
+    
+    strcpy(ConfigureParams.HardDisk.szSCSIDiskImage3, psWorkingDir);
+    ConfigureParams.HardDisk.bSCSIImageAttached3 = false;
+    ConfigureParams.HardDisk.bCDROM3 = false;
+    
+    strcpy(ConfigureParams.HardDisk.szSCSIDiskImage4, psWorkingDir);
+    ConfigureParams.HardDisk.bSCSIImageAttached4 = false;
+    ConfigureParams.HardDisk.bCDROM4 = false;
+    
+    strcpy(ConfigureParams.HardDisk.szSCSIDiskImage5, psWorkingDir);
+    ConfigureParams.HardDisk.bSCSIImageAttached5 = false;
+    ConfigureParams.HardDisk.bCDROM5 = false;
+    
+    strcpy(ConfigureParams.HardDisk.szSCSIDiskImage6, psWorkingDir);
+    ConfigureParams.HardDisk.bSCSIImageAttached6 = false;
+    ConfigureParams.HardDisk.bCDROM6 = false;
+
+    
 	ConfigureParams.HardDisk.bBootFromHardDisk = false;
 	ConfigureParams.HardDisk.nWriteProtection = WRITEPROT_OFF;
 	ConfigureParams.HardDisk.nHardDiskDir = DRIVE_C;
@@ -593,6 +650,16 @@ void Configuration_Apply(bool bReset)
 	File_MakeAbsoluteName(ConfigureParams.Rom.szTosImageFileName);
 	if (strlen(ConfigureParams.Rom.szCartridgeImageFileName) > 0)
 		File_MakeAbsoluteName(ConfigureParams.Rom.szCartridgeImageFileName);
+    
+    File_MakeAbsoluteName(ConfigureParams.HardDisk.szSCSIDiskImage0);
+    File_MakeAbsoluteName(ConfigureParams.HardDisk.szSCSIDiskImage1);
+    File_MakeAbsoluteName(ConfigureParams.HardDisk.szSCSIDiskImage2);
+    File_MakeAbsoluteName(ConfigureParams.HardDisk.szSCSIDiskImage3);
+    File_MakeAbsoluteName(ConfigureParams.HardDisk.szSCSIDiskImage4);
+    File_MakeAbsoluteName(ConfigureParams.HardDisk.szSCSIDiskImage5);
+    File_MakeAbsoluteName(ConfigureParams.HardDisk.szSCSIDiskImage6);
+
+    
 	File_MakeAbsoluteName(ConfigureParams.HardDisk.szHardDiskImage);
 	File_CleanFileName(ConfigureParams.HardDisk.szHardDiskDirectories[0]);
 	File_MakeAbsoluteName(ConfigureParams.HardDisk.szHardDiskDirectories[0]);
@@ -739,6 +806,27 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
 	MemorySnapShot_Store(&ConfigureParams.HardDisk.bUseHardDiskDirectories, sizeof(ConfigureParams.HardDisk.bUseHardDiskDirectories));
 	MemorySnapShot_Store(ConfigureParams.HardDisk.szHardDiskDirectories[DRIVE_C], sizeof(ConfigureParams.HardDisk.szHardDiskDirectories[DRIVE_C]));
 	MemorySnapShot_Store(&ConfigureParams.HardDisk.bUseHardDiskImage, sizeof(ConfigureParams.HardDisk.bUseHardDiskImage));
+    
+    
+    MemorySnapShot_Store(&ConfigureParams.HardDisk.bSCSIImageAttached0, sizeof(ConfigureParams.HardDisk.bSCSIImageAttached0));
+    MemorySnapShot_Store(&ConfigureParams.HardDisk.bSCSIImageAttached1, sizeof(ConfigureParams.HardDisk.bSCSIImageAttached1));
+    MemorySnapShot_Store(&ConfigureParams.HardDisk.bSCSIImageAttached2, sizeof(ConfigureParams.HardDisk.bSCSIImageAttached2));
+    MemorySnapShot_Store(&ConfigureParams.HardDisk.bSCSIImageAttached3, sizeof(ConfigureParams.HardDisk.bSCSIImageAttached3));
+    MemorySnapShot_Store(&ConfigureParams.HardDisk.bSCSIImageAttached4, sizeof(ConfigureParams.HardDisk.bSCSIImageAttached4));
+    MemorySnapShot_Store(&ConfigureParams.HardDisk.bSCSIImageAttached5, sizeof(ConfigureParams.HardDisk.bSCSIImageAttached5));
+    MemorySnapShot_Store(&ConfigureParams.HardDisk.bSCSIImageAttached6, sizeof(ConfigureParams.HardDisk.bSCSIImageAttached6));
+
+    
+    MemorySnapShot_Store(ConfigureParams.HardDisk.szSCSIDiskImage0, sizeof(ConfigureParams.HardDisk.szSCSIDiskImage0));
+    MemorySnapShot_Store(ConfigureParams.HardDisk.szSCSIDiskImage1, sizeof(ConfigureParams.HardDisk.szSCSIDiskImage1));
+    MemorySnapShot_Store(ConfigureParams.HardDisk.szSCSIDiskImage2, sizeof(ConfigureParams.HardDisk.szSCSIDiskImage2));
+    MemorySnapShot_Store(ConfigureParams.HardDisk.szSCSIDiskImage3, sizeof(ConfigureParams.HardDisk.szSCSIDiskImage3));
+    MemorySnapShot_Store(ConfigureParams.HardDisk.szSCSIDiskImage4, sizeof(ConfigureParams.HardDisk.szSCSIDiskImage4));
+    MemorySnapShot_Store(ConfigureParams.HardDisk.szSCSIDiskImage5, sizeof(ConfigureParams.HardDisk.szSCSIDiskImage5));
+    MemorySnapShot_Store(ConfigureParams.HardDisk.szSCSIDiskImage6, sizeof(ConfigureParams.HardDisk.szSCSIDiskImage6));
+
+
+    
 	MemorySnapShot_Store(ConfigureParams.HardDisk.szHardDiskImage, sizeof(ConfigureParams.HardDisk.szHardDiskImage));
 
 	MemorySnapShot_Store(&ConfigureParams.Screen.nMonitorType, sizeof(ConfigureParams.Screen.nMonitorType));
