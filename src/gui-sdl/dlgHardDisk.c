@@ -14,59 +14,94 @@ const char DlgHardDisk_fileid[] = "Hatari dlgHardDisk.c : " __DATE__ " " __TIME_
 #include "file.h"
 
 
-#define DISKDLG_ACSIEJECT          3
-#define DISKDLG_ACSIBROWSE         4
-#define DISKDLG_ACSINAME           5
-#define DISKDLG_IDEMASTEREJECT     7
-#define DISKDLG_IDEMASTERBROWSE    8
-#define DISKDLG_IDEMASTERNAME      9
-#define DISKDLG_IDESLAVEEJECT     11
-#define DISKDLG_IDESLAVEBROWSE    12
-#define DISKDLG_IDESLAVENAME      13
-#define DISKDLG_GEMDOSEJECT       15
-#define DISKDLG_GEMDOSBROWSE      16
-#define DISKDLG_GEMDOSNAME        17
-#define DISKDLG_PROTOFF           19
-#define DISKDLG_PROTON            20
-#define DISKDLG_PROTAUTO          21
-#define DISKDLG_BOOTHD            22
-#define DISKDLG_EXIT              23
+#define DISKDLG_CDROM0             3
+#define DISKDLG_SCSIEJECT0         4
+#define DISKDLG_SCSIBROWSE0        5
+#define DISKDLG_SCSINAME0          6
+
+#define DISKDLG_CDROM1             8
+#define DISKDLG_SCSIEJECT1         9
+#define DISKDLG_SCSIBROWSE1        10
+#define DISKDLG_SCSINAME1          11
+
+#define DISKDLG_CDROM2             13
+#define DISKDLG_SCSIEJECT2         14
+#define DISKDLG_SCSIBROWSE2        15
+#define DISKDLG_SCSINAME2          16
+
+#define DISKDLG_CDROM3             18
+#define DISKDLG_SCSIEJECT3         19
+#define DISKDLG_SCSIBROWSE3        20
+#define DISKDLG_SCSINAME3          21
+
+#define DISKDLG_CDROM4             23
+#define DISKDLG_SCSIEJECT4         24
+#define DISKDLG_SCSIBROWSE4        25
+#define DISKDLG_SCSINAME4          26
+
+#define DISKDLG_CDROM5             28
+#define DISKDLG_SCSIEJECT5         29
+#define DISKDLG_SCSIBROWSE5        30
+#define DISKDLG_SCSINAME5          31
+
+#define DISKDLG_CDROM6             33
+#define DISKDLG_SCSIEJECT6         34
+#define DISKDLG_SCSIBROWSE6        35
+#define DISKDLG_SCSINAME6          36
+
+#define DISKDLG_EXIT               37
 
 
 /* The disks dialog: */
 static SGOBJ diskdlg[] =
 {
-	{ SGBOX, 0, 0, 0,0, 64,19, NULL },
-	{ SGTEXT, 0, 0, 27,1, 10,1, "Hard disks" },
+    { SGBOX, 0, 0, 0,0, 64,29, NULL },
+	{ SGTEXT, 0, 0, 27,1, 10,1, "SCSI disks" },
 
-	{ SGTEXT, 0, 0, 2,3, 14,1, "ACSI HD image:" },
+	{ SGTEXT, 0, 0, 2,3, 14,1, "SCSI Disk 0:" },
+    { SGCHECKBOX, 0, 0, 36, 3, 8, 1, "CD-ROM" },
 	{ SGBUTTON, 0, 0, 46,3, 7,1, "Eject" },
 	{ SGBUTTON, 0, 0, 54,3, 8,1, "Browse" },
 	{ SGTEXT, 0, 0, 3,4, 58,1, NULL },
+   
+    { SGTEXT, 0, 0, 2, 6, 14,1, "SCSI Disk 1:" },
+    { SGCHECKBOX, 0, 0, 36, 6, 8, 1, "CD-ROM" },
+	{ SGBUTTON, 0, 0, 46,6, 7,1, "Eject" },
+	{ SGBUTTON, 0, 0, 54,6, 8,1, "Browse" },
+	{ SGTEXT, 0, 0, 3,7, 58,1, NULL },
 
-	{ SGTEXT, 0, 0, 2,5, 20,1, "IDE HD master image:" },
-	{ SGBUTTON, 0, 0, 46,5, 7,1, "Eject" },
-	{ SGBUTTON, 0, 0, 54,5, 8,1, "Browse" },
-	{ SGTEXT, 0, 0, 3,6, 58,1, NULL },
-
-	{ SGTEXT, 0, 0, 2,7, 19,1, "IDE HD slave image:" },
-	{ SGBUTTON, 0, 0, 46,7, 7,1, "Eject" },
-	{ SGBUTTON, 0, 0, 54,7, 8,1, "Browse" },
-	{ SGTEXT, 0, 0, 3,8, 58,1, NULL },
-
-	{ SGTEXT, 0, 0, 2,9, 13,1, "GEMDOS drive:" },
+    { SGTEXT, 0, 0, 2, 9, 14,1, "SCSI Disk 2:" },
+    { SGCHECKBOX, 0, 0, 36, 9, 8, 1, "CD-ROM" },
 	{ SGBUTTON, 0, 0, 46,9, 7,1, "Eject" },
 	{ SGBUTTON, 0, 0, 54,9, 8,1, "Browse" },
-	{ SGTEXT, 0, 0, 3,10, 58,1, NULL },
+    { SGTEXT, 0, 0, 3,10, 58,1, NULL },
 
-	{ SGTEXT, 0, 0, 2,12, 31,1, "GEMDOS drive write protection:" },
-	{ SGRADIOBUT, 0, 0, 33,12, 5,1, "Off" },
-	{ SGRADIOBUT, 0, 0, 40,12, 5,1, "On" },
-	{ SGRADIOBUT, 0, 0, 46,12, 6,1, "Auto" },
+    { SGTEXT, 0, 0, 2, 12, 14,1, "SCSI Disk 3:" },
+    { SGCHECKBOX, 0, 0, 36, 12, 8, 1, "CD-ROM" },
+	{ SGBUTTON, 0, 0, 46,12, 7,1, "Eject" },
+	{ SGBUTTON, 0, 0, 54,12, 8,1, "Browse" },
+    { SGTEXT, 0, 0, 3,13, 58,1, NULL },
 
-	{ SGCHECKBOX, 0, 0, 2,14, 14,1, "Boot from HD" },
+    { SGTEXT, 0, 0, 2, 15, 14,1, "SCSI Disk 4:" },
+    { SGCHECKBOX, 0, 0, 36, 15, 8, 1, "CD-ROM" },
+	{ SGBUTTON, 0, 0, 46,15, 7,1, "Eject" },
+	{ SGBUTTON, 0, 0, 54,15, 8,1, "Browse" },
+    { SGTEXT, 0, 0, 3,16, 58,1, NULL },
 
-	{ SGBUTTON, SG_DEFAULT, 0, 22,16, 20,1, "Back to main menu" },
+    { SGTEXT, 0, 0, 2, 18, 14,1, "SCSI Disk 5:" },
+    { SGCHECKBOX, 0, 0, 36, 18, 8, 1, "CD-ROM" },
+	{ SGBUTTON, 0, 0, 46,18, 7,1, "Eject" },
+	{ SGBUTTON, 0, 0, 54,18, 8,1, "Browse" },
+    { SGTEXT, 0, 0, 3,19, 58,1, NULL },
+
+    { SGTEXT, 0, 0, 2, 21, 14,1, "SCSI Disk 6:" },
+    { SGCHECKBOX, 0, 0, 36, 21, 8, 1, "CD-ROM" },
+	{ SGBUTTON, 0, 0, 46,21, 7,1, "Eject" },
+	{ SGBUTTON, 0, 0, 54,21, 8,1, "Browse" },
+    { SGTEXT, 0, 0, 3,22, 58,1, NULL },
+
+
+    { SGBUTTON, SG_DEFAULT, 0, 22,26, 20,1, "Back to main menu" },
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 
@@ -75,7 +110,7 @@ static SGOBJ diskdlg[] =
  * Let user browse given directory, set directory if one selected.
  * return false if none selected, otherwise return true.
  */
-static bool DlgDisk_BrowseDir(char *dlgname, char *confname, int maxlen)
+/*static bool DlgDisk_BrowseDir(char *dlgname, char *confname, int maxlen)
 {
 	char *str, *selname;
 
@@ -93,7 +128,7 @@ static bool DlgDisk_BrowseDir(char *dlgname, char *confname, int maxlen)
 		return true;
 	}
 	return false;
-}
+}*/
 
 
 /**
@@ -101,118 +136,197 @@ static bool DlgDisk_BrowseDir(char *dlgname, char *confname, int maxlen)
  */
 void DlgHardDisk_Main(void)
 {
-	int but, i;
-	char dlgname_gdos[64], dlgname_acsi[64];
-	char dlgname_ide_master[64], dlgname_ide_slave[64];
+    int but;
+    char dlgname_scsi0[64];
+    char dlgname_scsi1[64];
+    char dlgname_scsi2[64];
+    char dlgname_scsi3[64];
+    char dlgname_scsi4[64];
+    char dlgname_scsi5[64];
+    char dlgname_scsi6[64];
 
 	SDLGui_CenterDlg(diskdlg);
 
 	/* Set up dialog to actual values: */
 
-	/* Boot from harddisk? */
-	if (ConfigureParams.HardDisk.bBootFromHardDisk)
-		diskdlg[DISKDLG_BOOTHD].state |= SG_SELECTED;
-	else
-		diskdlg[DISKDLG_BOOTHD].state &= ~SG_SELECTED;
+	/* SCSI hard disk image: */
+	if (ConfigureParams.HardDisk.bSCSIImageAttached0) {
+		File_ShrinkName(dlgname_scsi0, ConfigureParams.HardDisk.szSCSIDiskImage0,
+		                diskdlg[DISKDLG_SCSINAME0].w);
+    } else {
+        dlgname_scsi0[0] = '\0';
+    }
+        
+    if (ConfigureParams.HardDisk.bSCSIImageAttached1) {
+        File_ShrinkName(dlgname_scsi1, ConfigureParams.HardDisk.szSCSIDiskImage1,
+                    diskdlg[DISKDLG_SCSINAME1].w);
+    } else {
+        dlgname_scsi1[0] = '\0';
+    }
+        
+    if (ConfigureParams.HardDisk.bSCSIImageAttached2) {
+        File_ShrinkName(dlgname_scsi2, ConfigureParams.HardDisk.szSCSIDiskImage2,
+                        diskdlg[DISKDLG_SCSINAME2].w);
+	} else {
+        dlgname_scsi2[0] = '\0';
+    }
+    
+    if (ConfigureParams.HardDisk.bSCSIImageAttached3) {
+        File_ShrinkName(dlgname_scsi3, ConfigureParams.HardDisk.szSCSIDiskImage3,
+                        diskdlg[DISKDLG_SCSINAME3].w);
+	} else {
+        dlgname_scsi3[0] = '\0';
+    }
+    
+    if (ConfigureParams.HardDisk.bSCSIImageAttached4) {
+        File_ShrinkName(dlgname_scsi4, ConfigureParams.HardDisk.szSCSIDiskImage4,
+                        diskdlg[DISKDLG_SCSINAME4].w);
+	} else {
+        dlgname_scsi4[0] = '\0';
+    }
 
-	/* ACSI hard disk image: */
-	if (ConfigureParams.HardDisk.bUseHardDiskImage)
-		File_ShrinkName(dlgname_acsi, ConfigureParams.HardDisk.szHardDiskImage,
-		                diskdlg[DISKDLG_ACSINAME].w);
-	else
-		dlgname_acsi[0] = '\0';
-	diskdlg[DISKDLG_ACSINAME].txt = dlgname_acsi;
+    if (ConfigureParams.HardDisk.bSCSIImageAttached5) {
+        File_ShrinkName(dlgname_scsi5, ConfigureParams.HardDisk.szSCSIDiskImage5,
+                        diskdlg[DISKDLG_SCSINAME5].w);
+	} else {
+        dlgname_scsi5[0] = '\0';
+    }
 
-	/* IDE master hard disk image: */
-	if (ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage)
-		File_ShrinkName(dlgname_ide_master, ConfigureParams.HardDisk.szIdeMasterHardDiskImage,
-		                diskdlg[DISKDLG_IDEMASTERNAME].w);
-	else
-		dlgname_ide_master[0] = '\0';
-	diskdlg[DISKDLG_IDEMASTERNAME].txt = dlgname_ide_master;
+    if (ConfigureParams.HardDisk.bSCSIImageAttached6) {
+        File_ShrinkName(dlgname_scsi6, ConfigureParams.HardDisk.szSCSIDiskImage6,
+                        diskdlg[DISKDLG_SCSINAME6].w);
+	} else {
+        dlgname_scsi6[0] = '\0';
+    }
 
-	/* IDE slave hard disk image: */
-	if (ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage)
-		File_ShrinkName(dlgname_ide_slave, ConfigureParams.HardDisk.szIdeSlaveHardDiskImage,
-		                diskdlg[DISKDLG_IDESLAVENAME].w);
-	else
-		dlgname_ide_slave[0] = '\0';
-	diskdlg[DISKDLG_IDESLAVENAME].txt = dlgname_ide_slave;
+	diskdlg[DISKDLG_SCSINAME0].txt = dlgname_scsi0;
+    diskdlg[DISKDLG_SCSINAME1].txt = dlgname_scsi1;
+    diskdlg[DISKDLG_SCSINAME2].txt = dlgname_scsi2;
+	diskdlg[DISKDLG_SCSINAME3].txt = dlgname_scsi3;
+    diskdlg[DISKDLG_SCSINAME4].txt = dlgname_scsi4;
+    diskdlg[DISKDLG_SCSINAME5].txt = dlgname_scsi5;
+    diskdlg[DISKDLG_SCSINAME6].txt = dlgname_scsi6;
 
-	/* GEMDOS hard disk directory: */
-	if (ConfigureParams.HardDisk.bUseHardDiskDirectories)
-		File_ShrinkName(dlgname_gdos, ConfigureParams.HardDisk.szHardDiskDirectories[0],
-		                diskdlg[DISKDLG_GEMDOSNAME].w);
-	else
-		dlgname_gdos[0] = '\0';
-	diskdlg[DISKDLG_GEMDOSNAME].txt = dlgname_gdos;
+    /* CD-ROM true or false? */
+    if (ConfigureParams.HardDisk.bCDROM0)
+        diskdlg[DISKDLG_CDROM0].state |= SG_SELECTED;
+    else
+        diskdlg[DISKDLG_CDROM0].state &= ~SG_SELECTED;
+    
+    if (ConfigureParams.HardDisk.bCDROM1)
+        diskdlg[DISKDLG_CDROM1].state |= SG_SELECTED;
+    else
+        diskdlg[DISKDLG_CDROM1].state &= ~SG_SELECTED;
+    
+    if (ConfigureParams.HardDisk.bCDROM2)
+        diskdlg[DISKDLG_CDROM2].state |= SG_SELECTED;
+    else
+        diskdlg[DISKDLG_CDROM2].state &= ~SG_SELECTED;
+    
+    if (ConfigureParams.HardDisk.bCDROM3)
+        diskdlg[DISKDLG_CDROM3].state |= SG_SELECTED;
+    else
+        diskdlg[DISKDLG_CDROM3].state &= ~SG_SELECTED;
+    
+    if (ConfigureParams.HardDisk.bCDROM4)
+        diskdlg[DISKDLG_CDROM4].state |= SG_SELECTED;
+    else
+        diskdlg[DISKDLG_CDROM4].state &= ~SG_SELECTED;
+    
+    if (ConfigureParams.HardDisk.bCDROM5)
+        diskdlg[DISKDLG_CDROM5].state |= SG_SELECTED;
+    else
+        diskdlg[DISKDLG_CDROM5].state &= ~SG_SELECTED;
+    
+    if (ConfigureParams.HardDisk.bCDROM6)
+        diskdlg[DISKDLG_CDROM6].state |= SG_SELECTED;
+    else
+        diskdlg[DISKDLG_CDROM6].state &= ~SG_SELECTED;
 
-	/* Write protection */
-	for (i = DISKDLG_PROTOFF; i <= DISKDLG_PROTAUTO; i++)
-	{
-		diskdlg[i].state &= ~SG_SELECTED;
-	}
-	diskdlg[DISKDLG_PROTOFF+ConfigureParams.HardDisk.nWriteProtection].state |= SG_SELECTED;
-
+    
 	/* Draw and process the dialog */
 	do
 	{
 		but = SDLGui_DoDialog(diskdlg, NULL);
 		switch (but)
 		{
-		 case DISKDLG_ACSIEJECT:
-			ConfigureParams.HardDisk.bUseHardDiskImage = false;
-			dlgname_acsi[0] = '\0';
-			break;
-		 case DISKDLG_ACSIBROWSE:
-			if (SDLGui_FileConfSelect(dlgname_acsi,
-			                          ConfigureParams.HardDisk.szHardDiskImage,
-			                          diskdlg[DISKDLG_ACSINAME].w, false))
-				ConfigureParams.HardDisk.bUseHardDiskImage = true;
-			break;
-		 case DISKDLG_IDEMASTEREJECT:
-			ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage = false;
-			dlgname_ide_master[0] = '\0';
-			break;
-		 case DISKDLG_IDEMASTERBROWSE:
-			if (SDLGui_FileConfSelect(dlgname_ide_master,
-			                          ConfigureParams.HardDisk.szIdeMasterHardDiskImage,
-			                          diskdlg[DISKDLG_IDEMASTERNAME].w, false))
-				ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage = true;
-			break;
-		 case DISKDLG_IDESLAVEEJECT:
-			ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage = false;
-			dlgname_ide_slave[0] = '\0';
-			break;
-		 case DISKDLG_IDESLAVEBROWSE:
-			if (SDLGui_FileConfSelect(dlgname_ide_slave,
-			                          ConfigureParams.HardDisk.szIdeSlaveHardDiskImage,
-			                          diskdlg[DISKDLG_IDESLAVENAME].w, false))
-				ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage = true;
-			break;
-		 case DISKDLG_GEMDOSEJECT:
-			ConfigureParams.HardDisk.bUseHardDiskDirectories = false;
-			dlgname_gdos[0] = '\0';
-			break;
-		 case DISKDLG_GEMDOSBROWSE:
-			if (DlgDisk_BrowseDir(dlgname_gdos,
-			                     ConfigureParams.HardDisk.szHardDiskDirectories[0],
-			                     diskdlg[DISKDLG_GEMDOSNAME].w))
-				ConfigureParams.HardDisk.bUseHardDiskDirectories = true;
-			break;
+            case DISKDLG_SCSIEJECT0:
+                ConfigureParams.HardDisk.bSCSIImageAttached0 = false;
+                dlgname_scsi0[0] = '\0';
+                break;
+            case DISKDLG_SCSIBROWSE0:
+                if (SDLGui_FileConfSelect(dlgname_scsi0,
+                                          ConfigureParams.HardDisk.szSCSIDiskImage0,
+                                          diskdlg[DISKDLG_SCSINAME0].w, false))
+                    ConfigureParams.HardDisk.bSCSIImageAttached0 = true;
+                break;
+                
+            case DISKDLG_SCSIEJECT1:
+//                diskdlg[DISKDLG_CDROM1].state &= ~SG_SELECTED; // useful?
+                ConfigureParams.HardDisk.bSCSIImageAttached1 = false;
+                dlgname_scsi1[0] = '\0';
+                break;
+            case DISKDLG_SCSIBROWSE1:
+                if (SDLGui_FileConfSelect(dlgname_scsi1, ConfigureParams.HardDisk.szSCSIDiskImage1, diskdlg[DISKDLG_SCSINAME1].w, false))
+                    ConfigureParams.HardDisk.bSCSIImageAttached1 = true;
+                break;
+                
+            case DISKDLG_SCSIEJECT2:
+                ConfigureParams.HardDisk.bSCSIImageAttached2 = false;
+                dlgname_scsi2[0] = '\0';
+                break;
+            case DISKDLG_SCSIBROWSE2:
+                if (SDLGui_FileConfSelect(dlgname_scsi2, ConfigureParams.HardDisk.szSCSIDiskImage2, diskdlg[DISKDLG_SCSINAME2].w, false))
+                    ConfigureParams.HardDisk.bSCSIImageAttached2 = true;
+                break;
+                
+            case DISKDLG_SCSIEJECT3:
+                ConfigureParams.HardDisk.bSCSIImageAttached3 = false;
+                dlgname_scsi3[0] = '\0';
+                break;
+            case DISKDLG_SCSIBROWSE3:
+                if (SDLGui_FileConfSelect(dlgname_scsi3, ConfigureParams.HardDisk.szSCSIDiskImage3, diskdlg[DISKDLG_SCSINAME3].w, false))
+                    ConfigureParams.HardDisk.bSCSIImageAttached3 = true;
+                break;
+                
+            case DISKDLG_SCSIEJECT4:
+                ConfigureParams.HardDisk.bSCSIImageAttached4 = false;
+                dlgname_scsi4[0] = '\0';
+                break;
+            case DISKDLG_SCSIBROWSE4:
+                if (SDLGui_FileConfSelect(dlgname_scsi4, ConfigureParams.HardDisk.szSCSIDiskImage4, diskdlg[DISKDLG_SCSINAME4].w, false))
+                    ConfigureParams.HardDisk.bSCSIImageAttached4 = true;
+                break;
+
+            case DISKDLG_SCSIEJECT5:
+                ConfigureParams.HardDisk.bSCSIImageAttached5 = false;
+                dlgname_scsi5[0] = '\0';
+                break;
+            case DISKDLG_SCSIBROWSE5:
+                if (SDLGui_FileConfSelect(dlgname_scsi5, ConfigureParams.HardDisk.szSCSIDiskImage5, diskdlg[DISKDLG_SCSINAME5].w, false))
+                    ConfigureParams.HardDisk.bSCSIImageAttached5 = true;
+                break;
+
+            case DISKDLG_SCSIEJECT6:
+                ConfigureParams.HardDisk.bSCSIImageAttached6 = false;
+                dlgname_scsi6[0] = '\0';
+                break;
+            case DISKDLG_SCSIBROWSE6:
+                if (SDLGui_FileConfSelect(dlgname_scsi6, ConfigureParams.HardDisk.szSCSIDiskImage6, diskdlg[DISKDLG_SCSINAME6].w, false))
+                    ConfigureParams.HardDisk.bSCSIImageAttached6 = true;
+                break;
 		}
 	}
 	while (but != DISKDLG_EXIT && but != SDLGUI_QUIT
 	        && but != SDLGUI_ERROR && !bQuitProgram);
-
-	/* Read values from dialog: */
-	for (i = DISKDLG_PROTOFF; i <= DISKDLG_PROTAUTO; i++)
-	{
-		if (diskdlg[i].state & SG_SELECTED)
-		{
-			ConfigureParams.HardDisk.nWriteProtection = i-DISKDLG_PROTOFF;
-			break;
-		}
-	}
-	ConfigureParams.HardDisk.bBootFromHardDisk = (diskdlg[DISKDLG_BOOTHD].state & SG_SELECTED);
+    
+    /* Read values from dialog: */
+    ConfigureParams.HardDisk.bCDROM0 = (diskdlg[DISKDLG_CDROM0].state & SG_SELECTED);
+    ConfigureParams.HardDisk.bCDROM1 = (diskdlg[DISKDLG_CDROM1].state & SG_SELECTED);
+    ConfigureParams.HardDisk.bCDROM2 = (diskdlg[DISKDLG_CDROM2].state & SG_SELECTED);
+    ConfigureParams.HardDisk.bCDROM3 = (diskdlg[DISKDLG_CDROM3].state & SG_SELECTED);
+    ConfigureParams.HardDisk.bCDROM4 = (diskdlg[DISKDLG_CDROM4].state & SG_SELECTED);
+    ConfigureParams.HardDisk.bCDROM5 = (diskdlg[DISKDLG_CDROM5].state & SG_SELECTED);
+    ConfigureParams.HardDisk.bCDROM6 = (diskdlg[DISKDLG_CDROM6].state & SG_SELECTED);
 }
+

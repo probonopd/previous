@@ -250,6 +250,7 @@ void SCSI_FIFO_Read(void) { // 0x02014002
         fifoflags = fifoflags - 1;
 //        esp_raise_irq();
     } else {
+        IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = 0x00;
         Log_Printf(LOG_WARN, "ESP FIFO is empty!\n");
     } 
 }
@@ -529,7 +530,7 @@ Uint32 get_cmd (void) {
 //        async_len = 0;
 //    }
     
-    if(target >= ESP_MAX_DEVS /*|| bus.devs[target]*/) {
+    if(target >= ESP_MAX_DEVS || SCSIcommand.nodevice == true) { // experimental
         status = 0;
         intstatus = INTR_DC;
         seqstep = SEQ_0;
@@ -562,10 +563,11 @@ void handle_satn(void) {
      */
     scsi_command_group = (commandbuf[1] & 0xE0) >> 5;
     if(scsi_command_group < 3 || scsi_command_group > 4) {
-        status |= STAT_VGC;
-    } else if(ConfigureParams.System.nCpuLevel == 3 && scsi_command_group == 2) {
-        Log_Printf(LOG_WARN, "Invalid command group %i on NCR53C90\n", scsi_command_group);
-        status &= ~STAT_VGC;
+        if(ConfigureParams.System.nCpuLevel == 3 && scsi_command_group == 2) {
+            Log_Printf(LOG_WARN, "Invalid command group %i on NCR53C90\n", scsi_command_group);
+        } else {
+            status |= STAT_VGC;
+        }
     } else {
         Log_Printf(LOG_WARN, "Invalid command group %i on NCR53C90A\n", scsi_command_group);
     }
@@ -580,7 +582,7 @@ void do_busid_cmd(Uint8 busid) {
     lun = busid & 7;
     
     scsi_command_analyzer(commandbuf, command_len, target);
-    data_len = SCSICommandBlock.transfer_data_len;
+    data_len = SCSIcommand.transfer_data_len;
     
     if (data_len != 0) {
         Log_Printf(LOG_WARN, "executing command\n");
@@ -589,7 +591,7 @@ void do_busid_cmd(Uint8 busid) {
         dma_left = 0;
         dma_counter = 0;
         
-        if(SCSICommandBlock.transferdirection_todevice == 0) {
+        if(SCSIcommand.transferdirection_todevice == 0) {
             Log_Printf(LOG_WARN, "DATA IN\n");
             status |= STAT_DI;
         } else {
@@ -630,10 +632,10 @@ void esp_do_dma(void) {
     int dma_translen; // experimental
     dma_translen = readtranscountl | (readtranscounth << 8); // experimental
     Log_Printf(LOG_WARN, "call dma_write\n"); // experimental
-    nextdma_write(commandbuf, dma_translen, NEXTDMA_SCSI);//experimental !!
+    dma_memory_write(dma_write_buffer, dma_translen, NEXTDMA_SCSI);//experimental !!
 
     
-    to_device = SCSICommandBlock.transferdirection_todevice;
+    to_device = SCSIcommand.transferdirection_todevice;
     
     len = dma_left;
     
@@ -748,12 +750,12 @@ void esp_command_complete (void) {
 }
 
 void write_response(void) {
-    Log_Printf(LOG_WARN, "Transfer status: $%02x\n", SCSICommandBlock.returnCode);
-    esp_fifo[0] = SCSICommandBlock.returnCode; // status
+    Log_Printf(LOG_WARN, "Transfer status: $%02x\n", SCSIcommand.returnCode);
+    esp_fifo[0] = SCSIcommand.returnCode; // status
     esp_fifo[1] = 0x00; // message
     
     if(mode_dma == 1) {
-        nextdma_write(esp_fifo, 2, NEXTDMA_SCSI);
+    dma_memory_write(esp_fifo, 2, NEXTDMA_SCSI);
         status = STAT_TC | STAT_ST;
         intstatus = INTR_BS | INTR_FC;
         seqstep = SEQ_CD;
