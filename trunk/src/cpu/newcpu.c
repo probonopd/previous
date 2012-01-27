@@ -1790,7 +1790,7 @@ static void Exception_normal (int nr, uaecptr oldpc, int ExceptionSource)
 	m68k_areg (regs, 7) -= 4;
 	x_put_long (m68k_areg (regs, 7), currpc);
 	/* Push SR on stack: */
- 	m68k_areg (regs, 7) -= 2;
+	m68k_areg (regs, 7) -= 2;
 	x_put_word (m68k_areg (regs, 7), regs.sr);
 kludge_me_do:
 	newpc = x_get_long (regs.vbr + 4 * nr);
@@ -1849,7 +1849,7 @@ kludge_me_do:
         else
           M68000_AddCycles(44+12);		/* Must be a MFP or DSP interrupt */
         break;
-    }
+}
 
 }
 
@@ -2747,7 +2747,7 @@ void doint (void)
  */
 STATIC_INLINE void InterruptAddJitter (int Level , int Pending)
 {
-}
+	}
 
 
 /*
@@ -2811,7 +2811,7 @@ STATIC_INLINE int do_specialties (int cycles)
         if ( do_specialties_interrupt(true) ) {		/* test if there's an interrupt and add pending jitter */
             regs.stopped = 0;
             unset_special (SPCFLAG_STOP);
-        }
+	}
 
 	while (regs.spcflags & SPCFLAG_STOP) {
 
@@ -2836,53 +2836,54 @@ STATIC_INLINE int do_specialties (int cycles)
 			}
 		
 #if AMIGA_ONLY
-			if (regs.spcflags & SPCFLAG_COPPER)
-				do_copper ();
+		if (regs.spcflags & SPCFLAG_COPPER)
+			do_copper ();
 #endif
 
-			if (currprefs.cpu_cycle_exact) {
-				ipl_fetch ();
-				if (time_for_interrupt ()) {
+		if (currprefs.cpu_cycle_exact) {
+			ipl_fetch ();
+			if (time_for_interrupt ()) {
 					do_interrupt (regs.ipl, true);
-				}
-			} else {
+			}
+		} else {
 #if 0
-				if (regs.spcflags & (SPCFLAG_INT | SPCFLAG_DOINT)) {
-					int intr = intlev ();
-					unset_special (SPCFLAG_INT | SPCFLAG_DOINT);
-					if (intr > 0 && intr > regs.intmask)
+			if (regs.spcflags & (SPCFLAG_INT | SPCFLAG_DOINT)) {
+				int intr = intlev ();
+				unset_special (SPCFLAG_INT | SPCFLAG_DOINT);
+				if (intr > 0 && intr > regs.intmask)
 						do_interrupt (intr, true);
-				}
+			}
 #endif
-			}
-			if ((regs.spcflags & (SPCFLAG_BRK | SPCFLAG_MODE_CHANGE))) {
-				unset_special (SPCFLAG_BRK | SPCFLAG_MODE_CHANGE);
-				// SPCFLAG_BRK breaks STOP condition, need to prefetch
-				m68k_resumestopped ();
-				return 1;
-			}
 
-			if (currprefs.cpu_idle && currprefs.m68k_speed != 0 && ((regs.spcflags & SPCFLAG_STOP)) == SPCFLAG_STOP) {
-				/* sleep 1ms if STOP-instruction is executed */
-				if (1) {
-					static int sleepcnt, lvpos, zerocnt;
-						if (vpos != lvpos) {
-							sleepcnt--;
+		}
+		if ((regs.spcflags & (SPCFLAG_BRK | SPCFLAG_MODE_CHANGE))) {
+			unset_special (SPCFLAG_BRK | SPCFLAG_MODE_CHANGE);
+			// SPCFLAG_BRK breaks STOP condition, need to prefetch
+			m68k_resumestopped ();
+			return 1;
+		}
+
+		if (currprefs.cpu_idle && currprefs.m68k_speed != 0 && ((regs.spcflags & SPCFLAG_STOP)) == SPCFLAG_STOP) {
+			/* sleep 1ms if STOP-instruction is executed */
+			if (1) {
+				static int sleepcnt, lvpos, zerocnt;
+				if (vpos != lvpos) {
+					sleepcnt--;
 #ifdef JIT
-						if (pissoff == 0 && currprefs.cachesize && --zerocnt < 0) {
-							sleepcnt = -1;
-							zerocnt = IDLETIME / 4;
-						}
+					if (pissoff == 0 && currprefs.cachesize && --zerocnt < 0) {
+						sleepcnt = -1;
+						zerocnt = IDLETIME / 4;
+					}
 #endif
-						lvpos = vpos;
-						if (sleepcnt < 0) {
+					lvpos = vpos;
+					if (sleepcnt < 0) {
 							/*sleepcnt = IDLETIME / 2; */  /* Laurent : badly removed for now */
-							sleep_millis (1);
-						}
+						sleep_millis (1);
 					}
 				}
 			}
 		}
+	}
 	}
 	}
 
@@ -3230,13 +3231,11 @@ static void opcodedebug (uae_u32 pc, uae_u16 opcode)
 	for (lookup = lookuptab;lookup->mnemo != dp->mnemo; lookup++)
 		;
 	fault = 0;
-//	TRY(prb) {
-	except = 0;
-	addr = mmu_translate (pc, (regs.mmu_ssw & 4) ? 1 : 0, 0, 0);
-//	} CATCH (prb) {
-	if (except != 0) {
+	TRY(prb) {
+		addr = mmu_translate (pc, (regs.mmu_ssw & 4) ? 1 : 0, 0, 0);
+	} CATCH (prb) {
 		fault = 1;
-	}
+	} ENDTRY
 	if (!fault) {
 		write_log ("mmufixup=%d %04x %04x\n", mmufixup[0].reg, regs.wb3_status, regs.mmu_ssw);
 		m68k_disasm_2 (stdout, addr, NULL, 1, NULL, NULL, 0);
@@ -3249,13 +3248,12 @@ static void opcodedebug (uae_u32 pc, uae_u16 opcode)
 /* Aranym MMU 68040  */
 static void m68k_run_mmu040 (void)
 {
-	uae_u32 opcode;
-	uaecptr pc;
+	uae_u32 opcode=0;
+	uaecptr pc=0;
 	m68k_exception save_except;
 	
 retry:
-//	TRY (prb) {
-		except = 0;
+	TRY (prb) {
 		for (;;) {
 			if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
 			{
@@ -3266,31 +3264,7 @@ retry:
 			}
 
 			pc = regs.fault_pc = m68k_getpc ();
-#if 0
-			static int done;
-			if (pc == 0x16AF94) {
-//				write_log ("D0=%d A7=%08x\n", regs.regs[0], regs.regs[15]);
-				if (regs.regs[0] == 360) {
-					done = 1;
-					activate_debugger ();
-				}
-			}
-/*
-			if (pc == 0x16B01A) {
-				write_log ("-> ERR\n");
-			}
-			if (pc == 0x16B018) {
-				write_log ("->\n");
-			}
-*/
-			if (pc == 0x17967C || pc == 0x13b5e2 - 4) {
-				if (done) {
-					write_log ("*\n");
-					mmu_dump_tables ();
-					activate_debugger ();
-				}
-			}
-#endif
+
 			opcode = x_prefetch (0);
 			count_instr (opcode);
 			do_cycles (cpu_cycles);
@@ -3322,11 +3296,9 @@ retry:
 				if (do_specialties (cpu_cycles* 2 / CYCLE_UNIT))
 					return;
 			}
-		}
-	
-//	} CATCH (prb) {
-	if (except != 0) {
-		save_except = except;
+		} // end of for(;;)
+	} CATCH (prb) {
+		save_except = __exvalue;
 		if (currprefs.mmu_model == 68060) {
 			regs.fault_pc = pc;
 			if (mmufixup[1].reg >= 0) {
@@ -3350,21 +3322,21 @@ retry:
 			mmufixup[0].reg = -1;
 		}
 		//activate_debugger ();
-//		TRY (prb2) {
-			except = 0;
+		TRY (prb2) {
 			Exception (save_except, regs.fault_pc, true);
-//		} CATCH (prb2) {
-		if (except != 0) {
+		} CATCH (prb2) {
 			write_log ("MMU: double bus error, rebooting..\n");
 			regs.tcr = 0;
 			m68k_reset (0);
 			m68k_setpc (0xf80002);
 			mmu_reset ();
 			uae_reset (1);
+			__poptry();
 			return;
-		}
+		} ENDTRY
+		__poptry();
 		goto retry;
-	}
+	} ENDTRY
 
 }
 
@@ -3528,7 +3500,7 @@ static void m68k_run_2 (void)
 		
 		if (r->spcflags) {
 			if (do_specialties (cpu_cycles* 2 / CYCLE_UNIT))
-				return;   
+				return;
 		}
 	}
 }
@@ -3594,11 +3566,11 @@ void m68k_go (int may_quit)
 		
 		if (regs.spcflags & SPCFLAG_BRK) {
 			unset_special(SPCFLAG_BRK);
-			break;
+				break;
 		}
 
-		quit_program = 0;
-		hardboot = 0;
+			quit_program = 0;
+			hardboot = 0;
 
 #ifdef DEBUGGER
 		if (debugging)
@@ -3629,8 +3601,8 @@ void m68k_go (int may_quit)
 		}
 #endif
 
-		set_x_funcs ();
-		if (mmu_enabled && !currprefs.cachesize) {
+	set_x_funcs ();
+	if (mmu_enabled && !currprefs.cachesize) {
 			run_func = m68k_run_mmu;
 		} else {
 			run_func = currprefs.cpu_cycle_exact && currprefs.cpu_model == 68000 ? m68k_run_1_ce :
