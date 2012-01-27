@@ -23,7 +23,7 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
 
-#define DEBUG 0
+#define DEBUG 1
 #define USETAG 0
 
 #include "sysconfig.h"
@@ -470,7 +470,7 @@ static uaecptr REGPARAM2 mmu_lookup_pagetable(uaecptr addr, bool super, bool wri
 	desc_addr = (desc & MMU_ROOT_PTR_ADDR_MASK) | i;
 	desc = phys_get_long(desc_addr);
 	if ((desc & 2) == 0) {
-		fprintf(stderr, "MMU: invalid root descriptor for %lx\n", addr);
+		fprintf(stderr, "MMU: invalid root descriptor for %lx desc at %lx desc=%lx %s at %d\n", addr,desc_addr,desc,__FILE__,__LINE__);
 		return 0;
 	}
 
@@ -483,7 +483,7 @@ static uaecptr REGPARAM2 mmu_lookup_pagetable(uaecptr addr, bool super, bool wri
 	desc_addr = (desc & MMU_ROOT_PTR_ADDR_MASK) | i;
 	desc = phys_get_long(desc_addr);
 	if ((desc & 2) == 0) {
-		fprintf(stderr, "MMU: invalid ptr descriptor for %lx\n", addr);
+		fprintf(stderr, "MMU: invalid ptr descriptor for %lx desc at %lx desc=%lx %s at %d\n", addr,desc_addr,desc,__FILE__,__LINE__);
 		return 0;
 	}
 	wp |= desc;
@@ -506,7 +506,7 @@ static uaecptr REGPARAM2 mmu_lookup_pagetable(uaecptr addr, bool super, bool wri
 		desc = phys_get_long(desc_addr);
 	}
 	if ((desc & 1) == 0) {
-		fprintf(stderr, "MMU: invalid page descriptor log=%08lx desc=%08lx @%08lx\n", addr, desc, desc_addr);
+		fprintf(stderr, "MMU: invalid page descriptor log=%08lx desc=%08lx @%08lx %s at %d\n", addr, desc, desc_addr,__FILE__,__LINE__);
 		return desc;
 	}
 
