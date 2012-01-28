@@ -249,6 +249,10 @@ char * get_rtc_ram_info(void) {
 }
 
 
+void SID_Read(void) {
+	Log_Printf(LOG_WARN,"SID read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x00; // slot ID 0
+}
 
 /* System Control Register 1
 
@@ -551,7 +555,7 @@ void set_interrupt(Uint32 interrupt_val, Uint8 int_set_release) {
     }
     
     if(int_set_release == SET_INT) {
-        Log_Printf(LOG_WARN,"Interrupt Level: %i", interrupt_level);
+        Log_Printf(LOG_DEBUG,"Interrupt Level: %i", interrupt_level);
         M68000_Exception(((24+interrupt_level)*4), M68000_EXC_SRC_AUTOVEC);
     } else {
 //        M68000_Exception(((24+0)*4), M68000_EXC_SRC_AUTOVEC); // release interrupt - does this work???
