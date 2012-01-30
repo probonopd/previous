@@ -79,38 +79,38 @@ void SCSI_Init(void) {
     stat(filename1,&st);
     if (S_ISREG(st.st_mode))
 
-	scsidisk1 = ConfigureParams.HardDisk.bCDROM1 == true ? fopen(filename0, "r") : fopen(filename0, "r+");
+	scsidisk1 = ConfigureParams.HardDisk.bCDROM1 == true ? fopen(filename1, "r") : fopen(filename1, "r+");
     else
 	scsidisk1=NULL;
 
     stat(filename2,&st);
     if (S_ISREG(st.st_mode))
 
-	scsidisk2 = ConfigureParams.HardDisk.bCDROM2 == true ? fopen(filename0, "r") : fopen(filename0, "r+");
+	scsidisk2 = ConfigureParams.HardDisk.bCDROM2 == true ? fopen(filename2, "r") : fopen(filename2, "r+");
     else
 	scsidisk2=NULL;
 
     stat(filename3,&st);
     if (S_ISREG(st.st_mode))
-	scsidisk3 = ConfigureParams.HardDisk.bCDROM3 == true ? fopen(filename0, "r") : fopen(filename0, "r+");
+	scsidisk3 = ConfigureParams.HardDisk.bCDROM3 == true ? fopen(filename3, "r") : fopen(filename3, "r+");
     else
 	scsidisk3=NULL;
 
     stat(filename4,&st);
     if (S_ISREG(st.st_mode))
-	scsidisk4 = ConfigureParams.HardDisk.bCDROM4 == true ? fopen(filename0, "r") : fopen(filename0, "r+");
+	scsidisk4 = ConfigureParams.HardDisk.bCDROM4 == true ? fopen(filename4, "r") : fopen(filename4, "r+");
     else
 	scsidisk4=NULL;
 
     stat(filename5,&st);
     if (S_ISREG(st.st_mode))
-	scsidisk5 = ConfigureParams.HardDisk.bCDROM5 == true ? fopen(filename0, "r") : fopen(filename0, "r+");
+	scsidisk5 = ConfigureParams.HardDisk.bCDROM5 == true ? fopen(filename5, "r") : fopen(filename5, "r+");
     else
 	scsidisk5=NULL;
 
     stat(filename6,&st);
     if (S_ISREG(st.st_mode))
-	scsidisk6 = ConfigureParams.HardDisk.bCDROM6 == true ? fopen(filename0, "r") : fopen(filename0, "r+");
+	scsidisk6 = ConfigureParams.HardDisk.bCDROM6 == true ? fopen(filename6, "r") : fopen(filename6, "r+");
     else
 	scsidisk6=NULL;
     
