@@ -393,7 +393,7 @@ void SCSI_IntStatus_Read(void) { // 0x02014005
     
     if (irq_status == 1) {
             intstatus = 0x00;
-            status &= ~(STAT_VGC | STAT_PE | STAT_GE);
+            status &= ~(STAT_VGC | STAT_PE | STAT_GE );
             seqstep = SEQ_0;
             esp_lower_irq();
     }
@@ -527,22 +527,6 @@ Uint32 get_cmd (void) {
     }
     Log_Printf(LOG_SCSI_LEVEL, "get_cmd: len %i target %i", command_len, target);
     
-//    if(current_req) {
-//        scsi_req_cancel(current_req);
-//        async_len = 0;
-//    }
-    
-    if(target >= ESP_MAX_DEVS || SCSIcommand.nodevice == true) { // experimental
-    Log_Printf(LOG_SCSI_LEVEL, "No device found !! raise irq ");
-	
-        status = 0;
-        intstatus |= INTR_DC;
-        seqstep = SEQ_0;
-        esp_raise_irq();
-        return 0;
-    }
-    
-//    current_dev = bus.devs[target];
     return command_len;
 }
 
@@ -576,7 +560,7 @@ void handle_satn(void) {
         Log_Printf(LOG_WARN, "Invalid command group %i on NCR53C90A\n", scsi_command_group);
     }
 
-    if((command_len != 0) && (SCSIcommand.nodevice != true))
+    if (command_len != 0)
         do_cmd();
 }
 
@@ -587,6 +571,16 @@ void do_busid_cmd(Uint8 busid) {
     
     scsi_command_analyzer(commandbuf, command_len, target,lun);
     data_len = SCSIcommand.transfer_data_len;
+
+    if ((target >= ESP_MAX_DEVS) || (SCSIcommand.nodevice==true)) { // experimental
+    Log_Printf(LOG_SCSI_LEVEL, "No device found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
+	
+        status = 0;
+        intstatus |= INTR_DC;
+        seqstep = SEQ_0;
+        esp_raise_irq();
+	return;
+    }
     
     if (data_len != 0) {
         Log_Printf(LOG_SCSI_LEVEL, "executing command\n");
