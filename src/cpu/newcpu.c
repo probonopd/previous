@@ -1489,7 +1489,8 @@ static void Exception_mmu (int nr, uaecptr oldpc)
 		mmu_set_super (1);
 	}
 	if (nr == 2) {
-//		write_log ("%08x %08x %08x\n", currpc, oldpc, regs.mmu_fault_addr);
+		write_log ("Exception_mmu %08x %08x %08x\n", currpc, oldpc, regs.mmu_fault_addr);
+		if (oldpc==0) abort();
 //		if (currpc == 0x0013b5e2)
 //			activate_debugger ();
 		// bus error
@@ -1841,25 +1842,11 @@ kludge_me_do:
 /* and get a conflict with 'normal' cpu exceptions. */
 void REGPARAM2 Exception (int nr, uaecptr oldpc, int ExceptionSource)
 {
-#ifdef CPUEMU_12
-	if (currprefs.cpu_cycle_exact && currprefs.cpu_model == 68000)
-		Exception_ce000 (nr, oldpc);
-	else
-#endif
 		if (currprefs.mmu_model)
 			Exception_mmu (nr, oldpc); // Todo: add ExceptionSource
 		else
 			Exception_normal (nr, oldpc, ExceptionSource);
 
-#if AMIGA_ONLY
-	if (debug_illegal && !in_rom (M68K_GETPC)) {
-		int v = nr;
-		if (nr <= 63 && (debug_illegal_mask & ((uae_u64)1 << nr))) {
-			write_log ("Exception %d breakpoint\n", nr);
-			activate_debugger ();
-		}
-	}
-#endif
 }
 
 STATIC_INLINE void do_interrupt (int nr, int Pending)
@@ -2351,9 +2338,8 @@ void m68k_reset (int hardreset)
 	m68k_areg (regs, 7) = get_long (0);
 	m68k_setpc (get_long (4));
 
-#ifdef FPUEMU
 	fpu_reset ();
-#endif
+
 	regs.caar = regs.cacr = 0;
 	regs.itt0 = regs.itt1 = regs.dtt0 = regs.dtt1 = 0;
 	regs.tcr = regs.mmusr = regs.urp = regs.srp = regs.buscr = 0;
@@ -2370,9 +2356,6 @@ void m68k_reset (int hardreset)
 		mmu_set_super (regs.s != 0);
 	}
 
-#if AMIGA_ONLY
-	a3000_fakekick (0);
-#endif
 	/* only (E)nable bit is zeroed when CPU is reset, A3000 SuperKickstart expects this */
 	tc_030 &= ~0x80000000;
 	tt0_030 &= ~0x80000000;
@@ -2390,8 +2373,6 @@ void m68k_reset (int hardreset)
 	if (currprefs.cpu_model == 68060) {
 		regs.pcr = currprefs.fpu_model == 68060 ? MC68060_PCR : MC68EC060_PCR;
 		regs.pcr |= (currprefs.cpu060_revision & 0xff) << 8;
-		if (kickstart_rom)
-			regs.pcr |= 2; /* disable FPU */
 	}
 	fill_prefetch_slow ();
 }
@@ -2407,7 +2388,13 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 		//activate_debugger();
 	}
 
-	Exception (4, 0, M68000_EXC_SRC_CPU);
+	if ((opcode & 0xF000)==0xA000)
+		Exception (10, 0, M68000_EXC_SRC_CPU);
+	else 
+	if ((opcode & 0xF000)==0xF000)
+		Exception (11, 0, M68000_EXC_SRC_CPU);
+	else
+		Exception (4, 0, M68000_EXC_SRC_CPU);
 	return 4;
 }
 
@@ -2679,33 +2666,7 @@ static bool do_specialties_interrupt (int Pending)
 
 STATIC_INLINE int do_specialties (int cycles)
 {
-#ifdef JIT
-	unset_special (SPCFLAG_END_COMPILE);   /* has done its job */
-#endif
 
-#if AMIGA_ONLY
-	while ((regs.spcflags & SPCFLAG_BLTNASTY) && dmaen (DMA_BLITTER) && cycles > 0 && !currprefs.blitter_cycle_exact) {
-		/* Laurent : I don't know if our blitter code should be called here ! */
-		int c = blitnasty ();
-		if (c > 0) {
-			cycles -= c * CYCLE_UNIT * 2;
-			if (cycles < CYCLE_UNIT)
-				cycles = 0;
-		} else
-			c = 4;
-		do_cycles (c * CYCLE_UNIT);
-		if (regs.spcflags & SPCFLAG_COPPER)
-			do_copper ();
-	}
-#endif
-
-	if (regs.spcflags & SPCFLAG_BUSERROR) {
-		/* We can not execute bus errors directly in the memory handler
-		* functions since the PC should point to the address of the next
-		* instruction, so we're executing the bus errors here: */
-		unset_special(SPCFLAG_BUSERROR);
-		Exception(2, 0, M68000_EXC_SRC_CPU);
-	}
 
 	if(regs.spcflags & SPCFLAG_EXTRA_CYCLES) {
 		/* Add some extra cycles to simulate a wait state */
@@ -3076,25 +3037,18 @@ static void opcodedebug (uae_u32 pc, uae_u16 opcode)
 }
 #endif
 
+static oldpc;
 /* Aranym MMU 68040  */
 static void m68k_run_mmu040 (void)
 {
 	uae_u32 opcode=0;
-	uaecptr pc=0;
+	uaecptr pc=0;uaecptr fault=0;
 	m68k_exception save_except;
 	
-retry:
+	for (;;) {
 	TRY (prb) {
 		for (;;) {
-			if (LOG_TRACE_LEVEL(TRACE_CPU_DISASM))
-			{
-				int FrameCycles, HblCounterVideo, LineCycles;
-				Video_GetPosition ( &FrameCycles , &HblCounterVideo , &LineCycles );
-				LOG_TRACE_PRINT ( "cpu video_cyc=%6d %3d@%3d : " , FrameCycles, LineCycles, HblCounterVideo );
-				m68k_disasm(stderr, m68k_getpc (), NULL, 1);
-			}
-
-			pc = regs.fault_pc = m68k_getpc ();
+			pc = oldpc = regs.fault_pc = m68k_getpc ();
 
 			opcode = x_prefetch (0);
 			count_instr (opcode);
@@ -3141,7 +3095,7 @@ retry:
 				// movem to memory?
 				if ((opcode & 0xff80) == 0x4880) {
 					regs.mmu_ssw |= MMU_SSW_CM;
-					//write_log ("MMU_SSW_CM\n");
+					write_log ("MMU_SSW_CM\n");
 				}
 			}
 		}
@@ -3152,23 +3106,11 @@ retry:
 			m68k_areg (regs, mmufixup[0].reg) = mmufixup[0].value;
 			mmufixup[0].reg = -1;
 		}
-		//activate_debugger ();
-		TRY (prb2) {
-			Exception (save_except, regs.fault_pc, true);
-		} CATCH (prb2) {
-			write_log ("MMU: double bus error, rebooting..\n");
-			regs.tcr = 0;
-			m68k_reset (0);
-			m68k_setpc (0xf80002);
-			mmu_reset ();
-			uae_reset (1);
-			__poptry();
-			return;
-		} ENDTRY
-		__poptry();
-		goto retry;
-	} ENDTRY
 
+		Exception_mmu (save_except, oldpc);
+
+	} ENDTRY
+	}
 }
 
 /* "cycle exact" 68020/030  */
@@ -3407,30 +3349,9 @@ void m68k_go (int may_quit)
 		if (debugging)
 			debug ();
 #endif
-		if (regs.panic) {
-			regs.panic = 0;
-			/* program jumped to non-existing memory and cpu was >= 68020 */
-			get_real_address (regs.isp); /* stack in no one's land? -> reboot */
-			if (regs.isp & 1)
-				regs.panic = 1;
-			if (!regs.panic)
-				exception2_handle (regs.panic_pc, regs.panic_addr);
-			if (regs.panic) {
-				/* system is very badly confused */
-				write_log ("double bus error or corrupted stack, forcing reboot..\n");
-				regs.panic = 0;
-				uae_reset (1);
-			}
-		}
 
-#if 0 /* what was the meaning of this? this breaks trace emulation if debugger is used */
-		if (regs.spcflags) {
-			uae_u32 of = regs.spcflags;
-			regs.spcflags &= ~(SPCFLAG_BRK | SPCFLAG_MODE_CHANGE);
-			do_specialties (0);
-			regs.spcflags |= of & (SPCFLAG_BRK | SPCFLAG_MODE_CHANGE);
-		}
-#endif
+
+
 
 	set_x_funcs ();
 	if (mmu_enabled && !currprefs.cachesize) {

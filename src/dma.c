@@ -10,6 +10,9 @@
 #include "dma.h"
 #include "configuration.h"
 
+
+#define LOG_DMA_LEVEL LOG_WARN
+
 #define IO_SEG_MASK	0x1FFFF
 
 /* read CSR bits */
@@ -46,8 +49,8 @@
 
 
 /* Address variables */
-Uint32 read_dma_scsi_csr;
-Uint32 write_dma_scsi_csr;
+Uint32 read_dma_scsi_csr=0;
+Uint32 write_dma_scsi_csr=0;
 Uint32 dma_saved_next;
 Uint32 dma_saved_limit;
 Uint32 dma_saved_start;
@@ -63,20 +66,20 @@ Uint32 dma_size;
 void DMA_SCSI_CSR_Read(void) { // 0x02000010, lengh of register is byte on 68030 ?
     if(ConfigureParams.System.nCpuLevel == 3) { // for 68030, not sure if this is correct
         IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = read_dma_scsi_csr >> 24;
-        Log_Printf(LOG_DEBUG,"DMA SCSI CSR read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, read_dma_scsi_csr >> 24, m68k_getpc());
+        Log_Printf(LOG_DMA_LEVEL,"DMA SCSI CSR read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, read_dma_scsi_csr >> 24, m68k_getpc());
     } else {
         IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, read_dma_scsi_csr);
-        Log_Printf(LOG_DEBUG,"DMA SCSI CSR read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, read_dma_scsi_csr, m68k_getpc());
+        Log_Printf(LOG_DMA_LEVEL,"DMA SCSI CSR read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, read_dma_scsi_csr, m68k_getpc());
     }
 }
 
 void DMA_SCSI_CSR_Write(void) {
     if(ConfigureParams.System.nCpuLevel == 3) { // for 68030, not sure if this is correct
         write_dma_scsi_csr = IoMem[IoAccessCurrentAddress & IO_SEG_MASK] << 16;
-        Log_Printf(LOG_DEBUG,"DMA SCSI CSR write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,write_dma_scsi_csr >> 16, m68k_getpc());
+        Log_Printf(LOG_DMA_LEVEL,"DMA SCSI CSR write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,write_dma_scsi_csr >> 16, m68k_getpc());
     } else {
         write_dma_scsi_csr = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-        Log_Printf(LOG_DEBUG,"DMA SCSI CSR write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, write_dma_scsi_csr, m68k_getpc());
+        Log_Printf(LOG_DMA_LEVEL,"DMA SCSI CSR write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, write_dma_scsi_csr, m68k_getpc());
     }
      
     if(write_dma_scsi_csr & DMA_DEV2M) {
@@ -85,127 +88,130 @@ void DMA_SCSI_CSR_Write(void) {
         } else {
             read_dma_scsi_csr |= DMA_DEV2M;
         }
-        Log_Printf(LOG_DEBUG,"DMA from dev to mem");
+        Log_Printf(LOG_DMA_LEVEL,"DMA from dev to mem");
     }
     if(write_dma_scsi_csr & DMA_SETENABLE) {
         read_dma_scsi_csr |= DMA_ENABLE;
-        Log_Printf(LOG_DEBUG,"DMA enable transfer");
+        Log_Printf(LOG_DMA_LEVEL,"DMA enable transfer");
     }
     if(write_dma_scsi_csr & DMA_SETSUPDATE) {
         read_dma_scsi_csr |= DMA_SUPDATE;
-        Log_Printf(LOG_DEBUG,"DMA set single update");
+        Log_Printf(LOG_DMA_LEVEL,"DMA set single update");
     }
     if(write_dma_scsi_csr & DMA_CLRCOMPLETE) {
         read_dma_scsi_csr &= ~DMA_COMPLETE;
-        Log_Printf(LOG_DEBUG,"DMA clear complete conditional");
+        Log_Printf(LOG_DMA_LEVEL,"DMA clear complete conditional");
+
+	set_interrupt(INT_SCSI_DMA, RELEASE_INT); // also somewhat experimental...
     }
     if(write_dma_scsi_csr & DMA_RESET) {
         read_dma_scsi_csr &= ~(DMA_COMPLETE | DMA_SUPDATE | DMA_ENABLE | DMA_DEV2M);
         Log_Printf(LOG_WARN,"DMA reset");
+	set_interrupt(INT_SCSI_DMA, RELEASE_INT); // also somewhat experimental...
     }
     if(write_dma_scsi_csr & DMA_INITBUF) { // needs to be filled
-        Log_Printf(LOG_DEBUG,"DMA initialize buffers");
+        Log_Printf(LOG_DMA_LEVEL,"DMA initialize buffers");
     }
 }
 
 void DMA_SCSI_Saved_Next_Read(void) { // 0x02004000
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma_saved_next);
- 	Log_Printf(LOG_DEBUG,"DMA SCSI SNext read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_next, m68k_getpc());
+ 	Log_Printf(LOG_DMA_LEVEL,"DMA SCSI SNext read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_next, m68k_getpc());
 }
 
 void DMA_SCSI_Saved_Next_Write(void) {
     dma_saved_next = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    Log_Printf(LOG_DEBUG,"DMA SCSI SNext write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_next, m68k_getpc());
+    Log_Printf(LOG_DMA_LEVEL,"DMA SCSI SNext write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_next, m68k_getpc());
 }
 
 void DMA_SCSI_Saved_Limit_Read(void) { // 0x02004004
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma_saved_limit);
- 	Log_Printf(LOG_DEBUG,"DMA SCSI SLimit read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_limit, m68k_getpc());
+ 	Log_Printf(LOG_DMA_LEVEL,"DMA SCSI SLimit read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_limit, m68k_getpc());
 }
 
 void DMA_SCSI_Saved_Limit_Write(void) {
     dma_saved_limit = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    Log_Printf(LOG_DEBUG,"DMA SCSI SLimit write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_limit, m68k_getpc());
+    Log_Printf(LOG_DMA_LEVEL,"DMA SCSI SLimit write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_limit, m68k_getpc());
 }
 
 void DMA_SCSI_Saved_Start_Read(void) { // 0x02004008
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma_saved_start);
- 	Log_Printf(LOG_DEBUG,"DMA SCSI SStart read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_start, m68k_getpc());
+ 	Log_Printf(LOG_DMA_LEVEL,"DMA SCSI SStart read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_start, m68k_getpc());
 }
 
 void DMA_SCSI_Saved_Start_Write(void) {
     dma_saved_start = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    Log_Printf(LOG_DEBUG,"DMA SCSI SStart write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_start, m68k_getpc());
+    Log_Printf(LOG_DMA_LEVEL,"DMA SCSI SStart write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_start, m68k_getpc());
 }
 
 void DMA_SCSI_Saved_Stop_Read(void) { // 0x0200400c
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma_saved_stop);
- 	Log_Printf(LOG_DEBUG,"DMA SCSI SStop read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_stop, m68k_getpc());
+ 	Log_Printf(LOG_DMA_LEVEL,"DMA SCSI SStop read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_stop, m68k_getpc());
 }
 
 void DMA_SCSI_Saved_Stop_Write(void) {
     dma_saved_stop = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    Log_Printf(LOG_DEBUG,"DMA SCSI SStop write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_stop, m68k_getpc());
+    Log_Printf(LOG_DMA_LEVEL,"DMA SCSI SStop write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_saved_stop, m68k_getpc());
 }
 
 void DMA_SCSI_Next_Read(void) { // 0x02004010
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma_next);
- 	Log_Printf(LOG_DEBUG,"DMA SCSI Next read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_next, m68k_getpc());
+ 	Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Next read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_next, m68k_getpc());
 }
 
 void DMA_SCSI_Next_Write(void) {
     dma_next = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    Log_Printf(LOG_DEBUG,"DMA SCSI Next write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_next, m68k_getpc());
+    Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Next write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_next, m68k_getpc());
 }
 
 void DMA_SCSI_Limit_Read(void) { // 0x02004014
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma_limit);
- 	Log_Printf(LOG_DEBUG,"DMA SCSI Limit read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_limit, m68k_getpc());
+ 	Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Limit read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_limit, m68k_getpc());
 }
 
 void DMA_SCSI_Limit_Write(void) {
     dma_limit = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    Log_Printf(LOG_DEBUG,"DMA SCSI Limit write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_limit, m68k_getpc());
+    Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Limit write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_limit, m68k_getpc());
 }
 
 void DMA_SCSI_Start_Read(void) { // 0x02004018
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma_start);
- 	Log_Printf(LOG_DEBUG,"DMA SCSI Start read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_start, m68k_getpc());
+ 	Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Start read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_start, m68k_getpc());
 }
 
 void DMA_SCSI_Start_Write(void) {
     dma_start = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    Log_Printf(LOG_DEBUG,"DMA SCSI Start write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_start, m68k_getpc());
+    Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Start write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_start, m68k_getpc());
 }
 
 void DMA_SCSI_Stop_Read(void) { // 0x0200401c
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma_stop);
- 	Log_Printf(LOG_DEBUG,"DMA SCSI Stop read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_stop, m68k_getpc());
+ 	Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Stop read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_stop, m68k_getpc());
 }
 
 void DMA_SCSI_Stop_Write(void) {
     dma_stop = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    Log_Printf(LOG_DEBUG,"DMA SCSI Stop write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_stop, m68k_getpc());
+    Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Stop write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_stop, m68k_getpc());
 }
 
 void DMA_SCSI_Init_Read(void) { // 0x02004210
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma_init);
- 	Log_Printf(LOG_DEBUG,"DMA SCSI Init read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_init, m68k_getpc());
+ 	Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Init read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_init, m68k_getpc());
 }
 
 void DMA_SCSI_Init_Write(void) {
     dma_init = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    Log_Printf(LOG_DEBUG,"DMA SCSI Init write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_init, m68k_getpc());
+    Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Init write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_init, m68k_getpc());
 }
 
 void DMA_SCSI_Size_Read(void) { // 0x02004214
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma_size);
- 	Log_Printf(LOG_DEBUG,"DMA SCSI Size read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_size, m68k_getpc());
+ 	Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Size read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_size, m68k_getpc());
 }
 
 void DMA_SCSI_Size_Write(void) {
     dma_size = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    Log_Printf(LOG_DEBUG,"DMA SCSI Size write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_size, m68k_getpc());
+    Log_Printf(LOG_DMA_LEVEL,"DMA SCSI Size write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma_size, m68k_getpc());
 }
 
 
@@ -271,10 +277,10 @@ void dma_memory_write(Uint8 *buf, int size, int dma_channel) {
     }
     
     /* Test read/write */
-//    Log_Printf(LOG_DEBUG, "DMA Write Test: $%02x,$%02x,$%02x,$%02x\n", NEXTMemory_ReadByte(base_addr),NEXTMemory_ReadByte(base_addr+16),NEXTMemory_ReadByte(base_addr+32),NEXTMemory_ReadByte(base_addr+384));
+//    Log_Printf(LOG_DMA_LEVEL, "DMA Write Test: $%02x,$%02x,$%02x,$%02x\n", NEXTMemory_ReadByte(base_addr),NEXTMemory_ReadByte(base_addr+16),NEXTMemory_ReadByte(base_addr+32),NEXTMemory_ReadByte(base_addr+384));
 //    NEXTMemory_WriteByte(base_addr, 0x77);
 //    Uint8 testvar = NEXTMemory_ReadByte(base_addr);
-//    Log_Printf(LOG_DEBUG, "Write Test: $%02x at $%08x", testvar, base_addr);
+//    Log_Printf(LOG_DMA_LEVEL, "Write Test: $%02x at $%08x", testvar, base_addr);
     
     dma_init = 0;
     
@@ -290,6 +296,6 @@ void dma_memory_write(Uint8 *buf, int size, int dma_channel) {
 
     read_dma_scsi_csr |= DMA_COMPLETE;
     
-//    set_interrupt(INT_SCSI_DMA, SET_INT);
+    set_interrupt(INT_SCSI_DMA, SET_INT);
 //    set_interrupt(INT_SCSI_DMA, RELEASE_INT);
 }

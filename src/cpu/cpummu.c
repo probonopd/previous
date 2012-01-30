@@ -416,23 +416,6 @@ static ALWAYS_INLINE bool mmu_fill_atc_l1(uaecptr addr, bool super, bool data, b
 			goto restart;
 	}
 	*l1 = *l;
-#if 0
-	uaecptr phys_addr = addr + l1->phys;
-	if ((phys_addr & 0xfff00000) == 0x00f00000) {
-		l1->hw = 1;
-		goto fail;
-	}
-	if ((phys_addr & 0xfff00000) == 0xfff00000) {
-		l1->hw = 1;
-		l1->phys -= 0xff000000;
-		goto fail;
-	}
-
-	if (!test_ram_boundary(phys_addr, 1, super, write)) {
-		l1->bus_fault = 1;
-		goto fail;
-	}
-#endif
 	return true;
 
 fail:
@@ -493,10 +476,10 @@ static uaecptr REGPARAM2 mmu_lookup_pagetable(uaecptr addr, bool super, bool wri
 	/* fetch page table descriptor */
 	if (regs.mmu_pagesize_8k) {
 		i = (addr >> 11) & 0x7c;
-		desc_addr = (desc & MMU_PTR_PAGE_ADDR_MASK_8) | i;
+		desc_addr = (desc & MMU_PTR_PAGE_ADDR_MASK_8) + i;
 	} else {
 		i = (addr >> 10) & 0xfc;
-		desc_addr = (desc & MMU_PTR_PAGE_ADDR_MASK_4) | i;
+		desc_addr = (desc & MMU_PTR_PAGE_ADDR_MASK_4) + i;
 	}
 
 	desc = phys_get_long(desc_addr);
