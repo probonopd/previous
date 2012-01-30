@@ -583,7 +583,7 @@ void do_busid_cmd(Uint8 busid) {
     Log_Printf(LOG_SCSI_LEVEL, "do_busid_cmd: busid $%02x",busid);
     lun = busid & 7;
     
-    scsi_command_analyzer(commandbuf, command_len, target);
+    scsi_command_analyzer(commandbuf, command_len, target,lun);
     data_len = SCSIcommand.transfer_data_len;
     
     if (data_len != 0) {
