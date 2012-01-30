@@ -3869,6 +3869,7 @@ int main (int argc, char **argv)
 		} else if (i == 21 || i == 22 || i == 23) {
 			cpu_level = 3 + (23 - i);
 			using_ce020 = 2;
+			using_mmu = 1;
 			if (i == 21) {
 				read_counts ();
 				for (rp = 0; rp < nr_cpuop_funcs; rp++)

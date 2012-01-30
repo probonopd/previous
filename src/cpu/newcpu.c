@@ -343,17 +343,11 @@ void build_cpufunctbl (void)
 		break;
 	case 68040:
 		lvl = 4;
-		tbl = op_smalltbl_1_ff;
-		if (currprefs.cpu_cycle_exact)
-			tbl = op_smalltbl_22_ff;
-		if (currprefs.mmu_model)
-			tbl = op_smalltbl_31_ff;
+		tbl = op_smalltbl_31_ff;
 		break;
 	case 68030:
 		lvl = 3;
-		tbl = op_smalltbl_2_ff;
-		if (currprefs.cpu_cycle_exact)
-			tbl = op_smalltbl_23_ff;
+		tbl = op_smalltbl_31_ff;
 		break;
 	case 68020:
 		lvl = 2;
@@ -395,25 +389,13 @@ void build_cpufunctbl (void)
 		cpufunctbl[opcode] = tbl[i].handler;
 	}
 
-	/* hack fpu to 68000/68010 mode */
-	if (currprefs.fpu_model && currprefs.cpu_model < 68020) {
-		tbl = op_smalltbl_3_ff;
-		for (i = 0; tbl[i].handler != NULL; i++) {
-			if ((tbl[i].opcode & 0xfe00) == 0xf200)
-				cpufunctbl[tbl[i].opcode] = tbl[i].handler;
-		}
-	}
 	opcnt = 0;
 	for (opcode = 0; opcode < 65536; opcode++) {
 		cpuop_func *f;
 
 		if (table68k[opcode].mnemo == i_ILLG)
 			continue;
-		if (currprefs.fpu_model && currprefs.cpu_model < 68020) {
-			/* more hack fpu to 68000/68010 mode */
-			if (table68k[opcode].clev > lvl && (opcode & 0xfe00) != 0xf200)
-				continue;
-		} else if (table68k[opcode].clev > lvl) {
+		if (table68k[opcode].clev > lvl) {
 			continue;
 		}
 
@@ -1198,12 +1180,13 @@ uae_u32 REGPARAM3 get_disp_ea_000 (uae_u32 base, uae_u32 dp) REGPARAM
 #endif
 }
 
+#if AMIGA_ONLY
 STATIC_INLINE int in_rom (uaecptr pc)
 {
 	return (munge24 (pc) & 0xFFF80000) == 0xF80000;
 }
 
-#if AMIGA_ONLY
+
 STATIC_INLINE int in_rtarea (uaecptr pc)
 {
 	return (munge24 (pc) & 0xFFFF0000) == rtarea_base && uae_boot_rom;
@@ -2418,66 +2401,6 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 	uaecptr pc = m68k_getpc ();
 	static int warned;
 
-#if AMIGA_ONLY
-	int inrom = in_rom (pc);
-	int inrt = in_rtarea (pc);
-
-	if (cloanto_rom && (opcode & 0xF100) == 0x7100) {
-		m68k_dreg (regs, (opcode >> 9) & 7) = (uae_s8)(opcode & 0xFF);
-		m68k_incpc (2);
-		fill_prefetch_slow ();
-		return 4;
-	}
-
-	if (opcode == 0x4E7B && inrom && get_long (0x10) == 0) {
-		notify_user (NUMSG_KS68020);
-		uae_restart (-1, NULL);
-	}
-#endif
-
-#ifdef AUTOCONFIG
-	if (opcode == 0xFF0D) {
-		if (inrom) {
-			/* This is from the dummy Kickstart replacement */
-			uae_u16 arg = get_iword (2);
-			m68k_incpc (4);
-			ersatz_perform (arg);
-			fill_prefetch_slow ();
-			return 4;
-		} else if (inrt) {
-			/* User-mode STOP replacement */
-			m68k_setstopped ();
-			return 4;
-		}
-	}
-
-	if ((opcode & 0xF000) == 0xA000 && inrt) {
-		/* Calltrap. */
-		m68k_incpc (2);
-		m68k_handle_trap (opcode & 0xFFF);
-		fill_prefetch_slow ();
-		return 4;
-	}
-#endif
-
-	if ((opcode & 0xF000) == 0xF000) {
-		if (warned < 20) {
-			write_log ("B-Trap %x at %x (%p)\n", opcode, pc, regs.pc_p);
-			warned++;
-		}
-		Exception (0xB, 0, M68000_EXC_SRC_CPU);
-		//activate_debugger ();
-		return 4;
-	}
-	if ((opcode & 0xF000) == 0xA000) {
-		if (warned < 20) {
-			write_log ("A-Trap %x at %x (%p)\n", opcode, pc, regs.pc_p);
-			warned++;
-		}
-		Exception (0xA, 0, M68000_EXC_SRC_CPU);
-		//activate_debugger();
-		return 4;
-	}
 	if (warned < 20) {
 		write_log ("Illegal instruction: %04x at %08X -> %08X\n", opcode, pc, get_long (regs.vbr + 0x10));
 		warned++;
@@ -2560,6 +2483,7 @@ static void mmu_op30_pmove (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr ex
 	}
 
 	if (!reg) {
+		write_log ("Bad PMOVE at %08x\n",m68k_getpc());
 		op_illg (opcode);
 		return;
 	}
@@ -2586,13 +2510,7 @@ static void mmu_op30_pmove (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr ex
 		write_log (" PC=%08X\n", pc);
 	}
 #endif
-	if (currprefs.cs_mbdmac == 1 && currprefs.mbresmem_low_size > 0) {
-		if (otc != tc_030) {
-#if AMIGA_ONLY
-			a3000_fakekick (tc_030 & 0x80000000);
-#endif
-		}
-	}
+
 }
 
 static void mmu_op30_ptest (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
@@ -2923,79 +2841,7 @@ STATIC_INLINE int do_specialties (int cycles)
 	return 0;
 }
 
-//static uae_u32 pcs[1000];
 
-#if DEBUG_CD32CDTVIO
-
-static uae_u32 cd32nextpc, cd32request;
-
-static void out_cd32io2 (void)
-{
-	uae_u32 request = cd32request;
-	write_log ("%08x returned\n", request);
-	//write_log ("ACTUAL=%d ERROR=%d\n", get_long (request + 32), get_byte (request + 31));
-	cd32nextpc = 0;
-	cd32request = 0;
-}
-
-static void out_cd32io (uae_u32 pc)
-{
-	TCHAR out[100];
-	int ioreq = 0;
-	uae_u32 request = m68k_areg (regs, 1);
-
-	if (pc == cd32nextpc) {
-		out_cd32io2 ();
-		return;
-	}
-	out[0] = 0;
-	switch (pc)
-	{
-	case 0xe57cc0:
-	case 0xf04c34:
-		_stprintf (out, "opendevice");
-		break;
-	case 0xe57ce6:
-	case 0xf04c56:
-		_stprintf (out, "closedevice");
-		break;
-	case 0xe57e44:
-	case 0xf04f2c:
-		_stprintf (out, "beginio");
-		ioreq = 1;
-		break;
-	case 0xe57ef2:
-	case 0xf0500e:
-		_stprintf (out, "abortio");
-		ioreq = -1;
-		break;
-	}
-	if (out[0] == 0)
-		return;
-	if (cd32request)
-		write_log ("old request still not returned!\n");
-	cd32request = request;
-	cd32nextpc = get_long (m68k_areg (regs, 7));
-	write_log ("%s A1=%08X\n", out, request);
-	if (ioreq) {
-		static int cnt = 0;
-		int cmd = get_word (request + 28);
-#if 0
-		if (cmd == 37) {
-			cnt--;
-			if (cnt <= 0)
-				activate_debugger ();
-		}
-#endif
-		write_log ("CMD=%d DATA=%08X LEN=%d %OFF=%d PC=%x\n",
-			cmd, get_long (request + 40),
-			get_long (request + 36), get_long (request + 44), M68K_GETPC);
-	}
-	if (ioreq < 0)
-		;//activate_debugger ();
-}
-
-#endif /* DEBUG_CD32CDTVIO */
 
 #ifndef CPUEMU_11
 
@@ -3028,20 +2874,7 @@ static void m68k_run_1 (void)
 	    m68k_disasm(stderr, m68k_getpc (), NULL, 1);
 	}
 
-#if DEBUG_CD32CDTVIO
-		out_cd32io (m68k_getpc ());
-#endif
 
-#if 0
-		int pc = m68k_getpc ();
-		if (pc == 0xdff002)
-			write_log ("hip\n");
-		if (pc != pcs[0] && (pc < 0xd00000 || pc > 0x1000000)) {
-			memmove (pcs + 1, pcs, 998 * 4);
-			pcs[0] = pc;
-			//write_log ("%08X-%04X ", pc, opcode);
-		}
-#endif
 		do_cycles (cpu_cycles);
 		cpu_cycles = (*cpufunctbl[opcode])(opcode);
 		cpu_cycles &= cycles_mask;
@@ -3096,9 +2929,7 @@ static void m68k_run_1_ce (void)
 			m68k_disasm(stderr, m68k_getpc (), NULL, 1);
 		}
 
-#if DEBUG_CD32CDTVIO
-		out_cd32io (m68k_getpc ());
-#endif
+
 		(*cpufunctbl[opcode])(opcode);
 		if (r->spcflags) {
 			if (do_specialties (0))
@@ -3604,7 +3435,7 @@ void m68k_go (int may_quit)
 	set_x_funcs ();
 	if (mmu_enabled && !currprefs.cachesize) {
 			run_func = m68k_run_mmu;
-		} else {
+		} else { /*
 			run_func = currprefs.cpu_cycle_exact && currprefs.cpu_model == 68000 ? m68k_run_1_ce :
 				currprefs.cpu_compatible && currprefs.cpu_model == 68000 ? m68k_run_1 :
 #ifdef JIT
@@ -3613,6 +3444,8 @@ void m68k_go (int may_quit)
 				(currprefs.cpu_model == 68040 || currprefs.cpu_model == 68060) && currprefs.mmu_model ? m68k_run_mmu040 :
 				currprefs.cpu_model >= 68020 && currprefs.cpu_cycle_exact ? m68k_run_2ce :
 				currprefs.cpu_compatible ? m68k_run_2p : m68k_run_2;
+				*/
+			run_func=m68k_run_mmu040;
 		}
 		run_func ();
 	}

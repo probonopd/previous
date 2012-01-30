@@ -1,5 +1,6 @@
 /* NeXT system registers emulation */
 
+#include <stdlib.h>
 #include "main.h"
 #include "ioMem.h"
 #include "ioMemTables.h"
@@ -82,8 +83,8 @@ static Uint32 intMask=0x00000000;
 
 Uint8 rtc_ram[32]={
 0x94,0x0f,0x40,0x00,0x00,0x00,0x00,0x00,
-0x00,0x00,0xfb,0x6d,0x00,0x00,0x7B,0x00,
-0x00,0x00,0x20,0x00,0x00,0x00,0x00,0x00,
+0x00,0x00,0xfb,0x6d,0x00,0x00,0x49,0x00,
+0x41,0x00,0x20,0x00,0x00,0x00,0x00,0x00,
 0x00,0x00,0x00,0x00,0x00,0x00,0x0F,0x13
 }; 
 /*
@@ -366,7 +367,9 @@ void SCR2_Write2(void)
 	static Uint8 rtc_command=0;
 	static Uint8 rtc_value=0;
 	static Uint8 rtc_return=0;
-	static Uint8 rtc_status=0x90;	// FTU at startup 0x90 for MCS1850
+	static Uint8 rtc_status=0x98;
+	static Uint8 rtc_ccr=0x00;	
+	static Uint8 rtc_icr=0x00;	
     
 	Uint8 old_scr2_2=scr2_2;
     //	Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
@@ -415,15 +418,51 @@ void SCR2_Write2(void)
                 // read the status 0x31
                 if (rtc_command==0x31) {
                     scr2_2=scr2_2&(~SCR2_RTDATA);
-                    // for now 0x00
-                    if (0x00&(0x80>>(phase-8)))
+                    if (rtc_ccr&(0x80>>(phase-8)))
+                        scr2_2|=SCR2_RTDATA;
+                    rtc_return=(rtc_return<<1)|((scr2_2&SCR2_RTDATA)?1:0);
+                }
+                // read the status 0x32
+                if (rtc_command==0x32) {
+                    scr2_2=scr2_2&(~SCR2_RTDATA);
+                    if (rtc_icr&(0x80>>(phase-8)))
                         scr2_2|=SCR2_RTDATA;
                     rtc_return=(rtc_return<<1)|((scr2_2&SCR2_RTDATA)?1:0);
                 }
                 if ((rtc_command>=0x20) && (rtc_command<=0x2F)) {
+		    unsigned char v;
+		    time_t t;
+                    struct tm * ts;
+
                     scr2_2=scr2_2&(~SCR2_RTDATA);
                     // for now 0x00
-                    if (0x00&(0x80>>(phase-8)))
+		    t=time(NULL);
+		    ts=localtime(&t);
+		    v=0;
+		    switch (rtc_command) {
+			case 0x20 : // seconds
+				v=(((ts->tm_sec)/10)<<4)|(ts->tm_sec%10);
+				break;
+			case 0x21 : //min
+				v=(((ts->tm_min)/10)<<4)|(ts->tm_min%10);
+				break;
+			case 0x22 : // hour
+				v=(((ts->tm_hour)/10)<<4)|(ts->tm_hour%10);
+				break;
+			case 0x23 : 
+				v=0x01;
+				break;
+			case 0x24 : 
+				v=0x01;
+				break;
+			case 0x25 : 
+				v=0x01;
+				break;
+			case 0x26 : 
+				v=0x90;
+				break;
+		    }
+                    if (v&(0x80>>(phase-8)))
                         scr2_2|=SCR2_RTDATA;
                     rtc_return=(rtc_return<<1)|((scr2_2&SCR2_RTDATA)?1:0);
                 }
@@ -437,14 +476,23 @@ void SCR2_Write2(void)
                 if ((rtc_command>=0x80) && (rtc_command<=0x9F))
                     rtc_ram[rtc_command-0x80]=rtc_value;
                 
-                // write to x30 register
+                // write to x31 register
                 if (rtc_command==0xB1) {
+		    rtc_ccr=rtc_value;
+
+
                     // clear FTU
                     if (rtc_value & 0x04) {
                         rtc_status=rtc_status&(~0x18);
                         intStat=intStat&(~0x04);
                     }
+
+
                 }
+                // write to x32 register
+                if (rtc_command==0xB2) {
+		    rtc_icr=rtc_value;
+		}
             }
         }
 	} else {
@@ -463,14 +511,18 @@ void SCR2_Read2(void)
 	IoMem[IoAccessCurrentAddress & 0x1FFFF]=scr2_2;
 }
 
+int SCR_ROM_overlay=0;
+
 void SCR2_Write3(void)
 {	
 	Uint8 old_scr2_3=scr2_3;
     //	Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
 	scr2_3=IoMem[IoAccessCurrentAddress & 0x1FFFF];
-	if ((old_scr2_3&SCR2_ROM)!=(scr2_3&SCR2_ROM))
+	if ((old_scr2_3&SCR2_ROM)!=(scr2_3&SCR2_ROM)) {
 		Log_Printf(LOG_WARN,"SCR2 ROM change at $%08x val=%x PC=$%08x\n",
                    IoAccessCurrentAddress,scr2_3&SCR2_ROM,m68k_getpc());
+		   SCR_ROM_overlay=scr2_3&SCR2_ROM;
+		}
 	if ((old_scr2_3&SCR2_LED)!=(scr2_3&SCR2_LED))
 		Log_Printf(LOG_WARN,"SCR2 LED change at $%08x val=%x PC=$%08x\n",
                    IoAccessCurrentAddress,scr2_3&SCR2_LED,m68k_getpc());
