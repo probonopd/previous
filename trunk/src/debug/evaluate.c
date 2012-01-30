@@ -218,9 +218,9 @@ static int getValue(const char *str, Uint32 *number, int *base, bool bForDsp)
     *base = 0; /* no base (e.g. variable) */
 
     /* internal Hatari variable? */
-    if (BreakCond_GetHatariVariable(name, number)) {
-        return len;
-    }
+//    if (BreakCond_GetHatariVariable(name, number)) {
+//        return len;
+//    }
 
 	if (bForDsp) {
 		if (Symbols_GetDspAddress(SYMTYPE_ALL, name, number)) {

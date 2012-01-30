@@ -31,6 +31,7 @@ const char Memory_fileid[] = "Hatari memory.c : " __DATE__ " " __TIME__;
 /* Set illegal_mem to 1 for debug output: */
 #define illegal_mem 1
 
+#define illegal_trace(s) {static int count=0; if (count++<50) { s; }}
 
 /*
  approximative next memory map (source netbsd/next68k file cpu.h)
@@ -141,60 +142,46 @@ uae_u8 ce_cachable[65536];
 
 static uae_u32 dummy_lget(uaecptr addr)
 {
-    if (illegal_mem)
-	write_log ("Illegal lget at %08lx\n", (long)addr);
-
+    illegal_trace(write_log ("Illegal lget at %08lx PC=%08x\n", (long)addr,m68k_getpc()));
     return 0;
 }
 
 static uae_u32 dummy_wget(uaecptr addr)
 {
-    if (illegal_mem)
-	write_log ("Illegal wget at %08lx\n", (long)addr);
-
+    illegal_trace(write_log ("Illegal wget at %08lx PC=%08x\n", (long)addr,m68k_getpc()));
     return 0;
 }
 
 static uae_u32 dummy_bget(uaecptr addr)
 {
-    if (illegal_mem)
-	write_log ("Illegal bget at %08lx\n", (long)addr);
-
+    illegal_trace(write_log ("Illegal bget at %08lx PC=%08x\n", (long)addr,m68k_getpc()));
     return 0;
 }
 
 static void dummy_lput(uaecptr addr, uae_u32 l)
 {
-    if (illegal_mem)
-	write_log ("Illegal lput at %08lx\n", (long)addr);
+    illegal_trace(write_log ("Illegal lput at %08lx PC=%08x\n", (long)addr,m68k_getpc()));
 }
 
 static void dummy_wput(uaecptr addr, uae_u32 w)
 {
-    if (illegal_mem)
-	write_log ("Illegal wput at %08lx\n", (long)addr);
+    illegal_trace(write_log ("Illegal wput at %08lx PC=%08x\n", (long)addr,m68k_getpc()));
 }
 
 static void dummy_bput(uaecptr addr, uae_u32 b)
 {
-    if (illegal_mem)
-	write_log ("Illegal bput at %08lx\n", (long)addr);
+    illegal_trace(write_log ("Illegal bput at %08lx PC=%08x\n", (long)addr,m68k_getpc()));
 }
 
 static int dummy_check(uaecptr addr, uae_u32 size)
 {
-    if (illegal_mem)
-	write_log ("Illegal check at %08lx\n", (long)addr);
-
     return 0;
 }
 
 static uae_u8 *dummy_xlate(uaecptr addr)
 {
-    write_log("Your Atari program just did something terribly stupid:"
+    write_log("Your program just did something terribly stupid:"
               " dummy_xlate($%x)\n", addr);
-    /*Reset_Warm();*/
- //       return NEXTmem_xlate(addr);  /* So we don't crash. */
 }
 
 
@@ -309,8 +296,7 @@ static void NEXTmem_bput(uaecptr addr, uae_u32 b)
 
 static int NEXTmem_check(uaecptr addr, uae_u32 size)
 {
-    addr &= NEXTmem_mask;
-    return (addr + size) < NEXT_RAM_SIZE;
+    return (size) < NEXT_RAM_SIZE;
 }
 
 static uae_u8 *NEXTmem_xlate(uaecptr addr)
@@ -588,47 +574,47 @@ static uae_u8 *VoidMem_xlate (uaecptr addr)
 
 /* **** ROM memory **** */
 
+extern int SCR_ROM_overlay;
+
 uae_u8 *ROMmemory;
 
 static uae_u32 ROMmem_lget(uaecptr addr)
 {
+    if ((addr<0x2000) && (SCR_ROM_overlay)) {do_get_mem_long(NEXTRam + 0x03FFE000 +addr);}
     addr &= ROMmem_mask;
     return do_get_mem_long(ROMmemory + addr);
 }
 
 static uae_u32 ROMmem_wget(uaecptr addr)
 {
+    if ((addr<0x2000) && (SCR_ROM_overlay)) {do_get_mem_word(NEXTRam + 0x03FFE000 +addr);}
     addr &= ROMmem_mask;
-    return do_get_mem_word(ROMmemory + addr);
+    return do_get_mem_word(ROMmemory + addr);   
+
 }
 
 static uae_u32 ROMmem_bget(uaecptr addr)
 {
+    if ((addr<0x2000) && (SCR_ROM_overlay)) {return NEXTRam[0x03FFE000 +addr];}
     addr &= ROMmem_mask;
     return ROMmemory[addr];
 }
 
 static void ROMmem_lput(uaecptr addr, uae_u32 b)
 {
-    if (illegal_mem)
-        write_log ("Illegal ROMmem lput at %08lx\n", (long)addr);
-    
+    illegal_trace(write_log ("Illegal ROMmem lput at %08lx\n", (long)addr));
     M68000_BusError(addr, 0);
 }
 
 static void ROMmem_wput(uaecptr addr, uae_u32 b)
 {
-    if (illegal_mem)
-        write_log ("Illegal ROMmem wput at %08lx\n", (long)addr);
-    
+    illegal_trace(write_log ("Illegal ROMmem wput at %08lx\n", (long)addr));
     M68000_BusError(addr, 0);
 }
 
 static void ROMmem_bput(uaecptr addr, uae_u32 b)
 {
-    if (illegal_mem)
-        write_log ("Illegal ROMmem bput at %08lx\n", (long)addr);
-    
+    illegal_trace(write_log ("Illegal ROMmem bput at %08lx\n", (long)addr));
     M68000_BusError(addr, 0);
 }
 
@@ -651,8 +637,7 @@ uae_u8 *IOmemory;
 
 static int IOmem_check(uaecptr addr, uae_u32 size)
 {
-    addr &= IOmem_mask;
-    return (addr + size) <= IOmem_size;
+    return 0;
 }
 
 static uae_u8 *IOmem_xlate(uaecptr addr)
@@ -756,7 +741,6 @@ static void init_mem_banks (void)
         put_mem_bank (i<<16, &dummy_bank);
 }
 
-
 /*
  * Initialize the memory banks
  */
@@ -773,6 +757,12 @@ void memory_init(uae_u32 nNewNEXTMemSize)
     // map_banks(&BusErrMem_bank,NEXT_RAM_START>>16,NEXT_RAM_SPACE>>16);
     
     map_banks(&NEXTmem_bank, NEXT_RAM_START>>16, NEXT_RAM_SIZE >> 16);
+
+	// also map here... need to check address for function (weird?)
+    map_banks(&NEXTmem_bank, 0x10000000>>16, NEXT_RAM_SIZE >> 16);
+    map_banks(&NEXTmem_bank, 0x14000000>>16, NEXT_RAM_SIZE >> 16);
+    map_banks(&NEXTmem_bank, 0x18000000>>16, NEXT_RAM_SIZE >> 16);
+    map_banks(&NEXTmem_bank, 0x1C000000>>16, NEXT_RAM_SIZE >> 16);
     
     // map_banks(&NEXTmem_bank2, NEXT_RAM_START2>>16, NEXT_RAM_SIZE2 >> 16);
     
@@ -803,6 +793,7 @@ void memory_init(uae_u32 nNewNEXTMemSize)
 	// if processor is 68030, loads a cube rom
         if(ConfigureParams.System.nCpuLevel == 3)
             fin=fopen("./Rev_1.0_v41.BIN","rb");
+	    // fin=fopen("./Rev_1.2.BIN","rb");
         else
             fin=fopen("./Rev_2.5_v66.BIN","rb");
         //		fin=fopen("./Rev_3.3_v74.BIN","rb");

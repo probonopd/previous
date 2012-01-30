@@ -37,6 +37,7 @@
 #define SET_INT         0x01
 #define RELEASE_INT     0x00
 
+void SID_Read(void);
 
 void SCR1_Read0(void);
 void SCR1_Read1(void);
