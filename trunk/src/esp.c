@@ -533,8 +533,10 @@ Uint32 get_cmd (void) {
 //    }
     
     if(target >= ESP_MAX_DEVS || SCSIcommand.nodevice == true) { // experimental
+    Log_Printf(LOG_SCSI_LEVEL, "No device found !! raise irq ");
+	
         status = 0;
-        intstatus = INTR_DC;
+        intstatus |= INTR_DC;
         seqstep = SEQ_0;
         esp_raise_irq();
         return 0;
@@ -574,7 +576,7 @@ void handle_satn(void) {
         Log_Printf(LOG_WARN, "Invalid command group %i on NCR53C90A\n", scsi_command_group);
     }
 
-    if(command_len != 0)
+    if((command_len != 0) && (SCSIcommand.nodevice != true))
         do_cmd();
 }
 
