@@ -50,8 +50,9 @@
 #define STAT_ST      0x03
 #define STAT_MO      0x06
 #define STAT_MI      0x07
-#define STAT_PIO_MASK 0x06  // needed ??
 #define STAT_VGC     0x08
+#define STAT_MASK    0xF8
+#define STAT_PIO_MASK 0x06  // needed ??
 #define STAT_TC      0x10
 #define STAT_PE      0x20
 #define STAT_GE      0x40
@@ -72,6 +73,7 @@
 
 /*Sequence Step Register */
 #define SEQ_0        0x00
+#define SEQ_SELTIMEOUT 0x02
 #define SEQ_CD       0x04
 
 /*Configuration Register */
@@ -336,7 +338,7 @@ void SCSI_Command_Write(void) {
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: initiator command complete sequence\n");
             write_response();
             intstatus = INTR_FC;
-            status |= STAT_MI;
+            status = (status&STAT_MASK)|STAT_MI;
             break;
         case CMD_MSGACC:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: message accepted\n");
@@ -575,9 +577,9 @@ void do_busid_cmd(Uint8 busid) {
     if ((target >= ESP_MAX_DEVS) || (SCSIcommand.nodevice==true)) { // experimental
     Log_Printf(LOG_SCSI_LEVEL, "No device found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
 	
-        status = 0;
+        status = (status&STAT_MASK)|STAT_ST;
         intstatus |= INTR_DC;
-        seqstep = SEQ_0;
+        seqstep = SEQ_SELTIMEOUT;
         esp_raise_irq();
 	return;
     }
