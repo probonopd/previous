@@ -19,6 +19,7 @@ const char IoMemTabST_fileid[] = "Previous ioMemTabST.c : " __DATE__ " " __TIME_
 #include "m68000.h"
 #include "keymap.h"
 #include "esp.h"
+#include "ethernet.h"
 #include "sysReg.h"
 #include "dma.h"
 
@@ -72,28 +73,31 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 	{ 0x02004158, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x0200415c, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x02004188, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x02006000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x02006001, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x02006002, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x02006003, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x02006004, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x02006005, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x02006006, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x02006008, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x02006009, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x0200600a, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x0200600b, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x0200600a, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x0200600b, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x0200600c, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-	{ 0x0200600d, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
+
+	// network adapter
+	{ 0x02006000, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x02006001, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x02006002, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x02006003, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x02006004, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x02006005, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x02006006, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x02006008, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x02006009, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x0200600a, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x0200600b, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x0200600c, SIZE_BYTE, Ethernet_read, Ethernet_write },
+	{ 0x0200600d, SIZE_BYTE, Ethernet_read, Ethernet_write },
 	{ 0x0200600e, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
+
 	{ 0x0200600f, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
 	{ 0x02006010, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
 	{ 0x02006011, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
 	{ 0x02006012, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
 	{ 0x02006013, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
 	{ 0x02006014, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
+
+
 	{ 0x02007000, SIZE_LONG, IntRegStatRead, IntRegStatWrite },
 	{ 0x02007800, SIZE_BYTE, IntRegMaskRead, IntRegMaskWrite },
 	{ 0x0200c000, SIZE_BYTE, SCR1_Read0, IoMem_WriteWithoutInterceptionButTrace },
