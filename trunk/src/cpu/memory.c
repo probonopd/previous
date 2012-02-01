@@ -776,8 +776,11 @@ void memory_init(uae_u32 nNewNEXTMemSize)
     map_banks(&ROMmem_bank, NEXT_EPROM2_START >> 16, NEXT_EPROM_SIZE>>16);
     
     
-    map_banks(&IOmem_bank, NEXT_IO_START >> 16, NEXT_IO_SIZE>>16);
-    map_banks(&IOmem_bank, NEXT_IO2_START >> 16, NEXT_IO_SIZE>>16);
+    map_banks(&IOmem_bank, NEXT_IO_START >> 16, NEXT_IO_SIZE>>16); 
+
+    if (ConfigureParams.System.nCpuLevel > 3)
+    	map_banks(&IOmem_bank, NEXT_IO2_START >> 16, NEXT_IO_SIZE>>16);
+
     //	map_banks(&VoidMem_bank, NEXT_IO_START >> 16, NEXT_IO_SIZE>>16);
     //    map_banks(&VoidMem_bank, NEXT_IO2_START >> 16, NEXT_IO_SIZE>>16);
     
