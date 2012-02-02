@@ -57,7 +57,6 @@ int command_len;
 
 /* Experimental */
 
-int target;
 Uint32 dma;
 Uint32 do_cmdvar;
 Uint32 dma_counter;
@@ -261,20 +260,26 @@ void SCSI_Command_Write(void) {
             break;
         case CMD_ENSEL:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: enable selection/reselection\n");
+            status = (status&STAT_MASK)|STAT_ST;	   
+            intstatus = INTR_FC;
+            seqstep = SEQ_0;
             break;
             /* Initiator */
         case CMD_TI:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: transfer information\n");
             handle_ti();
+    	    esp_raise_irq();
             break;
         case CMD_ICCS:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: initiator command complete sequence\n");
             write_response();
             intstatus = INTR_FC;
             status = (status&STAT_MASK)|STAT_MI;
+            esp_raise_irq();
             break;
         case CMD_MSGACC:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: message accepted\n");
+            status = (status&STAT_MASK)|STAT_ST;	   
             intstatus = INTR_FC;
             seqstep = SEQ_0;
             fifoflags = 0x00;
@@ -289,6 +294,7 @@ void SCSI_Command_Write(void) {
             break;
         case CMD_SATN:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: set ATN\n");
+
             break;
             /* Target */
         case CMD_SEMSG:
@@ -297,11 +303,16 @@ void SCSI_Command_Write(void) {
         case CMD_DISSEQ:
         case CMD_TERMSEQ:
         case CMD_TCCS:
-        case CMD_DIS:
         case CMD_RMSGSEQ:
         case CMD_RCOMM:
         case CMD_RDATA:
         case CMD_RCSEQ:
+             status = (status&STAT_MASK)|STAT_ST;	   
+            intstatus = INTR_FC;
+            seqstep = SEQ_0;
+            fifoflags = 0x00;
+            esp_raise_irq();
+        case CMD_DIS:
             Log_Printf(LOG_WARN, "ESP Command: Target commands not supported!\n");
             break;
             
@@ -448,7 +459,7 @@ void esp_flush_fifo(void) {
 }
 
 Uint32 get_cmd (void) {
-    target = selectbusid & BUSID_DID;
+    int target = selectbusid & BUSID_DID;
     
     if(mode_dma == 1) {
         command_len = readtranscountl | (readtranscounth << 8);
@@ -474,7 +485,9 @@ void handle_satn(void) {
     Uint8 scsi_command_group;
     
     get_cmd(); // make get_cmd void function?
-    
+    // clear valid command status
+    status &= ~STAT_VGC;
+
     /* Decode command to determine the command group and thus the
      * length of the incoming command. Set "valid group code" bit
      * in status register if the group is 0, 1, 5, 6, or 7 (group
@@ -497,8 +510,10 @@ void handle_satn(void) {
 
 void do_busid_cmd(Uint8 busid) {
     int lun;
+    int target = selectbusid & BUSID_DID;
     Log_Printf(LOG_SCSI_LEVEL, "do_busid_cmd: busid $%02x",busid);
-    lun = busid & 7;
+
+    lun = (commandbuf[2]&0xE0)>> 5;
     
     scsi_command_analyzer(commandbuf, command_len, target,lun);
     data_len = SCSIcommand.transfer_data_len;
@@ -517,8 +532,8 @@ void do_busid_cmd(Uint8 busid) {
     Log_Printf(LOG_SCSI_LEVEL, "No device found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
 	
         status = (status&STAT_MASK)|STAT_CD;
-        intstatus |= INTR_FC;
-        seqstep = SEQ_CD;
+        intstatus |= INTR_DC;
+        seqstep = SEQ_SELTIMEOUT;
         esp_raise_irq();
 	return;
     }
@@ -581,27 +596,16 @@ void esp_do_dma(void) {
     
     if(do_cmdvar){
         abort();
-    /*
-        Log_Printf(LOG_SCSI_LEVEL, "command len %d + %d\n", cmdlen, len);
-        dma_memory_read(fifo_buf[cmdlen], len);
-        fifo_size = 0;
-        cmdlen = 0;
-        do_cmdvar = 0;
-        // do_cmd(cmd_buf);
-        return;
-     */
     }
     if(async_len == 0) {
-//        return;
+
     }
     if(len > async_len) {
         len = async_len;
     }
     if(to_device) {
 //        dma_memory_read(async_buf, len);
-    } else {
-        
-        
+    } else { 
 //        dma_memory_write(async_buf, len);
     }
     
@@ -634,7 +638,6 @@ void esp_dma_done(void) {
     fifoflags = 0;
     readtranscountl = 0;
     readtranscounth = 0;
-    esp_raise_irq();
 }
 
 
@@ -684,7 +687,8 @@ void esp_command_complete (void) {
 //  status = status; return status, not status register!!
     status = STAT_ST;
      seqstep = SEQ_0;
-    if(mode_dma)    esp_dma_done();
+    if(mode_dma)    
+	esp_dma_done();
 }
 
 void write_response(void) {
@@ -694,14 +698,13 @@ void write_response(void) {
     
     if(mode_dma == 1) {
     dma_memory_write(esp_fifo, 2, NEXTDMA_SCSI);
-        status = STAT_TC | STAT_ST;
+        status = (status & STAT_MASK) | STAT_TC | STAT_ST;
         intstatus = INTR_BS | INTR_FC;
         seqstep = SEQ_CD;
     } else {
-        status = STAT_ST;
+        status = (status & STAT_MASK) | STAT_ST;
         fifo_read_ptr = 0;
         fifo_write_ptr = 2;
         fifoflags = (fifoflags & 0xE0) | 2;
     }
-    esp_raise_irq();
 }
