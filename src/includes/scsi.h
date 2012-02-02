@@ -45,6 +45,7 @@ typedef struct {
     unsigned char lun;
     unsigned char opcode;
     bool nodevice;
+    bool timeout;
     int transfer_data_len;
     int transferdirection_todevice;
     bool extended;
@@ -75,7 +76,6 @@ void SCSI_Emulate_Command(void);
 void SCSI_Inquiry (void);
 void SCSI_StartStop(void);
 void SCSI_TestUnitReady(void);
-void SCSI_TestMissingUnitReady(void);
 void SCSI_ReadCapacity(void);
 void SCSI_ReadSector(void);
 void SCSI_RequestSense(void);
