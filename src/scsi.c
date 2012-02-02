@@ -179,7 +179,7 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
     SCSIcommand.target = target;
     SCSIcommand.lun = lun;
     Log_Printf(LOG_WARN, "SCSI command: Length = %i, Opcode = $%02x, target = %i, lun=%i\n", size, SCSIcommand.opcode, SCSIcommand.target,SCSIcommand.lun);
-   if ((SCSIcommand.lun!=LUN_DISC) && (SCSIcommand.opcode!=HD_REQ_SENSE))
+   if (SCSIcommand.lun!=LUN_DISC)
 	{
         Log_Printf(LOG_WARN, "SCSI command: No device at target %i\n", SCSIcommand.target);
         SCSIcommand.nodevice = true;

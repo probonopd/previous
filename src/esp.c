@@ -250,6 +250,7 @@ void SCSI_Command_Write(void) {
             /* Disconnected */
         case CMD_SEL:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: select without ATN sequence\n");
+	    abort();
             break;
         case CMD_SELATN:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: select with ATN sequence\n");
@@ -257,6 +258,7 @@ void SCSI_Command_Write(void) {
             break;
         case CMD_SELATNS:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: select with ATN and stop sequence\n");
+	    abort();
             break;
         case CMD_ENSEL:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: enable selection/reselection\n");
@@ -459,7 +461,6 @@ void esp_flush_fifo(void) {
 }
 
 Uint32 get_cmd (void) {
-    int target = selectbusid & BUSID_DID;
     
     if(mode_dma == 1) {
         command_len = readtranscountl | (readtranscounth << 8);
@@ -471,13 +472,13 @@ Uint32 get_cmd (void) {
         
         esp_flush_fifo();
     }
-    Log_Printf(LOG_SCSI_LEVEL, "get_cmd: len %i target %i", command_len, target);
+    Log_Printf(LOG_SCSI_LEVEL, "get_cmd: len %i", command_len);
     
     return command_len;
 }
 
 void do_cmd(void) {
-    Uint8 busid = commandbuf[0];
+    Uint8 busid = selectbusid;
     do_busid_cmd(busid);
 }
 
@@ -509,11 +510,11 @@ void handle_satn(void) {
 }
 
 void do_busid_cmd(Uint8 busid) {
-    int lun;
-    int target = selectbusid & BUSID_DID;
+    int lun,lun2;
+    int target = busid & BUSID_DID;
     Log_Printf(LOG_SCSI_LEVEL, "do_busid_cmd: busid $%02x",busid);
 
-    lun = (commandbuf[2]&0xE0)>> 5;
+    lun = (commandbuf[0]&0x07);
     
     scsi_command_analyzer(commandbuf, command_len, target,lun);
     data_len = SCSIcommand.transfer_data_len;
