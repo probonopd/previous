@@ -13,75 +13,6 @@
 
 #define LOG_SCSI_LEVEL LOG_WARN
 
-/* Command Register */
-#define CMD_DMA      0x80
-#define CMD_CMD      0x7f
-
-#define CMD_NOP      0x00
-#define CMD_FLUSH    0x01
-#define CMD_RESET    0x02
-#define CMD_BUSRESET 0x03
-#define CMD_TI       0x10
-#define CMD_ICCS     0x11
-#define CMD_MSGACC   0x12
-#define CMD_PAD      0x18
-#define CMD_SATN     0x1a
-#define CMD_SEL      0x41
-#define CMD_SELATN   0x42
-#define CMD_SELATNS  0x43
-#define CMD_ENSEL    0x44
-
-#define CMD_SEMSG    0x20
-#define CMD_SESTAT   0x21
-#define CMD_SEDAT    0x22
-#define CMD_DISSEQ   0x23
-#define CMD_TERMSEQ  0x24
-#define CMD_TCCS     0x25
-#define CMD_DIS      0x27
-#define CMD_RMSGSEQ  0x28
-#define CMD_RCOMM    0x29
-#define CMD_RDATA    0x2A
-#define CMD_RCSEQ    0x2B
-
-/* Interrupt Status Register */
-#define STAT_DO      0x00
-#define STAT_DI      0x01
-#define STAT_CD      0x02
-#define STAT_ST      0x03
-#define STAT_MO      0x06
-#define STAT_MI      0x07
-#define STAT_VGC     0x08
-#define STAT_MASK    0xF8
-#define STAT_PIO_MASK 0x06  // needed ??
-#define STAT_TC      0x10
-#define STAT_PE      0x20
-#define STAT_GE      0x40
-#define STAT_INT     0x80
-
-/* Bus ID Register */
-#define BUSID_DID    0x07
-
-/* Interrupt Register */
-#define INTR_SEL     0x01
-#define INTR_SELATN  0x02
-#define INTR_RESEL   0x04
-#define INTR_FC      0x08
-#define INTR_BS      0x10
-#define INTR_DC      0x20
-#define INTR_ILL     0x40
-#define INTR_RST     0x80
-
-/*Sequence Step Register */
-#define SEQ_0        0x00
-#define SEQ_SELTIMEOUT 0x02
-#define SEQ_CD       0x04
-
-/*Configuration Register */
-#define CFG1_RESREPT 0x40
-
-#define CFG2_ENFEA   0x40
-
-#define TCHI_FAS100A 0x04
 
 #define IO_SEG_MASK	0x1FFFF
 
@@ -167,7 +98,7 @@ void SCSI_CSR0_Write(void) {
     }
     if ((csr_value0 & 0x10) == 0x10) {
         // set_interrupt(INT_SCSI_DMA, SET_INT);
-        esp_raise_irq(); 
+        // esp_raise_irq(); 
         Log_Printf(LOG_SCSI_LEVEL, "mode DMA\n");
     }else{
         // set_interrupt(INT_SCSI_DMA, RELEASE_INT);
@@ -176,8 +107,6 @@ void SCSI_CSR0_Write(void) {
     }
     if ((csr_value0 & 0x20) == 0x20) {
         Log_Printf(LOG_SCSI_LEVEL, "interrupt enable");
-//        set_interrupt(INT_SCSI_DMA, SET_INT); is this correct?
-//        esp_raise_irq();
     }
     switch (csr_value0 & 0xC0) {
         case 0x00:
@@ -290,16 +219,19 @@ void SCSI_Command_Write(void) {
         mode_dma = 0;
     }
     
-    status |= STAT_CD;
+    if ((command & CMD_CMD) != CMD_NOP)
+    	status = (status&STAT_MASK)|STAT_CD;
     
     switch (command & CMD_CMD) {
             /* Miscellaneous */
         case CMD_NOP:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: NOP\n");
+    	    // status = (status&STAT_MASK)|STAT_ST;
             break;
         case CMD_FLUSH:
             Log_Printf(LOG_SCSI_LEVEL,"ESP Command: flush FIFO\n");
             esp_flush_fifo();
+    	    status = (status&STAT_MASK)|STAT_ST;
             break;
         case CMD_RESET:
             Log_Printf(LOG_SCSI_LEVEL,"ESP Command: reset chip\n");
@@ -311,6 +243,7 @@ void SCSI_Command_Write(void) {
             esp_reset_soft();
             if (!(configuration & CFG1_RESREPT)) {
                 intstatus = INTR_RST;
+            	seqstep = SEQ_0;
                 Log_Printf(LOG_SCSI_LEVEL,"Bus Reset raising IRQ\n");
                 esp_raise_irq();
             }
@@ -342,15 +275,15 @@ void SCSI_Command_Write(void) {
             break;
         case CMD_MSGACC:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: message accepted\n");
-            intstatus = INTR_DC;
-            seqstep = 0x00;
+            intstatus = INTR_FC;
+            seqstep = SEQ_0;
             fifoflags = 0x00;
             esp_raise_irq();
             break;            
         case CMD_PAD:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: transfer pad\n");
             status = STAT_TC | STAT_DI;
-            intstatus = 0x20;
+            intstatus = INTR_FC;
             seqstep = SEQ_0;
             esp_raise_irq();
             break;
@@ -540,10 +473,6 @@ void do_cmd(void) {
 void handle_satn(void) {
     Uint8 scsi_command_group;
     
-/*    if(!(dma_enabled)) {
-        dma_cb = handle_satn;
-    }*/
-    
     get_cmd(); // make get_cmd void function?
     
     /* Decode command to determine the command group and thus the
@@ -574,16 +503,27 @@ void do_busid_cmd(Uint8 busid) {
     scsi_command_analyzer(commandbuf, command_len, target,lun);
     data_len = SCSIcommand.transfer_data_len;
 
-    if ((target >= ESP_MAX_DEVS) || (SCSIcommand.nodevice==true)) { // experimental
-    Log_Printf(LOG_SCSI_LEVEL, "No device found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
+    if ((target >= ESP_MAX_DEVS) || (SCSIcommand.timeout==true)) { // experimental
+    Log_Printf(LOG_SCSI_LEVEL, "No target found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
 	
-        status = (status&STAT_MASK)|STAT_ST;
+        status = (status&STAT_MASK)|STAT_CD;
         intstatus |= INTR_DC;
         seqstep = SEQ_SELTIMEOUT;
         esp_raise_irq();
 	return;
     }
-    
+
+    if (SCSIcommand.nodevice==true) { // experimental
+    Log_Printf(LOG_SCSI_LEVEL, "No device found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
+	
+        status = (status&STAT_MASK)|STAT_CD;
+        intstatus |= INTR_FC;
+        seqstep = SEQ_CD;
+        esp_raise_irq();
+	return;
+    }
+
+    status = (status&STAT_MASK)| STAT_ST;   
     if (data_len != 0) {
         Log_Printf(LOG_SCSI_LEVEL, "executing command\n");
         status = STAT_TC;
@@ -593,10 +533,10 @@ void do_busid_cmd(Uint8 busid) {
         
         if(SCSIcommand.transferdirection_todevice == 0) {
             Log_Printf(LOG_SCSI_LEVEL, "DATA IN\n");
-            status |= STAT_DI;
+            status = (status&STAT_MASK)| STAT_DI;
         } else {
             Log_Printf(LOG_SCSI_LEVEL, "DATA OUT\n");
-            status |= STAT_DO;
+            status = (status&STAT_MASK)| STAT_DO;
         }
     esp_transfer_data();
     }
@@ -687,6 +627,7 @@ void esp_do_dma(void) {
 
 void esp_dma_done(void) {
     Log_Printf(LOG_SCSI_LEVEL, "call esp_dma_done\n");
+    status = (status&STAT_MASK)|STAT_ST;
     status |= STAT_TC;
     intstatus = INTR_BS;
     seqstep = 0;
@@ -696,25 +637,21 @@ void esp_dma_done(void) {
     esp_raise_irq();
 }
 
+
+// transfer information
 void handle_ti(void){
     Uint32 dma_len, min_len;
     
     dma_len = readtranscountl | (readtranscounth << 8);
     
     if(dma_len == 0) {
-//    if(ESP_CFG2 & CFG2_ENFEA) {
-//        dma_len = 0x1000000;
-//    } else {
         dma_len = 0x10000;
-//    }
     }
     
     dma_counter = dma_len;
     
     if(do_cmdvar)
         min_len = (dma_len < 32) ? dma_len : 32;
-//    else if (data_len < 0)
-//        min_len = (dma_len < (-data_len)) ? dma_len : data_len;
     else
         min_len = (dma_len > data_len) ? dma_len : data_len;
     Log_Printf(LOG_SCSI_LEVEL, "Transfer Information len %d\n", min_len);
@@ -746,7 +683,8 @@ void esp_command_complete (void) {
 //    }
 //  status = status; return status, not status register!!
     status = STAT_ST;
-    esp_dma_done();
+     seqstep = SEQ_0;
+    if(mode_dma)    esp_dma_done();
 }
 
 void write_response(void) {
@@ -760,6 +698,7 @@ void write_response(void) {
         intstatus = INTR_BS | INTR_FC;
         seqstep = SEQ_CD;
     } else {
+        status = STAT_ST;
         fifo_read_ptr = 0;
         fifo_write_ptr = 2;
         fifoflags = (fifoflags & 0xE0) | 2;

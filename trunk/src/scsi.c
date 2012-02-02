@@ -181,6 +181,7 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
 	{
         Log_Printf(LOG_WARN, "SCSI command: No device at target %i\n", SCSIcommand.target);
         SCSIcommand.nodevice = true;
+        SCSIcommand.timeout = false;
         SCSIcommand.transferdirection_todevice = 0;
 	return;
     }
@@ -228,14 +229,16 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
     //bTargetDevice |= bCDROM; // handle empty cd-rom drive - does not work yet!
     if(scsidisk) { // experimental!
         SCSIcommand.nodevice = false;
+        SCSIcommand.timeout = false;
         SCSI_Emulate_Command();
     } else {	
 	// hacks for NeXT (to be tested on real life...)
 	// question is : what an SCSI controler should answer for missing drives (and if SCSI controler is aware of SCSI opcodes)
 //	if (SCSIcommand.opcode==HD_TEST_UNIT_RDY) {SCSI_TestMissingUnitReady();SCSIcommand.nodevice = false;return;}
 //	if (SCSIcommand.opcode==HD_REQ_SENSE) {SCSI_TestMissingUnitReady();SCSIcommand.nodevice = false;return;}
-        Log_Printf(LOG_WARN, "SCSI command: No device at target %i\n", SCSIcommand.target);
-        SCSIcommand.nodevice = true;
+        Log_Printf(LOG_WARN, "SCSI command: No target %i %s at %d", SCSIcommand.target,__FILE__,__LINE__);
+        SCSIcommand.nodevice = false;
+        SCSIcommand.timeout = true;
         SCSIcommand.transferdirection_todevice = 0;
     }
 }
@@ -366,11 +369,6 @@ void SCSI_TestUnitReady(void)
 	SCSIcommand.returnCode = HD_STATUS_OK;
 }
 
-void SCSI_TestMissingUnitReady(void)
-{
-    SCSIcommand.transfer_data_len = 0;
-	SCSIcommand.returnCode = HD_STATUS_ERROR;
-}
 
 void SCSI_ReadCapacity(void)
 {

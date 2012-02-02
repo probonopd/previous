@@ -1297,6 +1297,7 @@ static void exception_debug (int nr)
 	if (!exception_debugging)
 		return;
 	console_out_f ("Exception %d, PC=%08X\n", nr, M68K_GETPC);
+	abort();
 #endif
 }
 
@@ -1546,7 +1547,7 @@ static void Exception_mmu (int nr, uaecptr oldpc)
 		put_word_mmu (m68k_areg (regs, 7), ssw);
 		m68k_areg (regs, 7) -= 2;
 		put_word_mmu (m68k_areg (regs, 7), 0xb000 + nr * 4);
-		write_log ("Exception %d (%x) at %x -> %x!\n", nr, oldpc, currpc, get_long (regs.vbr + 4*nr));
+		write_log ("Exception %d (%x) at %x -> %x! %s at %d\n", nr, oldpc, currpc, get_long (regs.vbr + 4*nr),__FILE__,__LINE__);
 
 	} else if (nr ==5 || nr == 6 || nr == 7 || nr == 9) {
 
