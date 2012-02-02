@@ -20,7 +20,9 @@
 #define COMMAND_ReadInt32(a, i) (((unsigned) a[i] << 24) | ((unsigned) a[i + 1] << 16) | ((unsigned) a[i + 2] << 8) | a[i + 3])
 
 
-#define BLOCKSIZE 512 // always correct?
+#define BLOCKSIZE 512
+
+#define LUN_DISC 0 // for now only LUN 0 is valid for our phys drives
 
 static Uint32 nLastBlockAddr;
 static bool bSetLastBlockAddr;
@@ -152,7 +154,7 @@ static unsigned char inquiry_bytes[] =
 	0x00,             /* 0: device type: 0x00 = direct access device, 0x05 = cd-rom, 0x07 = mo-disk */
 	0x00,             /* 1: &0x7F - device type qulifier 0x00 unsupported, &0x80 - rmb: 0x00 = nonremovable, 0x80 = removable */
 	0x01,             /* 2: ANSI SCSI standard (first release) compliant */
-    0x01,             /* 3: Restponse format (format of following data): 0x01 SCSI-1 compliant */
+    0x02,             /* 3: Restponse format (format of following data): 0x01 SCSI-1 compliant */
 	0x31,             /* 4: additional length of the following data */
     0x00, 0x00,       /* 5,6: reserved */
     0x1C,             /* 7: RelAdr=0, Wbus32=0, Wbus16=0, Sync=1, Linked=1, RSVD=1, CmdQue=0, SftRe=0 */
@@ -177,7 +179,7 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
     SCSIcommand.target = target;
     SCSIcommand.lun = lun;
     Log_Printf(LOG_WARN, "SCSI command: Length = %i, Opcode = $%02x, target = %i, lun=%i\n", size, SCSIcommand.opcode, SCSIcommand.target,SCSIcommand.lun);
-   if (SCSIcommand.lun!=0)
+   if ((SCSIcommand.lun!=LUN_DISC) && (SCSIcommand.opcode!=HD_REQ_SENSE))
 	{
         Log_Printf(LOG_WARN, "SCSI command: No device at target %i\n", SCSIcommand.target);
         SCSIcommand.nodevice = true;
@@ -235,7 +237,7 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
 	// hacks for NeXT (to be tested on real life...)
 	// question is : what an SCSI controler should answer for missing drives (and if SCSI controler is aware of SCSI opcodes)
 //	if (SCSIcommand.opcode==HD_TEST_UNIT_RDY) {SCSI_TestMissingUnitReady();SCSIcommand.nodevice = false;return;}
-//	if (SCSIcommand.opcode==HD_REQ_SENSE) {SCSI_TestMissingUnitReady();SCSIcommand.nodevice = false;return;}
+//	if (SCSIcommand.opcode==HD_REQ_SENSE) {SCSI_Emulate_Command();return;}
         Log_Printf(LOG_WARN, "SCSI command: No target %i %s at %d", SCSIcommand.target,__FILE__,__LINE__);
         SCSIcommand.nodevice = false;
         SCSIcommand.timeout = true;
@@ -495,6 +497,8 @@ void SCSI_StartStop(void) {
 void SCSI_RequestSense(void) {
 	int nRetLen;
 	Uint8 retbuf[22];
+
+        SCSIcommand.returnCode = HD_STATUS_OK;
         
 	nRetLen = SCSI_GetCount();
     
@@ -512,11 +516,19 @@ void SCSI_RequestSense(void) {
 	{
 		nRetLen = 22;
 	}
+
+        Log_Printf(LOG_WARN, "[SCSI] REQ SENSE size = %d %s at %d", nRetLen,__FILE__,__LINE__);
         
+	if (SCSIcommand.lun!=LUN_DISC) {
+	        Log_Printf(LOG_WARN, "[SCSI] REQ SENSE missing lun %d %s at %d", SCSIcommand.lun,__FILE__,__LINE__);
+		SCSIcommand.returnCode=HD_REQSENS_NODRIVE;
+	}
+
 	memset(retbuf, 0, nRetLen);
     
 	if (nRetLen <= 4)
 	{
+
 		retbuf[0] = nLastError;
 		if (bSetLastBlockAddr)
 		{
