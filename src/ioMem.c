@@ -384,7 +384,8 @@ void IoMem_lput(uaecptr addr, uae_u32 val)
 void IoMem_BusErrorEvenReadAccess(void)
 {
 	nBusErrorAccesses += 1;
-	IoMem[IoAccessCurrentAddress& IO_SEG_MASK] = 0xff;
+	// IoMem[IoAccessCurrentAddress& IO_SEG_MASK] = 0xff;
+	Log_Printf(LOG_WARN,"Bus error $%08x PC=$%08x %s at %d", IoAccessCurrentAddress,regs.pc,__FILE__,__LINE__);
 }
 
 /**
@@ -394,7 +395,8 @@ void IoMem_BusErrorEvenReadAccess(void)
 void IoMem_BusErrorOddReadAccess(void)
 {
 	nBusErrorAccesses += 1;
-	IoMem[IoAccessCurrentAddress& IO_SEG_MASK] = 0xff;
+	// IoMem[IoAccessCurrentAddress& IO_SEG_MASK] = 0xff;
+	Log_Printf(LOG_WARN,"Bus error $%08x PC=$%08x %s at %d", IoAccessCurrentAddress,regs.pc,__FILE__,__LINE__);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -404,6 +406,7 @@ void IoMem_BusErrorOddReadAccess(void)
 void IoMem_BusErrorEvenWriteAccess(void)
 {
 	nBusErrorAccesses += 1;
+	Log_Printf(LOG_WARN,"Bus error $%08x PC=$%08x %s at %d", IoAccessCurrentAddress,regs.pc,__FILE__,__LINE__);
 }
 
 /**
@@ -413,6 +416,7 @@ void IoMem_BusErrorEvenWriteAccess(void)
 void IoMem_BusErrorOddWriteAccess(void)
 {
 	nBusErrorAccesses += 1;
+	Log_Printf(LOG_WARN,"Bus error $%08x PC=$%08x %s at %d", IoAccessCurrentAddress,regs.pc,__FILE__,__LINE__);
 }
 
 
@@ -434,6 +438,7 @@ void IoMem_VoidRead(void)
 			IoMem[a & IO_SEG_MASK] = 0xff;
 		}
 	}
+	Log_Printf(LOG_WARN,"IO read at $%08x PC=$%08x\n", IoAccessCurrentAddress,regs.pc);
 }
 
 /*-------------------------------------------------------------------------*/
@@ -445,6 +450,7 @@ void IoMem_VoidRead(void)
 void IoMem_VoidWrite(void)
 {
 	/* Nothing... */
+	Log_Printf(LOG_WARN,"IO write at $%08x PC=$%08x\n", IoAccessCurrentAddress,regs.pc);
 }
 
 

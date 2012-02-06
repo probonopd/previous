@@ -522,7 +522,7 @@ void do_busid_cmd(Uint8 busid) {
     if ((target >= ESP_MAX_DEVS) || (SCSIcommand.timeout==true)) { // experimental
     Log_Printf(LOG_SCSI_LEVEL, "No target found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
 	
-        status = (status&STAT_MASK)|STAT_ST;
+        status = (status&STAT_MASK)|STAT_CD;
         intstatus |= INTR_DC;
         seqstep = SEQ_SELTIMEOUT;
         esp_raise_irq();
@@ -531,14 +531,14 @@ void do_busid_cmd(Uint8 busid) {
 
     if (SCSIcommand.nodevice==true) { // experimental
     Log_Printf(LOG_SCSI_LEVEL, "No device found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
-	
+/*	
         status = (status&STAT_MASK)|STAT_ST;
         intstatus |= INTR_DC;
         seqstep = SEQ_SELTIMEOUT;
         esp_raise_irq();
 	return;
+*/
     }
-
     status = (status&STAT_MASK)| STAT_ST;   
     if (data_len != 0) {
         Log_Printf(LOG_SCSI_LEVEL, "executing command\n");
