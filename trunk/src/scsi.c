@@ -179,12 +179,15 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
     SCSIcommand.target = target;
     SCSIcommand.lun = lun;
     Log_Printf(LOG_WARN, "SCSI command: Length = %i, Opcode = $%02x, target = %i, lun=%i\n", size, SCSIcommand.opcode, SCSIcommand.target,SCSIcommand.lun);
-   if (SCSIcommand.lun!=LUN_DISC)
+   if ((SCSIcommand.lun!=LUN_DISC) && (SCSIcommand.opcode!=HD_REQ_SENSE))
 	{
         Log_Printf(LOG_WARN, "SCSI command: No device at target %i\n", SCSIcommand.target);
         SCSIcommand.nodevice = true;
         SCSIcommand.timeout = false;
         SCSIcommand.transferdirection_todevice = 0;
+	SCSIcommand.transfer_data_len=0;
+	SCSIcommand.returnCode = HD_STATUS_ERROR;
+	nLastError= HD_REQSENS_NODRIVE;
 	return;
     }
     switch (SCSIcommand.target) {
@@ -237,7 +240,9 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
 	// hacks for NeXT (to be tested on real life...)
 	// question is : what an SCSI controler should answer for missing drives (and if SCSI controler is aware of SCSI opcodes)
 //	if (SCSIcommand.opcode==HD_TEST_UNIT_RDY) {SCSI_TestMissingUnitReady();SCSIcommand.nodevice = false;return;}
-//	if (SCSIcommand.opcode==HD_REQ_SENSE) {SCSI_Emulate_Command();return;}
+        SCSIcommand.nodevice = false;
+        SCSIcommand.timeout = false;
+	if (SCSIcommand.opcode==HD_REQ_SENSE) {SCSI_Emulate_Command();return;}
         Log_Printf(LOG_WARN, "SCSI command: No target %i %s at %d", SCSIcommand.target,__FILE__,__LINE__);
         SCSIcommand.nodevice = false;
         SCSIcommand.timeout = true;
@@ -352,6 +357,7 @@ unsigned long SCSI_GetOffset(void)
     COMMAND_ReadInt32(SCSIcommand.command, 2);
 }
 
+// get reserved count for SCSI reply
 int SCSI_GetCount(void)
 {
 	return SCSIcommand.opcode < 0x20?
@@ -504,7 +510,7 @@ void SCSI_RequestSense(void) {
     
 	if ((nRetLen < 4 && nRetLen != 0) || nRetLen > 22)
 	{
-		Log_Printf(LOG_WARN, "SCSI: *** Strange REQUEST SENSE ***!\n");
+		Log_Printf(LOG_WARN, "SCSI: *** Strange REQUEST SENSE *** len=%d!",nRetLen);
 	}
     
 	/* Limit to sane length */
@@ -519,11 +525,6 @@ void SCSI_RequestSense(void) {
 
         Log_Printf(LOG_WARN, "[SCSI] REQ SENSE size = %d %s at %d", nRetLen,__FILE__,__LINE__);
         
-	if (SCSIcommand.lun!=LUN_DISC) {
-	        Log_Printf(LOG_WARN, "[SCSI] REQ SENSE missing lun %d %s at %d", SCSIcommand.lun,__FILE__,__LINE__);
-		SCSIcommand.returnCode=HD_REQSENS_NODRIVE;
-	}
-
 	memset(retbuf, 0, nRetLen);
     
 	if (nRetLen <= 4)

@@ -39,19 +39,20 @@ struct timer_reg {
 
 
 void System_Timer0_Read(void) {
-    IoMem[IoAccessCurrentAddress & 0x1FFFF] = clock() >> 24;
+    IoMem[IoAccessCurrentAddress & 0x1FFFF] = 0;
 }
 
 void System_Timer1_Read(void) {
-    IoMem[IoAccessCurrentAddress & 0x1FFFF] = clock() >> 16;
+    IoMem[IoAccessCurrentAddress & 0x1FFFF] = (clock() & 0xFF00) >> 8;
 }
 
 void System_Timer2_Read(void) {
-    IoMem[IoAccessCurrentAddress & 0x1FFFF] = clock() >> 8;
+    IoMem[IoAccessCurrentAddress & 0x1FFFF] = (clock() & 0xFF) >> 8;
 }
 
 void System_Timer3_Read(void) {
-    IoMem[IoAccessCurrentAddress & 0x1FFFF] = clock();
+// hack, better change every seconds than never...
+    IoMem[IoAccessCurrentAddress & 0x1FFFF] = (clock() & 0xFF) >> 8;
 }
 
 
@@ -67,6 +68,10 @@ void FDD_Main_Status_Read (void) {
 */
 const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 {
+	// blocking device?
+	{ 0x02004350, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02008000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+
 	{ 0x02000150, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
 	{ 0x02004150, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
 	{ 0x02004154, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
@@ -100,15 +105,27 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 
 	{ 0x02007000, SIZE_LONG, IntRegStatRead, IntRegStatWrite },
 	{ 0x02007800, SIZE_BYTE, IntRegMaskRead, IntRegMaskWrite },
+	{ 0x02007801, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02007802, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02007803, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+
+
 	{ 0x0200c000, SIZE_BYTE, SCR1_Read0, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x0200c001, SIZE_BYTE, SCR1_Read1, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x0200c002, SIZE_BYTE, SCR1_Read2, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x0200c003, SIZE_BYTE, SCR1_Read3, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x0200c800, SIZE_BYTE, SID_Read, IoMem_WriteWithoutInterceptionButTrace }, // Next cube slot Id
+	{ 0x0200c801, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x0200c802, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x0200c803, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+
+
 	{ 0x0200d000, SIZE_BYTE, SCR2_Read0, SCR2_Write0 },
 	{ 0x0200d001, SIZE_BYTE, SCR2_Read1, SCR2_Write1 },
 	{ 0x0200d002, SIZE_BYTE, SCR2_Read2, SCR2_Write2 },
 	{ 0x0200d003, SIZE_BYTE, SCR2_Read3, SCR2_Write3 },
+
+ 	// keyboard stuff
     { 0x0200e000, SIZE_BYTE, Keyboard_Read0, IoMem_WriteWithoutInterception },
 	{ 0x0200e001, SIZE_BYTE, Keyboard_Read1, IoMem_WriteWithoutInterception },
 	{ 0x0200e002, SIZE_BYTE, Keyboard_Read2, IoMem_WriteWithoutInterception },
@@ -116,14 +133,16 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 	{ 0x0200e004, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
 	{ 0x0200e005, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
 	{ 0x0200e006, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
+	{ 0x0200e007, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     { 0x0200e008, SIZE_LONG, Keycode_Read, IoMem_WriteWithoutInterception },
 	{ 0x02010000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     
-    /* System Timer */
+    /* Event counter */
     { 0x0201a000, SIZE_BYTE, System_Timer0_Read, IoMem_WriteWithoutInterceptionButTrace },
     { 0x0201a001, SIZE_BYTE, System_Timer1_Read, IoMem_WriteWithoutInterceptionButTrace },
     { 0x0201a002, SIZE_BYTE, System_Timer2_Read, IoMem_WriteWithoutInterceptionButTrace },
     { 0x0201a003, SIZE_BYTE, System_Timer3_Read, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x02010000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
   
     /* MO-Drive Registers */
     { 0x02012000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
