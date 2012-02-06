@@ -62,6 +62,19 @@ void FDD_Main_Status_Read (void) {
 }
 
 
+static Uint8 DSP_icr=0;
+
+
+/* DSP registers - Work on this later */
+void DSP_icr_Read (void) {
+    IoMem[IoAccessCurrentAddress & 0x1FFFF] = DSP_icr;
+}
+
+void DSP_icr_Write (void) {
+    DSP_icr=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+}
+
+
 /*-----------------------------------------------------------------------*/
 /*
   List of functions to handle read/write hardware interceptions.
@@ -70,7 +83,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 {
 	// blocking device?
 	{ 0x02004350, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x02008000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02008000, SIZE_BYTE, DSP_icr_Read, IoMem_WriteWithoutInterceptionButTrace },
 
 	{ 0x02000150, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
 	{ 0x02004150, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
