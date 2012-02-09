@@ -104,16 +104,18 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 	{ 0x02000153, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterception },
 
 
-	{ 0x02004150, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x02004151, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x02004152, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x02004153, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x02004154, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x02004155, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x02004156, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x02004157, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x02004158, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0200415c, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+#define SERIAL_IO_WRITE IoMem_WriteWithoutInterception
+#define SERIAL_IO_READ IoMem_ReadWithoutInterception
+	{ 0x02004150, SIZE_BYTE, SERIAL_IO_READ, SERIAL_IO_WRITE },
+	{ 0x02004151, SIZE_BYTE, SERIAL_IO_READ, SERIAL_IO_WRITE },
+	{ 0x02004152, SIZE_BYTE, SERIAL_IO_READ, SERIAL_IO_WRITE },
+	{ 0x02004153, SIZE_BYTE, SERIAL_IO_READ, SERIAL_IO_WRITE },
+	{ 0x02004154, SIZE_BYTE, SERIAL_IO_READ, SERIAL_IO_WRITE },
+	{ 0x02004155, SIZE_BYTE, SERIAL_IO_READ, SERIAL_IO_WRITE },
+	{ 0x02004156, SIZE_BYTE, SERIAL_IO_READ, SERIAL_IO_WRITE },
+	{ 0x02004157, SIZE_BYTE, SERIAL_IO_READ, SERIAL_IO_WRITE },
+	{ 0x02004158, SIZE_BYTE, SERIAL_IO_READ, SERIAL_IO_WRITE},
+	{ 0x0200415c, SIZE_BYTE, SERIAL_IO_READ, SERIAL_IO_WRITE },
 
 
 	{ 0x02004188, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },

@@ -410,6 +410,7 @@ static ALWAYS_INLINE bool mmu_fill_atc_l1(uaecptr addr, bool super, bool data, b
 	if (write) {
 		if (l->write_protect) {
 			fprintf(stderr, "MMU: write protected (via %s) %lx\n", l->tt ? "ttr" : "atc", addr);
+			mmu_dump_atc();
 			goto fail;
 		}
 		if (!l->modified)
