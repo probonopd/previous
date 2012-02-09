@@ -18,7 +18,7 @@
 #include "dma.h"
 #include "scsi.h"
 
-#define LOG_EN_LEVEL LOG_WARN
+#define LOG_EN_LEVEL LOG_DEBUG
 
 void Ethernet_read(void) {
 	int addr=IoAccessCurrentAddress & 0x1FFFF;
