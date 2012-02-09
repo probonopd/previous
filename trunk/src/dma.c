@@ -11,7 +11,7 @@
 #include "configuration.h"
 
 
-#define LOG_DMA_LEVEL LOG_WARN
+#define LOG_DMA_LEVEL LOG_DEBUG
 
 #define IO_SEG_MASK	0x1FFFF
 

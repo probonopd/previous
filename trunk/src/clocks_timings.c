@@ -115,7 +115,7 @@ void	ClocksTimings_InitMachine ( MACHINETYPE MachineType )
 
 		MachineClocks.BUS_Freq		= CLK8;					/* 8 MHz */
 
-		MachineClocks.CPU_Freq		= CLK8;					/* 8 MHz */
+		MachineClocks.CPU_Freq		= 33000000;					/* 33 MHz */
 		MachineClocks.DMA_Freq		= CLK8;					/* 8 MHz */
 		MachineClocks.MFP_Freq		= CLK4;					/* 4 MHz */
 		MachineClocks.MFP_Timer_Freq	= ATARI_MFP_XTAL;			/* 2.4576 MHz (XTAL)*/
