@@ -60,10 +60,10 @@ extern jmp_buf __exbuf;
 extern int     __exvalue;
 #define TRY(DUMMY)       __exvalue=setjmp(__exbuf);       \
                   if (__exvalue==0) { __pushtry(&__exbuf);
-#define CATCH(x)  __poptry(); } else { fprintf(stderr,"Gotcha! %d %s in %d\n",__exvalue,__FILE__,__LINE__);
-#define ENDTRY    __poptry();}
-#define THROW(x) if (__is_catched()) {fprintf(stderr,"Longjumping %s in %d\n",__FILE__,__LINE__);longjmp(__exbuf,x);}
-#define THROW_AGAIN(var) if (__is_catched()) longjmp(*__poptry(),__exvalue)
+#define CATCH(x)  __poptry(); } else { fprintf(stderr,"Gotcha! %d %s in %d\n",__exvalue,__FILE__,__LINE__); __poptry();
+#define ENDTRY    }
+#define THROW(x) if (__is_catched()) {fprintf(stderr,"Longjumping %s in %d\n",__FILE__,__LINE__);longjmp(__exbuf,x);} else fprintf(stderr,"/!\ cannot Longjumping %s in %d\n",__FILE__,__LINE__)
+#define THROW_AGAIN(var) if (__is_catched()) longjmp(__exbuf,__exvalue); else fprintf(stderr,"/!\ cannot Longjumping %s in %d\n",__FILE__,__LINE__)
 #define SAVE_EXCEPTION
 #define RESTORE_EXCEPTION
 jmp_buf* __poptry(void);
