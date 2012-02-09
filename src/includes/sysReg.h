@@ -58,4 +58,15 @@ void IntRegStatWrite(void);
 void IntRegMaskRead(void);
 void IntRegMaskWrite(void);
 
+void Hardclock_InterruptHandler ( void );
+void HardclockRead0(void);
+void HardclockRead1(void);
+
+void HardclockWrite0(void);
+void HardclockWrite1(void);
+
+void HardclockWriteCSR(void);
+void HardclockReadCSR(void);
+
+
 void set_interrupt(Uint32, Uint8);

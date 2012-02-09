@@ -364,39 +364,28 @@ void SCR2_Read1(void)
 void SCR2_Write2(void)
 {	
 	static int phase=0;
+	static bool burst=false;
 	static Uint8 rtc_command=0;
 	static Uint8 rtc_value=0;
 	static Uint8 rtc_return=0;
-	static Uint8 rtc_status=0x98;
+	static Uint8 rtc_status=0x00;
 	static Uint8 rtc_ccr=0x00;	
 	static Uint8 rtc_icr=0x00;	
     
 	Uint8 old_scr2_2=scr2_2;
-    //	Log_Printf(LOG_WARN,"SCR2 write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & IO_SEG_MASK],m68k_getpc());
+
 	scr2_2=IoMem[IoAccessCurrentAddress & 0x1FFFF];
-    
-    /*
-     if ((old_scr2_2&SCR2_RTCE)!=(scr2_2&SCR2_RTCE))
-     Log_Printf(LOG_WARN,"SCR2 RTCE change at $%08x val=%x PC=$%08x\n",
-     IoAccessCurrentAddress,scr2_2&SCR2_RTCE,m68k_getpc());
-     
-     if ((old_scr2_2&SCR2_RTCLK)!=(scr2_2&SCR2_RTCLK))
-     Log_Printf(LOG_WARN,"SCR2 RTCLK change at $%08x val=%x PC=$%08x\n",
-     IoAccessCurrentAddress,scr2_2&SCR2_RTCLK,m68k_getpc());
-     
-     if ((old_scr2_2&SCR2_RTDATA)!=(scr2_2&SCR2_RTDATA))
-     Log_Printf(LOG_WARN,"SCR2 RTDATA change at $%08x val=%x PC=$%08x\n",
-     IoAccessCurrentAddress,scr2_2&SCR2_RTDATA,m68k_getpc());
-     */
-    
-    // and now some primitive handling
+
     // treat only if CE is set to 1
 	if (scr2_2&SCR2_RTCE) {
-        if (phase==-1) phase=0;
+        if (phase==-1) {phase=0;}
+
         // if we are in going down clock... do something
         if (((old_scr2_2&SCR2_RTCLK)!=(scr2_2&SCR2_RTCLK)) && ((scr2_2&SCR2_RTCLK)==0) ) {
             if (phase<8)
                 rtc_command=(rtc_command<<1)|((scr2_2&SCR2_RTDATA)?1:0);
+
+	    // now reading or writing register (one bit at a time)
             if ((phase>=8) && (phase<16)) {
                 rtc_value=(rtc_value<<1)|((scr2_2&SCR2_RTDATA)?1:0);
                 
@@ -431,13 +420,16 @@ void SCR2_Write2(void)
                 }
                 if ((rtc_command>=0x20) && (rtc_command<=0x2F)) {
 		    unsigned char v;
-		    time_t t;
-                    struct tm * ts;
+		    static time_t t;
+                    static struct tm * ts;
 
                     scr2_2=scr2_2&(~SCR2_RTDATA);
-                    // for now 0x00
-		    t=time(NULL);
-		    ts=localtime(&t);
+                    // get time at once to avoid problems (in burst mode only).
+	            if (!burst) {
+			    t=time(NULL);
+			    ts=localtime(&t);
+			burst=true;
+		    }
 		    v=0;
 		    switch (rtc_command) {
 			case 0x20 : // seconds
@@ -467,7 +459,7 @@ void SCR2_Write2(void)
                     rtc_return=(rtc_return<<1)|((scr2_2&SCR2_RTDATA)?1:0);
                 }
                 
-            }
+            } // of read/write phase
             
             phase++;
             if (phase==16) {
@@ -493,13 +485,18 @@ void SCR2_Write2(void)
                 if (rtc_command==0xB2) {
 		    rtc_icr=rtc_value;
 		}
-            }
-        }
-	} else {
+		// burst mode
+		phase=8;
+		rtc_command++;
+            } // of phase==16
+        } // of going down clock
+	} // of scr2_2&SCR2_RTCE
+		else {
         // else end or abort
 		phase=-1;
 		rtc_command=0;
 		rtc_value=0;
+		burst=false;
 	}	
     
 }
@@ -541,20 +538,17 @@ void SCR2_Read3(void)
 
 void IntRegStatRead(void) {
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, intStat);
-//	IoMem[0x02007000 & 0x1FFFF]=intStat >> 24;
-//  IoMem[0x02007001 & 0x1FFFF]=intStat >> 16;
-//  IoMem[0x02007002 & 0x1FFFF]=intStat >> 8;
-//  IoMem[0x02007003 & 0x1FFFF]=intStat >> 0;
 }
 
 void IntRegStatWrite(void) {
     intStat = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-//	intStat=(IoMem[0x02007000 & 0x1FFFF] << 24) | (IoMem[0x02007001 & 0x1FFFF] << 16) | (IoMem[0x02007002 & 0x1FFFF] << 8) | IoMem[0x02007003 & 0x1FFFF];
 }
 
 void set_interrupt(Uint32 interrupt_val, Uint8 int_set_release) {
     
     Uint8 interrupt_level;
+
+
     
     if(int_set_release == SET_INT) {
         intStat = intStat | interrupt_val;
@@ -605,7 +599,12 @@ void set_interrupt(Uint32 interrupt_val, Uint8 int_set_release) {
         default: interrupt_level = 0;
             break;
     }
-    
+ 
+    if ((interrupt_val & intMask)==0) {
+	Log_Printf(LOG_WARN,"[INT] interrupt is masked %04x mask %04x %s at %d",interrupt_val,intMask,__FILE__,__LINE__);
+	return;
+    }
+   
     if(int_set_release == SET_INT) {
         Log_Printf(LOG_DEBUG,"Interrupt Level: %i", interrupt_level);
         M68000_Exception(((24+interrupt_level)*4), M68000_EXC_SRC_AUTOVEC);
@@ -617,13 +616,57 @@ void set_interrupt(Uint32 interrupt_val, Uint8 int_set_release) {
 /* Interrupt Mask Register */
 
 void IntRegMaskRead(void) {
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=intMask;
+	IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK,intMask);
 }
 
 void IntRegMaskWrite(void) {
-	intMask=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+	intMask = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
+        Log_Printf(LOG_WARN,"Interrupt mask: %04x", intMask);
+}
+
+/*
+ * Hardclock internal interrupt
+ *
+ */
+
+#define HARDCLOCK_ENABLE 0x80
+#define HARDCLOCK_LATCH  0x40
+
+Uint8 hardclock_csr=0;
+Uint8 hardclock1=0;
+Uint8 hardclock0=0;
+
+void Hardclock_InterruptHandler ( void )
+{
+	CycInt_AcknowledgeInterrupt();
+	if ((hardclock_csr&HARDCLOCK_ENABLE) && (hardclock0!=0) && (hardclock1!=0))
+		set_interrupt(INT_TIMER,SET_INT);
+
+        CycInt_AddRelativeInterrupt(CYCLES_PER_FRAME, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
 }
 
 
+void HardclockRead0(void){
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=hardclock0;
+}
+void HardclockRead1(void){
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=hardclock1;
+}
+
+void HardclockWrite0(void){
+	hardclock0=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+}
+void HardclockWrite1(void){
+	hardclock1=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+}
+
+void HardclockWriteCSR(void) {
+	Log_Printf(LOG_WARN,"[hardclock] write at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+	hardclock_csr=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+}
+void HardclockReadCSR(void) {
+	Log_Printf(LOG_WARN,"[hardclock] read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=hardclock_csr;
+}
 
 
