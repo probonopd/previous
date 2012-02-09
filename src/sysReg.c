@@ -635,38 +635,58 @@ void IntRegMaskWrite(void) {
 Uint8 hardclock_csr=0;
 Uint8 hardclock1=0;
 Uint8 hardclock0=0;
+int pseudo_counter=0;
+int latch_hardclock=0;
 
 void Hardclock_InterruptHandler ( void )
 {
 	CycInt_AcknowledgeInterrupt();
-	if ((hardclock_csr&HARDCLOCK_ENABLE) && (hardclock0!=0) && (hardclock1!=0))
+	if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
+		// Log_Printf(LOG_WARN,"[INT] throwing hardclock");
 		set_interrupt(INT_TIMER,SET_INT);
-
-        CycInt_AddRelativeInterrupt(CYCLES_PER_FRAME, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
+	        CycInt_AddRelativeInterrupt(latch_hardclock*33, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
+		pseudo_counter=latch_hardclock;
+	}
 }
 
 
 void HardclockRead0(void){
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=hardclock0;
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=(pseudo_counter>>8);
+;
+	if (pseudo_counter>0) pseudo_counter--;
+
+	Log_Printf(LOG_WARN,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
 }
 void HardclockRead1(void){
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=hardclock1;
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=pseudo_counter&0xff;
+	if (pseudo_counter>0) pseudo_counter--;
+	Log_Printf(LOG_WARN,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
 }
 
 void HardclockWrite0(void){
+	Log_Printf(LOG_WARN,"[hardclock] write at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
 	hardclock0=IoMem[IoAccessCurrentAddress & 0x1FFFF];
 }
 void HardclockWrite1(void){
+	Log_Printf(LOG_WARN,"[hardclock] write at $%08x val=%02x PC=$%08x",IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
 	hardclock1=IoMem[IoAccessCurrentAddress & 0x1FFFF];
 }
 
 void HardclockWriteCSR(void) {
-	Log_Printf(LOG_WARN,"[hardclock] write at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+	Log_Printf(LOG_WARN,"[hardclock] write at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
 	hardclock_csr=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+	if ((hardclock_csr&HARDCLOCK_LATCH)) {
+		latch_hardclock=(hardclock0<<8)|hardclock1;
+		pseudo_counter=latch_hardclock;
+	}
+	if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
+	        CycInt_AddRelativeInterrupt(latch_hardclock*33, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
+	}
 }
 void HardclockReadCSR(void) {
-	Log_Printf(LOG_WARN,"[hardclock] read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
 	IoMem[IoAccessCurrentAddress & 0x1FFFF]=hardclock_csr;
+	// Log_Printf(LOG_WARN,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
+	set_interrupt(INT_TIMER,RELEASE_INT);
 }
 
 

@@ -271,8 +271,8 @@ void Main_WaitOnVbl(void)
 	}
 
 //	FrameDuration_micro = (Sint64) ( 1000000.0 / nScreenRefreshRate + 0.5 );	/* round to closest integer */
-//	FrameDuration_micro = ClocksTimings_GetVBLDuration_micro ( ConfigureParams.System.nMachineType , nScreenRefreshRate );
-    FrameDuration_micro = 1000000/50;
+	FrameDuration_micro = ClocksTimings_GetVBLDuration_micro ( ConfigureParams.System.nMachineType , 68 );
+//      FrameDuration_micro = 1000000/50;
 	CurrentTicks = Time_GetTicks();
 
 	if ( DestTicks == 0 )					/* first call, init DestTicks */

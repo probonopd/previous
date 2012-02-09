@@ -11,7 +11,7 @@
 #include "dma.h"
 #include "scsi.h"
 
-#define LOG_SCSI_LEVEL LOG_WARN
+#define LOG_SCSI_LEVEL LOG_DEBUG
 
 
 #define IO_SEG_MASK	0x1FFFF
