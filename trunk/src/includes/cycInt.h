@@ -13,6 +13,7 @@ typedef enum
 {
   INTERRUPT_NULL,
   INTERRUPT_VIDEO_VBL,
+  INTERRUPT_HARDCLOCK,
   MAX_INTERRUPTS
 } interrupt_id;
 
