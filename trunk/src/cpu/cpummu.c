@@ -363,7 +363,8 @@ static uaecptr REGPARAM2 mmu_lookup_pagetable(uaecptr addr, bool super, bool wri
 	desc_addr = (desc & MMU_ROOT_PTR_ADDR_MASK) | i;
 	desc = phys_get_long(desc_addr);
 	if ((desc & 2) == 0) {
-		fprintf(stderr, "MMU: invalid root descriptor for %lx desc at %lx desc=%lx %s at %d\n", addr,desc_addr,desc,__FILE__,__LINE__);
+		fprintf(stderr, "MMU: invalid root descriptor %s for %lx desc at %lx desc=%lx %s at %d\n", super ? "srp":"urp",
+				addr,desc_addr,desc,__FILE__,__LINE__);
 		return 0;
 	}
 
@@ -376,7 +377,8 @@ static uaecptr REGPARAM2 mmu_lookup_pagetable(uaecptr addr, bool super, bool wri
 	desc_addr = (desc & MMU_ROOT_PTR_ADDR_MASK) | i;
 	desc = phys_get_long(desc_addr);
 	if ((desc & 2) == 0) {
-		fprintf(stderr, "MMU: invalid ptr descriptor for %lx desc at %lx desc=%lx %s at %d\n", addr,desc_addr,desc,__FILE__,__LINE__);
+		fprintf(stderr, "MMU: invalid ptr descriptor %s for %lx desc at %lx desc=%lx %s at %d\n", super ? "srp":"urp", 
+				addr,desc_addr,desc,__FILE__,__LINE__);
 		return 0;
 	}
 	wp |= desc;
@@ -810,6 +812,8 @@ void REGPARAM2 mmu_flush_atc(uaecptr addr, bool super, bool global)
 		index=(addr & 0x0000F000)>>12;
 	for (type=0;type<ATC_TYPE;type++)
 	for (way=0;way<ATC_WAYS;way++) {
+		if (!global && mmu_atc_array[type][way][index].global)
+			continue;
 		// if we have this 
 		if ((addr == mmu_atc_array[type][way][index].tag) && (mmu_atc_array[type][way][index].valid)) {
 			mmu_atc_array[type][way][index].valid=false;
@@ -823,6 +827,8 @@ void REGPARAM2 mmu_flush_atc_all(bool global)
 	for (type=0;type<ATC_TYPE;type++) 
 	for (way=0;way<ATC_WAYS;way++) 
 	for (slot=0;slot<ATC_SLOTS;slot++) {
+		if (!global && mmu_atc_array[type][way][slot].global)
+			continue;
 		mmu_atc_array[type][way][slot].valid=false;
 	}
 }
