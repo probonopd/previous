@@ -1491,9 +1491,6 @@ static void Exception_mmu (int nr, uaecptr oldpc)
 	}
 	if (nr == 2) {
 		write_log ("Exception_mmu %08x %08x %08x\n", currpc, oldpc, regs.mmu_fault_addr);
-		if (oldpc==0) abort();
-//		if (currpc == 0x0013b5e2)
-//			activate_debugger ();
 		// bus error
 		for (i = 0 ; i < 7 ; i++) {
 			m68k_areg (regs, 7) -= 4;
@@ -1606,10 +1603,6 @@ static void Exception_normal (int nr, uaecptr oldpc, int ExceptionSource)
 	int sv = regs.s;
 
 
-#if AMIGA_ONLY
-	if (nr >= 24 && nr < 24 + 8 && currprefs.cpu_model <= 68010)
-		nr = x_get_byte (0x00fffff1 | (nr << 1));
-#endif
 
 	exception_debug (nr);
 	MakeSR ();
@@ -3108,7 +3101,12 @@ static void m68k_run_mmu040 (void)
 			mmufixup[0].reg = -1;
 		}
 
-		Exception_mmu (save_except, oldpc);
+		TRY (prb) {
+			Exception_mmu (save_except, oldpc);
+		} CATCH (prb) {
+    			Log_Printf(LOG_WARN, "[FATAL] double fault");	
+			abort();		
+		} ENDTRY
 
 	} ENDTRY
 	}
@@ -3374,35 +3372,6 @@ void m68k_go (int may_quit)
 	in_m68k_go--;
 }
 
-#if 0
-static void m68k_verify (uaecptr addr, uaecptr *nextpc)
-{
-	uae_u32 opcode, val;
-	struct instr *dp;
-
-	opcode = get_iword_1 (0);
-	last_op_for_exception_3 = opcode;
-	m68kpc_offset = 2;
-
-	if (cpufunctbl[opcode] == op_illg_1) {
-		opcode = 0x4AFC;
-	}
-	dp = table68k + opcode;
-
-	if (dp->suse) {
-		if (!verify_ea (dp->sreg, dp->smode, dp->size, &val)) {
-			Exception (3, 0);
-			return;
-		}
-	}
-	if (dp->duse) {
-		if (!verify_ea (dp->dreg, dp->dmode, dp->size, &val)) {
-			Exception (3, 0);
-			return;
-		}
-	}
-}
-#endif
 
 static const TCHAR *ccnames[] =
 { "T ","F ","HI","LS","CC","CS","NE","EQ",

@@ -207,76 +207,129 @@ extern void mmu_dump_tables(void);
 #define TTR_OK_MATCH	2
 
 struct mmu_atc_line {
-	uae_u16 tag;
-	unsigned tt : 1;
-	unsigned valid_data : 1;
-	unsigned valid_inst : 1;
+	uaecptr tag; // tag is 16 or 17 bits S+logical
+	unsigned valid : 1;
 	unsigned global : 1;
 	unsigned modified : 1;
 	unsigned write_protect : 1;
-	unsigned hw : 1;
-	unsigned bus_fault : 1;
-	uaecptr phys;
+	uaecptr phys; // phys base address
 };
 
 /*
- * We don't need to store the whole logical address in the atc cache, as part of
- * it is encoded as index into the cache. 14 bits of the address are stored in
- * the tag, this means at least 6 bits must go into the index. The upper two
- * bits of the tag define the type of data in the atc line:
- * - 00: a normal memory address
- * - 11: invalid memory address or hardware access
- *       (generated via ~ATC_TAG(addr) in the slow path)
- * - 10: empty atc line
+ * 68040 ATC is a 4 way 16 slot associative address translation cache
+ * the 68040 has a DATA and an INSTRUCTION ATC.
+ * an ATC lookup may result in : a hit, a miss and a modified state.
+ * the 68060 can disable ATC allocation
+ * we must take care of 8k and 4k page size, index position is relative to page size
  */
 
-#define ATC_TAG_SHIFT		18
-#define ATC_TAG(addr)		((uae_u32)(addr) >> ATC_TAG_SHIFT)
+#define ATC_WAYS 4
+#define ATC_SLOTS 16
+#define ATC_TYPE 2
 
-
-#define ATC_L1_SIZE_LOG		8
-#define ATC_L1_SIZE			(1 << ATC_L1_SIZE_LOG)
-
-#define ATC_L1_INDEX(addr)	(((addr) >> 12) % ATC_L1_SIZE)
+extern bool mmu_is_super;
+extern struct mmu_atc_line mmu_atc_array[ATC_TYPE][ATC_WAYS][ATC_SLOTS];
 
 /*
- * first level atc cache
- * indexed by [super][data][rw][idx]
- */
-
-typedef struct mmu_atc_line mmu_atc_l1_array[2][2][ATC_L1_SIZE];
-extern mmu_atc_l1_array atc_l1[2];
-extern mmu_atc_l1_array *current_atc;
-
-#define ATC_L2_SIZE_LOG		12
-#define ATC_L2_SIZE			(1 << ATC_L2_SIZE_LOG)
-
-#define ATC_L2_INDEX(addr)	((((addr) >> 12) ^ ((addr) >> (32 - ATC_L2_SIZE_LOG))) % ATC_L2_SIZE)
-
-extern struct mmu_atc_line atc_l2[2][ATC_L2_SIZE];
-
-/*
- * lookup address in the level 1 atc cache,
- * the data and write arguments are constant in the common,
- * thus allows gcc to generate a constant offset.
+ * mmu access is a 4 step process:
+ * if mmu is not enabled just read physical
+ * check transparent region, if transparent, read physical
+ * check ATC (address translation cache), read immediatly if HIT
+ * read from mmu with the long path (and allocate ATC entry if needed)
  */
 static ALWAYS_INLINE bool mmu_lookup(uaecptr addr, bool data, bool write,
 									  struct mmu_atc_line **cl)
 {
-	addr >>= 12;
-	*cl = &(*current_atc)[data ? 1 : 0][write ? 1 : 0][addr % ATC_L1_SIZE];
-	return (*cl)->tag == addr >> (ATC_TAG_SHIFT - 12);
+	int way,index;
+	static int way_miss=0;
+
+	addr = ((mmu_is_super?0x80000000:0x00000000)|(addr >> 1)) & (regs.mmu_pagesize_8k?0xFFFE0000:0xFFFF0000);
+	if (regs.mmu_pagesize_8k)
+		index=(addr & 0x0001E000)>>13;
+	else
+		index=(addr & 0x0000F000)>>12;
+	for (way=0;way<ATC_WAYS;way++) {
+		// if we have this 
+		if ((addr == mmu_atc_array[data][way][index].tag) && (mmu_atc_array[data][way][index].valid)) {
+			*cl=&mmu_atc_array[data][way][index];
+			// if first write to this take slow path (but modify this slot)
+			if (!mmu_atc_array[data][way][index].modified & write)
+				return false; 
+			return true;
+		}
+	}
+	// we select a random way to void
+	*cl=&mmu_atc_array[data][way_miss%ATC_WAYS][index];
+	way_miss++;
+	return false;
 }
 
 /*
- * similiar to mmu_user_lookup, but for the use of the moves instruction
  */
 static ALWAYS_INLINE bool mmu_user_lookup(uaecptr addr, bool super, bool data,
 										   bool write, struct mmu_atc_line **cl)
 {
-	addr >>= 12;
-	*cl = &atc_l1[super ? 1 : 0][data ? 1 : 0][write ? 1 : 0][addr % ATC_L1_SIZE];
-	return (*cl)->tag == addr >> (ATC_TAG_SHIFT - 12);
+	int way,index;
+	static int way_miss=0;
+
+	addr = ((super?0x80000000:0x00000000)|(addr >> 1)) & (regs.mmu_pagesize_8k?0xFFFE0000:0xFFFF0000);
+	if (regs.mmu_pagesize_8k)
+		index=(addr & 0x0001E000)>>13;
+	else
+		index=(addr & 0x0000F000)>>12;
+	for (way=0;way<ATC_WAYS;way++) {
+		// if we have this 
+		if ((addr == mmu_atc_array[data][way][index].tag) && (mmu_atc_array[data][way][index].valid)) {
+			*cl=&mmu_atc_array[data][way][index];
+			// if first write to this take slow path (but modify this slot)
+			if (!mmu_atc_array[data][way][index].modified & write)
+				return false; 
+			return true;
+		}
+	}
+	// we select a random way to void
+	*cl=&mmu_atc_array[data][way_miss%ATC_WAYS][index];
+	way_miss++;
+	return false;
+}
+
+/* check if an address matches a ttr */
+static inline int mmu_do_match_ttr(uae_u32 ttr, uaecptr addr, bool super)
+{
+	if (ttr & MMU_TTR_BIT_ENABLED)	{	/* TTR enabled */
+		uae_u8 msb, mask;
+
+		msb = ((addr ^ ttr) & MMU_TTR_LOGICAL_BASE) >> 24;
+		mask = (ttr & MMU_TTR_LOGICAL_MASK) >> 16;
+
+		if (!(msb & ~mask)) {
+
+			if ((ttr & MMU_TTR_BIT_SFIELD_ENABLED) == 0) {
+				if (((ttr & MMU_TTR_BIT_SFIELD_SUPER) == 0) != (super == 0)) {
+					return TTR_NO_MATCH;
+				}
+			}
+
+			return (ttr & MMU_TTR_BIT_WRITE_PROTECT) ? TTR_NO_WRITE : TTR_OK_MATCH;
+		}
+	}
+	return TTR_NO_MATCH;
+}
+
+static inline int mmu_match_ttr(uaecptr addr, bool super, bool data)
+{
+	int res;
+
+	if (data) {
+		res = mmu_do_match_ttr(regs.dtt0, addr, super);
+		if (res == TTR_NO_MATCH)
+			res = mmu_do_match_ttr(regs.dtt1, addr, super);
+	} else {
+		res = mmu_do_match_ttr(regs.itt0, addr, super);
+		if (res == TTR_NO_MATCH)
+			res = mmu_do_match_ttr(regs.itt1, addr, super);
+	}
+	return res;
 }
 
 extern uae_u16 REGPARAM3 mmu_get_word_unaligned(uaecptr addr, bool data) REGPARAM;
@@ -322,6 +375,7 @@ extern void REGPARAM3 mmu_reset(void) REGPARAM;
 extern void REGPARAM3 mmu_set_tc(uae_u16 tc) REGPARAM;
 extern void REGPARAM3 mmu_set_super(bool super) REGPARAM;
 
+// take care of 2 kinds of alignement, bus size and page 
 static ALWAYS_INLINE bool is_unaligned(uaecptr addr, int size)
 {
     return unlikely((addr & (size - 1)) && (addr ^ (addr + size - 1)) & 0x1000);
@@ -329,7 +383,7 @@ static ALWAYS_INLINE bool is_unaligned(uaecptr addr, int size)
 
 static ALWAYS_INLINE uaecptr mmu_get_real_address(uaecptr addr, struct mmu_atc_line *cl)
 {
-    return cl->phys + addr;
+    return cl->phys | (addr & (regs.mmu_pagesize_8k?0x00001fff:0x00000fff));
 }
 
 static ALWAYS_INLINE void phys_put_long(uaecptr addr, uae_u32 l)
@@ -361,6 +415,9 @@ static ALWAYS_INLINE uae_u32 mmu_get_long(uaecptr addr, bool data, int size)
 {
 	struct mmu_atc_line *cl;
 
+	//                                       addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,regs.s != 0,data)!=TTR_NO_MATCH))
+		return phys_get_long(addr);
 	if (likely(mmu_lookup(addr, data, false, &cl)))
 		return phys_get_long(mmu_get_real_address(addr, cl));
 	return mmu_get_long_slow(addr, regs.s != 0, data, size, cl);
@@ -370,6 +427,9 @@ static ALWAYS_INLINE uae_u16 mmu_get_word(uaecptr addr, bool data, int size)
 {
 	struct mmu_atc_line *cl;
 
+	//                                       addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,regs.s != 0,data)!=TTR_NO_MATCH))
+		return phys_get_word(addr);
 	if (likely(mmu_lookup(addr, data, false, &cl)))
 		return phys_get_word(mmu_get_real_address(addr, cl));
 	return mmu_get_word_slow(addr, regs.s != 0, data, size, cl);
@@ -379,6 +439,9 @@ static ALWAYS_INLINE uae_u8 mmu_get_byte(uaecptr addr, bool data, int size)
 {
 	struct mmu_atc_line *cl;
 
+	//                                       addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,regs.s != 0,data)!=TTR_NO_MATCH))
+		return phys_get_byte(addr);
 	if (likely(mmu_lookup(addr, data, false, &cl)))
 		return phys_get_byte(mmu_get_real_address(addr, cl));
 	return mmu_get_byte_slow(addr, regs.s != 0, data, size, cl);
@@ -389,6 +452,11 @@ static ALWAYS_INLINE void mmu_put_long(uaecptr addr, uae_u32 val, bool data, int
 {
 	struct mmu_atc_line *cl;
 
+	//                                        addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,regs.s != 0,data)==TTR_OK_MATCH)) {
+		phys_put_long(addr,val);
+		return;
+	}
 	if (likely(mmu_lookup(addr, data, true, &cl)))
 		phys_put_long(mmu_get_real_address(addr, cl), val);
 	else
@@ -399,6 +467,11 @@ static ALWAYS_INLINE void mmu_put_word(uaecptr addr, uae_u16 val, bool data, int
 {
 	struct mmu_atc_line *cl;
 
+	//                                        addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,regs.s != 0,data)==TTR_OK_MATCH)) {
+		phys_put_word(addr,val);
+		return;
+	}
 	if (likely(mmu_lookup(addr, data, true, &cl)))
 		phys_put_word(mmu_get_real_address(addr, cl), val);
 	else
@@ -409,6 +482,11 @@ static ALWAYS_INLINE void mmu_put_byte(uaecptr addr, uae_u8 val, bool data, int 
 {
 	struct mmu_atc_line *cl;
 
+	//                                        addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,regs.s != 0,data)==TTR_OK_MATCH)) {
+		phys_put_byte(addr,val);
+		return;
+	}
 	if (likely(mmu_lookup(addr, data, true, &cl)))
 		phys_put_byte(mmu_get_real_address(addr, cl), val);
 	else
@@ -419,6 +497,9 @@ static ALWAYS_INLINE uae_u32 mmu_get_user_long(uaecptr addr, bool super, bool da
 {
 	struct mmu_atc_line *cl;
 
+	//                                       addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,super,data)!=TTR_NO_MATCH))
+		return phys_get_long(addr);
 	if (likely(mmu_user_lookup(addr, super, data, false, &cl)))
 		return phys_get_long(mmu_get_real_address(addr, cl));
 	return mmu_get_long_slow(addr, super, data, size, cl);
@@ -428,6 +509,9 @@ static ALWAYS_INLINE uae_u16 mmu_get_user_word(uaecptr addr, bool super, bool da
 {
 	struct mmu_atc_line *cl;
 
+	//                                       addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,super,data)!=TTR_NO_MATCH))
+		return phys_get_word(addr);
 	if (likely(mmu_user_lookup(addr, super, data, false, &cl)))
 		return phys_get_word(mmu_get_real_address(addr, cl));
 	return mmu_get_word_slow(addr, super, data, size, cl);
@@ -437,6 +521,9 @@ static ALWAYS_INLINE uae_u8 mmu_get_user_byte(uaecptr addr, bool super, bool dat
 {
 	struct mmu_atc_line *cl;
 
+	//                                       addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,super,data)!=TTR_NO_MATCH))
+		return phys_get_byte(addr);
 	if (likely(mmu_user_lookup(addr, super, data, false, &cl)))
 		return phys_get_byte(mmu_get_real_address(addr, cl));
 	return mmu_get_byte_slow(addr, super, data, size, cl);
@@ -446,6 +533,11 @@ static ALWAYS_INLINE void mmu_put_user_long(uaecptr addr, uae_u32 val, bool supe
 {
 	struct mmu_atc_line *cl;
 
+	//                                        addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,super,data)==TTR_OK_MATCH)) {
+		phys_put_long(addr,val);
+		return;
+	}
 	if (likely(mmu_user_lookup(addr, super, data, true, &cl)))
 		phys_put_long(mmu_get_real_address(addr, cl), val);
 	else
@@ -456,6 +548,11 @@ static ALWAYS_INLINE void mmu_put_user_word(uaecptr addr, uae_u16 val, bool supe
 {
 	struct mmu_atc_line *cl;
 
+	//                                        addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,super,data)==TTR_OK_MATCH)) {
+		phys_put_word(addr,val);
+		return;
+	}
 	if (likely(mmu_user_lookup(addr, super, data, true, &cl)))
 		phys_put_word(mmu_get_real_address(addr, cl), val);
 	else
@@ -466,6 +563,11 @@ static ALWAYS_INLINE void mmu_put_user_byte(uaecptr addr, uae_u8 val, bool super
 {
 	struct mmu_atc_line *cl;
 
+	//                                        addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr,super,data)==TTR_OK_MATCH)) {
+		phys_put_byte(addr,val);
+		return;
+	}
 	if (likely(mmu_user_lookup(addr, super, data, true, &cl)))
 		phys_put_byte(mmu_get_real_address(addr, cl), val);
 	else

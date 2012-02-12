@@ -270,7 +270,8 @@ void dma_memory_write(Uint8 *buf, int size, int dma_channel) {
         base_addr = dma_next;
     else
         base_addr = dma_init;
-    
+
+    Log_Printf(LOG_WARN, "[DMA] Write to mem: at $%08x, $%x bytes",base_addr,size);
     for (size_count = 0; size_count < size; size_count++) {
         write_addr = base_addr + size_count;
         NEXTMemory_WriteByte(write_addr, buf[size_count]);
