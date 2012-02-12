@@ -253,7 +253,7 @@ static ALWAYS_INLINE bool mmu_lookup(uaecptr addr, bool data, bool write,
 		if ((addr == mmu_atc_array[data][way][index].tag) && (mmu_atc_array[data][way][index].valid)) {
 			*cl=&mmu_atc_array[data][way][index];
 			// if first write to this take slow path (but modify this slot)
-			if (!mmu_atc_array[data][way][index].modified & write)
+			if ((!mmu_atc_array[data][way][index].modified & write) || (mmu_atc_array[data][way][index].write_protect & write))
 				return false; 
 			return true;
 		}
@@ -282,7 +282,7 @@ static ALWAYS_INLINE bool mmu_user_lookup(uaecptr addr, bool super, bool data,
 		if ((addr == mmu_atc_array[data][way][index].tag) && (mmu_atc_array[data][way][index].valid)) {
 			*cl=&mmu_atc_array[data][way][index];
 			// if first write to this take slow path (but modify this slot)
-			if (!mmu_atc_array[data][way][index].modified & write)
+			if ((!mmu_atc_array[data][way][index].modified & write) || (mmu_atc_array[data][way][index].write_protect & write))
 				return false; 
 			return true;
 		}
