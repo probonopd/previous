@@ -394,6 +394,12 @@ void SCR2_Write2(void)
 	static Uint8 rtc_status=0x00;
 	static Uint8 rtc_ccr=0x00;	
 	static Uint8 rtc_icr=0x00;	
+
+    	static int day_in_week=0x02;
+	static int day=0x31;
+	static int month=0x12;
+	static int year=0x98;
+
     
 	Uint8 old_scr2_2=scr2_2;
 
@@ -451,6 +457,7 @@ void SCR2_Write2(void)
 		    static time_t t;
                     static struct tm * ts;
 
+
                     scr2_2=scr2_2&(~SCR2_RTDATA);
                     // get time at once to avoid problems (in burst mode only).
 	            if (!burst) {
@@ -470,16 +477,16 @@ void SCR2_Write2(void)
 				v=(((ts->tm_hour)/10)<<4)|(ts->tm_hour%10);
 				break;
 			case 0x23 : 
-				v=0x02;
+				v=day_in_week;
 				break;
 			case 0x24 : 
-				v=0x31;
+				v=day;
 				break;
 			case 0x25 : 
-				v=0x12;
+				v=month;
 				break;
 			case 0x26 : 
-				v=0x98;
+				v=year;
 				break;
 		    }
                     if (v&(0x80>>(phase-8)))
@@ -513,6 +520,20 @@ void SCR2_Write2(void)
                 if (rtc_command==0xB2) {
 		    rtc_icr=rtc_value;
 		}
+
+                if (rtc_command==0xA4) {
+		    day_in_week=rtc_value;
+		}
+                if (rtc_command==0xA5) {
+		    day=rtc_value;
+		}                
+		if (rtc_command==0xA6) {
+		    month=rtc_value;
+		}                
+		if (rtc_command==0xA7) {
+		    year=rtc_value;
+		}
+
 		// burst mode
 		phase=8;
 		rtc_command++;
