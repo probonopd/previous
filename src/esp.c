@@ -523,8 +523,13 @@ void do_busid_cmd(Uint8 busid) {
     Log_Printf(LOG_SCSI_LEVEL, "No target found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
 	
         status = STAT_CD;
-        intstatus = INTR_DC;
+        intstatus = INTR_DC|INTR_FC;
         seqstep = SEQ_SELTIMEOUT;
+    	fifoflags = 0;
+        dma_left = 0;
+        dma_counter = 0;
+    	readtranscountl = 0;
+    	readtranscounth = 0;
         esp_raise_irq();
 	return;
     }
