@@ -182,6 +182,7 @@ static uae_u8 *dummy_xlate(uaecptr addr)
 {
     write_log("Your program just did something terribly stupid:"
               " dummy_xlate($%x)\n", addr);
+    abort();
 }
 
 
@@ -251,7 +252,8 @@ static uae_u8 *BusErrMem_xlate (uaecptr addr)
     write_log("Your NeXT program just did something terribly stupid:"
               " BusErrMem_xlate($%x)\n", addr);
 
-    /*M68000_BusError(addr);*/
+    abort();
+    M68000_BusError(addr,0);
     return NEXTmem_xlate(addr);  /* So we don't crash. */
 }
 
@@ -738,7 +740,7 @@ static void init_mem_banks (void)
 {
     int i;
     for (i = 0; i < 65536; i++)
-        put_mem_bank (i<<16, &dummy_bank);
+        put_mem_bank (i<<16, &BusErrMem_bank);
 }
 
 /*

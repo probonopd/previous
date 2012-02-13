@@ -2144,7 +2144,10 @@ static void gen_opcode (unsigned long int opcode)
 		    printf ("\t\texception3i (0x%04X, m68k_getpc (), newpc);\n", opcode);
 			printf ("\t\tgoto %s;\n", endlabelstr);
 			printf ("\t}\n");
-		    printf ("\t\tm68k_setpc (newpc);\n");
+		    if (using_mmu)			
+			    printf ("\t\tm68k_setpc_mmu (newpc);\n");
+		    else
+			    printf ("\t\tm68k_setpc (newpc);\n");
 			printf ("\tipl_fetch ();\n");
 		    need_endlabel = 1;
 		}
@@ -2226,7 +2229,10 @@ static void gen_opcode (unsigned long int opcode)
 			printf ("\tm68k_do_rts ();\n");
 	    printf ("\tif (m68k_getpc () & 1) {\n");
 		printf ("\t\tuaecptr faultpc = m68k_getpc ();\n");
-		printf ("\t\tm68k_setpc (pc);\n");
+		if (using_mmu)
+			printf ("\t\tm68k_setpc_mmu (pc);\n");
+		else
+			printf ("\t\tm68k_setpc (pc);\n");
 		printf ("\t\texception3i (0x%04X, pc, faultpc);\n", opcode);
 		printf ("\t\tgoto %s;\n", endlabelstr);
 		printf ("\t}\n");
