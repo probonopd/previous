@@ -867,7 +867,8 @@ jmp_buf* __poptry(void) {
 		}
 	else {
 		fprintf(stderr,"try stack underflow...\n");
-		exit(-1);
+	    // return (NULL);
+		abort();
 	}
 }
 void __pushtry(jmp_buf* j) { 
@@ -877,7 +878,7 @@ void __pushtry(jmp_buf* j) {
 		s_try_stack_size++;
 	} else {
 		fprintf(stderr,"try stack overflow...\n");
-		exit(-1);
+		abort();
 	}
 }
 int __is_catched(void) {return (s_try_stack_size>0); }
