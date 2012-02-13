@@ -442,16 +442,16 @@ void SCR2_Write2(void)
 				v=(((ts->tm_hour)/10)<<4)|(ts->tm_hour%10);
 				break;
 			case 0x23 : 
-				v=0x01;
+				v=0x02;
 				break;
 			case 0x24 : 
-				v=0x01;
+				v=0x31;
 				break;
 			case 0x25 : 
-				v=0x01;
+				v=0x12;
 				break;
 			case 0x26 : 
-				v=0x90;
+				v=0x98;
 				break;
 		    }
                     if (v&(0x80>>(phase-8)))
