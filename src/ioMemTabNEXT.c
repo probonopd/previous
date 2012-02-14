@@ -185,10 +185,10 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 
     
     	/* Event counter */
-    	{ 0x0201a000, SIZE_BYTE, System_Timer0_Read, IoMem_WriteWithoutInterceptionButTrace },
-    	{ 0x0201a001, SIZE_BYTE, System_Timer1_Read, IoMem_WriteWithoutInterceptionButTrace },
-    	{ 0x0201a002, SIZE_BYTE, System_Timer2_Read, IoMem_WriteWithoutInterceptionButTrace },
-    	{ 0x0201a003, SIZE_BYTE, System_Timer3_Read, IoMem_WriteWithoutInterceptionButTrace },
+    	{ 0x0201a000, SIZE_BYTE, System_Timer0_Read, IoMem_WriteWithoutInterception },
+    	{ 0x0201a001, SIZE_BYTE, System_Timer1_Read, IoMem_WriteWithoutInterception },
+    	{ 0x0201a002, SIZE_BYTE, System_Timer2_Read, IoMem_WriteWithoutInterception },
+    	{ 0x0201a003, SIZE_BYTE, System_Timer3_Read, IoMem_WriteWithoutInterception },
 
 
   	// internal hardclock

@@ -35,7 +35,7 @@ Uint8 seqstep;
 Uint8 syncperiod;
 Uint8 fifoflags;
 Uint8 syncoffset;
-Uint8 configuration;
+static Uint8 configuration;
 Uint8 clockconv;
 Uint8 esptest;
 
@@ -101,7 +101,7 @@ void SCSI_CSR0_Write(void) {
         Log_Printf(LOG_SCSI_LEVEL, "mode DMA\n");
     }else{
         // set_interrupt(INT_SCSI_DMA, RELEASE_INT);
-        esp_lower_irq();
+        //esp_lower_irq();
         Log_Printf(LOG_SCSI_LEVEL, "mode PIO\n");
     }
     if ((csr_value0 & 0x20) == 0x20) {
@@ -241,11 +241,12 @@ void SCSI_Command_Write(void) {
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: reset SCSI bus\n");
             esp_reset_soft();
             if (!(configuration & CFG1_RESREPT)) {
-                intstatus = INTR_RST;
-            	seqstep = SEQ_0;
-                Log_Printf(LOG_SCSI_LEVEL,"Bus Reset raising IRQ\n");
+                intstatus = INTR_RST|INTR_DC;
+            	seqstep = SEQ_CD;
+                Log_Printf(LOG_SCSI_LEVEL,"Bus Reset raising IRQ configuration=%x\n",configuration);
                 esp_raise_irq();
-            }
+            } else 
+                Log_Printf(LOG_SCSI_LEVEL,"Bus Reset not interrupting configuration=%x\n",configuration);
             break;
             /* Disconnected */
         case CMD_SEL:
