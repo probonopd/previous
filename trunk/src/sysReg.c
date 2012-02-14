@@ -83,7 +83,7 @@ static Uint32 intMask=0x00000000;
 
 Uint8 rtc_ram[32]={
 0x94,0x0f,0x40,0x00,0x00,0x00,0x00,0x00,
-0x00,0x00,0xfb,0x6d,0x00,0x00,0x49,0x00,
+0x00,0x00,0xfb,0x6d,0x00,0x00,0x4b,0x00,
 0x41,0x00,0x20,0x00,0x00,0x00,0x00,0x00,
 0x00,0x00,0x00,0x00,0x00,0x00,0x0F,0x13
 }; 
@@ -399,6 +399,7 @@ void SCR2_Write2(void)
 	static int day=0x31;
 	static int month=0x12;
 	static int year=0x98;
+	static int century=0x19;
 
     
 	Uint8 old_scr2_2=scr2_2;
@@ -488,6 +489,9 @@ void SCR2_Write2(void)
 			case 0x26 : 
 				v=year;
 				break;
+			case 0x27 : 
+				v=century;
+				break;
 		    }
                     if (v&(0x80>>(phase-8)))
                         scr2_2|=SCR2_RTDATA;
@@ -521,17 +525,20 @@ void SCR2_Write2(void)
 		    rtc_icr=rtc_value;
 		}
 
-                if (rtc_command==0xA4) {
+                if (rtc_command==0xA3) {
 		    day_in_week=rtc_value;
 		}
-                if (rtc_command==0xA5) {
+                if (rtc_command==0xA4) {
 		    day=rtc_value;
 		}                
-		if (rtc_command==0xA6) {
+		if (rtc_command==0xA5) {
 		    month=rtc_value;
 		}                
-		if (rtc_command==0xA7) {
+		if (rtc_command==0xA6) {
 		    year=rtc_value;
+		}
+		if (rtc_command==0xA7) {
+		    century=rtc_value;
 		}
 
 		// burst mode
