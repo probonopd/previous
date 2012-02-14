@@ -69,6 +69,8 @@ int dma_enabled = 1;
 void (*dma_cb);
 #define ESP_MAX_DEVS 7
 
+static bool no_target=false;
+static int bus_id_command=0;
 
 
 void SCSI_CSR0_Read(void) {
@@ -241,8 +243,9 @@ void SCSI_Command_Write(void) {
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: reset SCSI bus\n");
             esp_reset_soft();
             if (!(configuration & CFG1_RESREPT)) {
-                intstatus = INTR_RST|INTR_DC;
-            	seqstep = SEQ_CD;
+                intstatus = INTR_RST;
+		status = (status&STAT_MASK)|STAT_CD;
+            	seqstep = 0;
                 Log_Printf(LOG_SCSI_LEVEL,"Bus Reset raising IRQ configuration=%x\n",configuration);
                 esp_raise_irq();
             } else 
@@ -262,10 +265,13 @@ void SCSI_Command_Write(void) {
 	    abort();
             break;
         case CMD_ENSEL:
-            Log_Printf(LOG_SCSI_LEVEL, "ESP Command: enable selection/reselection\n");
-            status = (status&STAT_MASK)|STAT_ST;	   
-            intstatus = INTR_FC;
-            seqstep = SEQ_0;
+            Log_Printf(LOG_SCSI_LEVEL, "ESP Command: enable selection/reselection no_target=%x intstatus=%x status=%x seqstep=%x",
+			no_target,intstatus,status,seqstep);
+            if (no_target) {
+                Log_Printf(LOG_SCSI_LEVEL, "ESP retry timeout");
+          	intstatus = INTR_RESEL;
+            	seqstep = SEQ_SELTIMEOUT;
+		}
             break;
             /* Initiator */
         case CMD_TI:
@@ -310,14 +316,23 @@ void SCSI_Command_Write(void) {
         case CMD_RCOMM:
         case CMD_RDATA:
         case CMD_RCSEQ:
-             status = (status&STAT_MASK)|STAT_ST;	   
-            intstatus = INTR_FC;
+
+            status = (status&STAT_MASK)|STAT_ST;	   
+            intstatus = INTR_ILL;
             seqstep = SEQ_0;
             fifoflags = 0x00;
             esp_raise_irq();
-        case CMD_DIS:
             Log_Printf(LOG_WARN, "ESP Command: Target commands not supported!\n");
             break;
+        case CMD_DIS:
+
+
+            Log_Printf(LOG_WARN, "ESP Command: DISCONNECT !\n");
+            status = (status&STAT_MASK)|STAT_ST;	   
+            intstatus = INTR_DC; 
+            seqstep = SEQ_0;
+            break;
+
             
         default:
             Log_Printf(LOG_WARN, "ESP Command: Illegal command!\n");
@@ -334,6 +349,7 @@ void SCSI_Status_Read(void) { // 0x02014004
 void SCSI_SelectBusID_Write(void) {
     selectbusid=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
  	Log_Printf(LOG_SCSI_LEVEL,"ESP SelectBusID write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+	no_target=false;
 }
 
 void SCSI_IntStatus_Read(void) { // 0x02014005
@@ -342,7 +358,7 @@ void SCSI_IntStatus_Read(void) { // 0x02014005
     
     if (irq_status == 1) {
             intstatus = 0x00;
-            status &= ~(STAT_VGC | STAT_PE | STAT_GE );
+	    status &= ~(STAT_VGC | STAT_PE | STAT_GE );
             seqstep = SEQ_0;
             esp_lower_irq();
     }
@@ -522,15 +538,9 @@ void do_busid_cmd(Uint8 busid) {
 
     if ((target >= ESP_MAX_DEVS) || (SCSIcommand.timeout==true)) { // experimental
     Log_Printf(LOG_SCSI_LEVEL, "No target found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
-	
-        status = STAT_CD;
-        intstatus = INTR_DC|INTR_FC;
-        seqstep = SEQ_SELTIMEOUT;
-    	fifoflags = 0;
-        dma_left = 0;
-        dma_counter = 0;
-    	readtranscountl = 0;
-    	readtranscounth = 0;
+        intstatus = INTR_DC;
+	seqstep = SEQ_SELTIMEOUT;
+	no_target=true;
         esp_raise_irq();
 	return;
     }

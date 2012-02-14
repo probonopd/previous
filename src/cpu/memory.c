@@ -63,10 +63,10 @@ const char Memory_fileid[] = "Hatari memory.c : " __DATE__ " " __TIME__;
 #define NEXT_RAM_START   	0x04000000
 #define NEXT_RAM_SPACE		0x40000000
 // #define NEXT_RAM_SIZE		0x007FE000
-#define NEXT_RAM_SIZE		0x08000000
+#define NEXT_RAM_SIZE		0x04000000
 
 uae_u32	NEXTmem_size; // unused
-#define NEXTmem_mask		0x00FFFFFF
+#define NEXTmem_mask		0x03FFFFFF
 // for a mono screen
 #define NEXT_SCREEN			0x0B000000
 #define NEXT_SCREEN_SIZE	0x00040000
@@ -760,12 +760,14 @@ void memory_init(uae_u32 nNewNEXTMemSize)
     
     map_banks(&NEXTmem_bank, NEXT_RAM_START>>16, NEXT_RAM_SIZE >> 16);
 
-	// also map here... need to check address for function (weird?)
+    // also map here... need to check address for function (weird?)
+    /*
     map_banks(&NEXTmem_bank, 0x10000000>>16, NEXT_RAM_SIZE >> 16);
     map_banks(&NEXTmem_bank, 0x14000000>>16, NEXT_RAM_SIZE >> 16);
     map_banks(&NEXTmem_bank, 0x18000000>>16, NEXT_RAM_SIZE >> 16);
     map_banks(&NEXTmem_bank, 0x1C000000>>16, NEXT_RAM_SIZE >> 16);
-    
+    */
+
     // map_banks(&NEXTmem_bank2, NEXT_RAM_START2>>16, NEXT_RAM_SIZE2 >> 16);
     
     

@@ -61,7 +61,7 @@ void System_Timer3_Read(void) {
 
 /* Floppy Disk Drive - Work on this later */
 void FDD_Main_Status_Read (void) {
-    IoMem[IoAccessCurrentAddress & 0x1FFFF] = 0x80;
+    IoMem[IoAccessCurrentAddress & 0x1FFFF] = 0x00;
 }
 
 
@@ -255,7 +255,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 //  { 0x0201400e, SIZE_BYTE, SCSI_CMD_Read, SCSI_CMD_Write },
 //  { 0x0201400f, SIZE_BYTE, SCSI_CMD_Read, SCSI_CMD_Write },
     
-    /* Floppy */
+    /* Floppy 82077 */
     { 0x02014100, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     { 0x02014101, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     { 0x02014102, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
@@ -264,6 +264,8 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x02014105, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     { 0x02014106, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     { 0x02014107, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+
+    /* floppy external control */
     { 0x02014108, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 
     
