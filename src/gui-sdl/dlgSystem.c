@@ -58,7 +58,7 @@ static SGOBJ systemdlg[] =
     { SGCHECKBOX, 0, 0, 7,10, 7,1, "Turbo" },
     
     { SGBUTTON, SG_DEFAULT, 0, 5,13, 20,1, "Customize" },
-    { SGBUTTON, SG_DEFAULT, 0, 5,15, 20,1, "Reset" },
+    { SGBUTTON, SG_DEFAULT, 0, 5,15, 20,1, "System defaults" },
         
  	{ SGTEXT, 0, 0, 30,4, 13,1, "System overview:" },
     { SGTEXT, 0, 0, 30,6, 13,1, "CPU type:" },

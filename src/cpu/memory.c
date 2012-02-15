@@ -806,6 +806,11 @@ void memory_init(uae_u32 nNewNEXTMemSize)
         else
             fin=fopen(ConfigureParams.Rom.szRom040FileName, "rb");
 
+	if (fin==NULL) {
+		write_log("Rom file missing\n");
+		exit(-1);
+	}
+
 		ret=fread(ROMmemory,1,0x20000,fin);
         
 		write_log("Read ROM %d\n",ret);
