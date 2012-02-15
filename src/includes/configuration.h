@@ -19,7 +19,7 @@ typedef struct
 } CNF_LOG;
 
 
-/* debugger */
+/* Debugger */
 typedef struct
 {
   int nNumberBase;
@@ -28,11 +28,12 @@ typedef struct
 } CNF_DEBUGGER;
 
 
-/* ROM (TOS + cartridge) configuration */
+/* ROM configuration */
 typedef struct
 {
-  char szTosImageFileName[FILENAME_MAX];
-  char szCartridgeImageFileName[FILENAME_MAX];
+    char szRom030FileName[FILENAME_MAX];
+    char szRom040FileName[FILENAME_MAX];
+    char szRomTurboFileName[FILENAME_MAX];
 } CNF_ROM;
 
 
@@ -113,31 +114,6 @@ typedef struct
 } CNF_MEMORY;
 
 
-/* Joystick configuration */
-typedef enum
-{
-  JOYSTICK_DISABLED,
-  JOYSTICK_REALSTICK,
-  JOYSTICK_KEYBOARD
-} JOYSTICKMODE;
-
-typedef struct
-{
-  JOYSTICKMODE nJoystickMode;
-  bool bEnableAutoFire;
-  bool bEnableJumpOnFire2;
-  int nJoyId;
-  int nKeyCodeUp, nKeyCodeDown, nKeyCodeLeft, nKeyCodeRight, nKeyCodeFire;
-} JOYSTICK;
-
-#define JOYSTICK_COUNT 6
-
-typedef struct
-{
-  JOYSTICK Joy[JOYSTICK_COUNT];
-} CNF_JOYSTICKS;
-
-
 /* Disk image configuration */
 
 typedef enum
@@ -196,17 +172,8 @@ typedef struct
     bool bCDROM6;
     
   
-  int nHardDiskDir;
-  bool bUseHardDiskDirectories;
-  bool bUseHardDiskImage;
-  bool bUseIdeMasterHardDiskImage;
-  bool bUseIdeSlaveHardDiskImage;
   WRITEPROTECTION nWriteProtection;
   bool bBootFromHardDisk;
-  char szHardDiskDirectories[MAX_HARDDRIVES][FILENAME_MAX];
-  char szHardDiskImage[FILENAME_MAX];
-  char szIdeMasterHardDiskImage[FILENAME_MAX];
-  char szIdeSlaveHardDiskImage[FILENAME_MAX];
 } CNF_HARDDISK;
 
 /* Falcon register $FFFF8006 bits 6 & 7 (mirrored in $FFFF82C0 bits 0 & 1):
@@ -272,12 +239,22 @@ typedef struct
 /* Dialog System */
 typedef enum
 {
-  MACHINE_ST,
-  MACHINE_STE,
-  MACHINE_TT,
-  MACHINE_FALCON,
-  MACHINE_MEGA_STE,
+  NEXT_CUBE030,
+  NEXT_CUBE040,
+  NEXT_STATION
 } MACHINETYPE;
+
+typedef enum
+{
+  NCR53C90,
+  NCR53C90A
+} SCSICHIP;
+
+typedef enum
+{
+  MC68HC68T1,
+  MCS1850
+} RTCCHIP;
 
 typedef enum
 {
@@ -298,6 +275,11 @@ typedef enum
 
 typedef struct
 {
+  bool bColor;
+  bool bTurbo;
+  bool bADB;
+  SCSICHIP nSCSI;
+  RTCCHIP nRTC;
   int nCpuLevel;
   int nCpuFreq;
   bool bCompatibleCpu;            /* Prefetch mode */
@@ -335,7 +317,6 @@ typedef struct
   CNF_LOG Log;
   CNF_DEBUGGER Debugger;
   CNF_SCREEN Screen;
-  CNF_JOYSTICKS Joysticks;
   CNF_KEYBOARD Keyboard;
   CNF_SHORTCUT Shortcut;
   CNF_SOUND Sound;

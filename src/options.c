@@ -777,10 +777,10 @@ static bool Opt_HandleArgument(const char *path)
 
 	/* GEMDOS HDD directory (as argument, or for the Atari program)? */
 	if (File_DirExists(path)) {
-		if (Opt_StrCpy(OPT_HARDDRIVE, false, ConfigureParams.HardDisk.szHardDiskDirectories[0],
-			       path, sizeof(ConfigureParams.HardDisk.szHardDiskDirectories[0]),
-			       &ConfigureParams.HardDisk.bUseHardDiskDirectories)
-		    && ConfigureParams.HardDisk.bUseHardDiskDirectories)
+//		if (Opt_StrCpy(OPT_HARDDRIVE, false, ConfigureParams.HardDisk.szHardDiskDirectories[0],
+//			       path, sizeof(ConfigureParams.HardDisk.szHardDiskDirectories[0]),
+//			       &ConfigureParams.HardDisk.bUseHardDiskDirectories)
+//		    && ConfigureParams.HardDisk.bUseHardDiskDirectories)
 		{
 			ConfigureParams.HardDisk.bBootFromHardDisk = true;
 		}
@@ -1098,19 +1098,19 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 		case OPT_JOYSTICK4:
 		case OPT_JOYSTICK5:
 			port = argv[i][strlen(argv[i])-1] - '0';
-			assert(port >= 0 && port < JOYSTICK_COUNT);
+//			assert(port >= 0 && port < JOYSTICK_COUNT);
 			i += 1;
 			if (strcasecmp(argv[i], "none") == 0)
 			{
-				ConfigureParams.Joysticks.Joy[port].nJoystickMode = JOYSTICK_DISABLED;
+//				ConfigureParams.Joysticks.Joy[port].nJoystickMode = JOYSTICK_DISABLED;
 			}
 			else if (strcasecmp(argv[i], "keys") == 0)
 			{
-				ConfigureParams.Joysticks.Joy[port].nJoystickMode = JOYSTICK_KEYBOARD;
+//				ConfigureParams.Joysticks.Joy[port].nJoystickMode = JOYSTICK_KEYBOARD;
 			}
 			else if (strcasecmp(argv[i], "real") == 0)
 			{
-				ConfigureParams.Joysticks.Joy[port].nJoystickMode = JOYSTICK_REALSTICK;
+//				ConfigureParams.Joysticks.Joy[port].nJoystickMode = JOYSTICK_REALSTICK;
 			}
 			else
 			{
@@ -1204,10 +1204,10 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 
 		case OPT_HARDDRIVE:
 			i += 1;
-			ok = Opt_StrCpy(OPT_HARDDRIVE, false, ConfigureParams.HardDisk.szHardDiskDirectories[0],
-					argv[i], sizeof(ConfigureParams.HardDisk.szHardDiskDirectories[0]),
-					&ConfigureParams.HardDisk.bUseHardDiskDirectories);
-			if (ok && ConfigureParams.HardDisk.bUseHardDiskDirectories)
+//			ok = Opt_StrCpy(OPT_HARDDRIVE, false, ConfigureParams.HardDisk.szHardDiskDirectories[0],
+//					argv[i], sizeof(ConfigureParams.HardDisk.szHardDiskDirectories[0]),
+//					&ConfigureParams.HardDisk.bUseHardDiskDirectories);
+//			if (ok && ConfigureParams.HardDisk.bUseHardDiskDirectories)
 			{
 				ConfigureParams.HardDisk.bBootFromHardDisk = true;
 			}
@@ -1216,9 +1216,9 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 
 		case OPT_ACSIHDIMAGE:
 			i += 1;
-			ok = Opt_StrCpy(OPT_ACSIHDIMAGE, true, ConfigureParams.HardDisk.szHardDiskImage,
-					argv[i], sizeof(ConfigureParams.HardDisk.szHardDiskImage),
-					&ConfigureParams.HardDisk.bUseHardDiskImage);
+//			ok = Opt_StrCpy(OPT_ACSIHDIMAGE, true, ConfigureParams.HardDisk.szHardDiskImage,
+//					argv[i], sizeof(ConfigureParams.HardDisk.szHardDiskImage),
+//					&ConfigureParams.HardDisk.bUseHardDiskImage);
 			if (ok)
 			{
 				bLoadAutoSave = false;
@@ -1227,9 +1227,9 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 			
 		case OPT_IDEMASTERHDIMAGE:
 			i += 1;
-			ok = Opt_StrCpy(OPT_IDEMASTERHDIMAGE, true, ConfigureParams.HardDisk.szIdeMasterHardDiskImage,
-					argv[i], sizeof(ConfigureParams.HardDisk.szIdeMasterHardDiskImage),
-					&ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage);
+//			ok = Opt_StrCpy(OPT_IDEMASTERHDIMAGE, true, ConfigureParams.HardDisk.szIdeMasterHardDiskImage,
+//					argv[i], sizeof(ConfigureParams.HardDisk.szIdeMasterHardDiskImage),
+//					&ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage);
 			if (ok)
 			{
 				bLoadAutoSave = false;
@@ -1238,9 +1238,9 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 
 		case OPT_IDESLAVEHDIMAGE:
 			i += 1;
-			ok = Opt_StrCpy(OPT_IDESLAVEHDIMAGE, true, ConfigureParams.HardDisk.szIdeSlaveHardDiskImage,
-					argv[i], sizeof(ConfigureParams.HardDisk.szIdeSlaveHardDiskImage),
-					&ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage);
+//			ok = Opt_StrCpy(OPT_IDESLAVEHDIMAGE, true, ConfigureParams.HardDisk.szIdeSlaveHardDiskImage,
+//					argv[i], sizeof(ConfigureParams.HardDisk.szIdeSlaveHardDiskImage),
+//					&ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage);
 			if (ok)
 			{
 				bLoadAutoSave = false;
@@ -1260,9 +1260,9 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
       
 		case OPT_TOS:
 			i += 1;
-			ok = Opt_StrCpy(OPT_TOS, true, ConfigureParams.Rom.szTosImageFileName,
-					argv[i], sizeof(ConfigureParams.Rom.szTosImageFileName),
-					NULL);
+//			ok = Opt_StrCpy(OPT_TOS, true, ConfigureParams.Rom.szTosImageFileName,
+//					argv[i], sizeof(ConfigureParams.Rom.szTosImageFileName),
+//					NULL);
 			if (ok)
 			{
 				bLoadAutoSave = false;
@@ -1271,9 +1271,9 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 			
 		case OPT_CARTRIDGE:
 			i += 1;
-			ok = Opt_StrCpy(OPT_CARTRIDGE, true, ConfigureParams.Rom.szCartridgeImageFileName,
-					argv[i], sizeof(ConfigureParams.Rom.szCartridgeImageFileName),
-					NULL);
+//			ok = Opt_StrCpy(OPT_CARTRIDGE, true, ConfigureParams.Rom.szCartridgeImageFileName,
+//					argv[i], sizeof(ConfigureParams.Rom.szCartridgeImageFileName),
+//					NULL);
 			if (ok)
 			{
 				bLoadAutoSave = false;
@@ -1327,19 +1327,19 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 			i += 1;
 			if (strcasecmp(argv[i], "st") == 0)
 			{
-				ConfigureParams.System.nMachineType = MACHINE_ST;
+//				ConfigureParams.System.nMachineType = MACHINE_ST;
 				ConfigureParams.System.nCpuLevel = 0;
 				ConfigureParams.System.nCpuFreq = 8;
 			}
 			else if (strcasecmp(argv[i], "ste") == 0)
 			{
-				ConfigureParams.System.nMachineType = MACHINE_STE;
+//				ConfigureParams.System.nMachineType = MACHINE_STE;
 				ConfigureParams.System.nCpuLevel = 0;
 				ConfigureParams.System.nCpuFreq = 8;
 			}
 			else if (strcasecmp(argv[i], "tt") == 0)
 			{
-				ConfigureParams.System.nMachineType = MACHINE_TT;
+//				ConfigureParams.System.nMachineType = MACHINE_TT;
 				ConfigureParams.System.nCpuLevel = 3;
 				ConfigureParams.System.nCpuFreq = 32;
 			}
@@ -1348,7 +1348,7 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 #if ENABLE_DSP_EMU
 		ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
 #endif
-				ConfigureParams.System.nMachineType = MACHINE_FALCON;
+//				ConfigureParams.System.nMachineType = MACHINE_FALCON;
 				ConfigureParams.System.nCpuLevel = 3;
 				ConfigureParams.System.nCpuFreq = 16;
 			}

@@ -611,7 +611,7 @@ static const int nSoundFreqs[] =
     IMPORT_SWITCH(blitter, ConfigureParams.System.bBlitter);
 	IMPORT_SWITCH(bootFromHD, ConfigureParams.HardDisk.bBootFromHardDisk);	
 //    IMPORT_SWITCH(captureOnChange, ConfigureParams.Screen.bCrop);
-    IMPORT_TEXTFIELD(cartridgeImage, ConfigureParams.Rom.szCartridgeImageFileName);
+//    IMPORT_TEXTFIELD(cartridgeImage, ConfigureParams.Rom.szCartridgeImageFileName);
     IMPORT_RADIO(colorDepth, ConfigureParams.Screen.nVdiColors);
     IMPORT_SWITCH(compatibleCpu, ConfigureParams.System.bCompatibleCpu);
     IMPORT_RADIO(cpuClock, ConfigureParams.System.nCpuFreq);

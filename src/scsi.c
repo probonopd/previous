@@ -34,21 +34,6 @@ bool bCDROM;
 bool bTargetDevice;
 
 
-/*typedef struct {
-    Uint32 filesize;
-    bool cdrom;
-} SCSIHDINFO;
-
-SCSIHDINFO scsiimage;
-
-SCSIHDINFO scsiimage0;
-SCSIHDINFO scsiimage1;
-SCSIHDINFO scsiimage2;
-SCSIHDINFO scsiimage3;
-SCSIHDINFO scsiimage4;
-SCSIHDINFO scsiimage5;
-SCSIHDINFO scsiimage6;*/
-
 static FILE *scsidisk = NULL;
 
 FILE* scsidisk0;
@@ -276,6 +261,7 @@ void SCSI_Emulate_Command(void)
         case HD_WRITE_SECTOR1:
             Log_Printf(LOG_WARN, "SCSI command: Write sector\n");
 //            HDC_Cmd_WriteSector();
+            abort();
             break;
             
         case HD_INQUIRY:
@@ -286,6 +272,7 @@ void SCSI_Emulate_Command(void)
         case HD_SEEK:
             Log_Printf(LOG_WARN, "SCSI command: Seek\n");
 //            HDC_Cmd_Seek();
+            abort();
             break;
             
         case HD_SHIP:
@@ -305,16 +292,18 @@ void SCSI_Emulate_Command(void)
             bSetLastBlockAddr = false;
 //            FDC_SetDMAStatus(false);
 //            FDC_AcknowledgeInterrupt();
+            abort();
             break;
             
         case HD_MODESENSE:
             Log_Printf(LOG_WARN, "SCSI command: Mode sense\n");
-//            HDC_Cmd_ModeSense();
+            SCSI_ModeSense();
             break;
             
         case HD_FORMAT_DRIVE:
             Log_Printf(LOG_WARN, "SCSI command: Format drive\n");
 //            HDC_Cmd_FormatDrive();
+            abort();
             break;
             
             /* as of yet unsupported commands */
@@ -365,6 +354,88 @@ int SCSI_GetCount(void)
     SCSIcommand.command[4] :
     // class 1
     COMMAND_ReadInt16(SCSIcommand.command, 7);
+}
+
+MODEPAGE SCSI_GetModePage(Uint8 pagecode) {
+    MODEPAGE page;
+    
+    switch (pagecode) {
+        case 0x01: // error recovery page
+            page.pagesize = 8;
+            page.modepage[0] = 0x01; // &0x80: page savable? (not supported!), &0x7F: page code = 0x01
+            page.modepage[1] = 0x06; // page length = 6
+            page.modepage[2] = 0x00; // AWRE, ARRE, TB, RC, EER, PER, DTE, DCR
+            page.modepage[3] = 0x1B; // retry count
+            page.modepage[4] = 0x0B; // correction span in bits
+            page.modepage[5] = 0x00; // head offset count
+            page.modepage[6] = 0x00; // data strobe offset count
+            page.modepage[7] = 0xFF; // recovery time limit
+            break;
+            
+        case 0x02: // disconnect/reconnect page
+        case 0x03: // format device page
+            page.pagesize = 0;
+            Log_Printf(LOG_WARN, "Mode Sense: Page %02x not yet emulated!\n", pagecode);
+            break;
+
+        case 0x04: // rigid disc geometry page
+            fseek(scsidisk, 0L, SEEK_END);
+            Uint32 filesize = ftell(scsidisk);
+            Uint32 sectors = filesize / BLOCKSIZE;
+            Uint8 heads = 16; // max heads per cylinder: 16
+            Uint32 cylinders = sectors / (63 * heads); // max sectors per track: 63
+            if ((sectors % (63 * heads)) != 0) {
+                cylinders += 1;
+            }
+            Log_Printf(LOG_WARN, "Disk geometry: %i sectors, %i cylinders, %i heads\n", sectors, cylinders, heads);
+            
+            page.pagesize = 0; //20;
+            Log_Printf(LOG_WARN, "Disk geometry page disabled!\n"); abort();
+            page.modepage[0] = 0x04; // &0x80: page savable? (not supported!), &0x7F: page code = 0x04
+            page.modepage[1] = 0x12;
+            page.modepage[2] = (cylinders >> 16) & 0xFF;
+            page.modepage[3] = (cylinders >> 8) & 0xFF;
+            page.modepage[4] = cylinders & 0xFF;
+            page.modepage[5] = heads;
+            page.modepage[6] = 0x00; // 6,7,8: starting cylinder - write precomp (not supported)
+            page.modepage[7] = 0x00;
+            page.modepage[8] = 0x00;
+            page.modepage[9] = 0x00; // 9,10,11: starting cylinder - reduced write current (not supported)
+            page.modepage[10] = 0x00;
+            page.modepage[11] = 0x00;
+            page.modepage[12] = 0x00; // 12,13: drive step rate (not supported)
+            page.modepage[13] = 0x00;
+            page.modepage[14] = 0x00; // 14,15,16: loading zone cylinder (not supported)
+            page.modepage[15] = 0x00;
+            page.modepage[16] = 0x00;
+            page.modepage[17] = 0x00; // &0x03: rotational position locking
+            page.modepage[18] = 0x00; // rotational position lock offset
+            page.modepage[19] = 0x00; // reserved
+            break;
+            
+        case 0x08: // caching page
+        case 0x0C: // notch page
+        case 0x0D: // power condition page
+        case 0x38: // cache control page
+        case 0x3C: // soft ID page (EEPROM)
+            page.pagesize = 0;
+            Log_Printf(LOG_WARN, "Mode Sense: Page %02x not yet emulated!\n", pagecode);
+            break;
+            
+        case 0x00: // operating page
+            page.pagesize = 4;
+            page.modepage[0] = 0x00; // &0x80: page savable? (not supported!), &0x7F: page code = 0x00
+            page.modepage[1] = 0x02; // page length = 2
+            page.modepage[2] = 0x80; // &0x80: usage bit = 1, &0x10: disable unit attention = 0
+            page.modepage[3] = 0x00; // &0x7F: device type qualifier = 0x00, see inquiry!
+            break;
+            
+        default:
+            page.pagesize = 0;
+            Log_Printf(LOG_WARN, "Mode Sense: Invalid page code: %02x!\n", pagecode);
+            break;
+    }
+    return page;
 }
 
 
@@ -529,7 +600,6 @@ void SCSI_RequestSense(void) {
     
 	if (nRetLen <= 4)
 	{
-
 		retbuf[0] = nLastError;
 		if (bSetLastBlockAddr)
 		{
@@ -568,4 +638,127 @@ void SCSI_RequestSense(void) {
     SCSIcommand.transfer_data_len = nRetLen;
     memcpy(dma_write_buffer, retbuf, SCSIcommand.transfer_data_len);
     SCSIcommand.returnCode = HD_STATUS_OK;
+}
+
+
+void SCSI_ModeSense(void) {
+    Uint8 retbuf[256];
+    MODEPAGE page;
+    
+    fseek(scsidisk, 0L, SEEK_END);
+    Uint32 filesize = ftell(scsidisk);
+    Uint32 sectors = filesize / BLOCKSIZE;
+
+    Uint8 pagecontrol = (SCSIcommand.command[2] & 0x0C) >> 6;
+    Uint8 pagecode = SCSIcommand.command[2] & 0x3F;
+    Uint8 dbd = SCSIcommand.command[1] & 0x08; // disable block descriptor
+        
+    Log_Printf(LOG_WARN, "Mode Sense: page = %02x, page_control = %i, %s\n", pagecode, pagecontrol, dbd == 0x08 ? "block descriptor disabled" : "block descriptor enabled");
+    
+    /* Header */
+    retbuf[0] = 0x00; // length of following data
+    retbuf[1] = 0x00; // medium type (always 0)
+    retbuf[2] = bCDROM == true ? 0x80 : 0x00; // if media is read-only 0x80, else 0x00
+    retbuf[3] = 0x08; // block descriptor length
+    
+    /* Block descriptor data */
+    Uint8 header_size = 4;
+    if (!dbd) {
+        retbuf[4] = 0x00; // media density code
+        retbuf[5] = sectors >> 16;  // Number of blocks, high (?)
+        retbuf[6] = sectors >> 8;   // Number of blocks, med (?)
+        retbuf[7] = sectors;        // Number of blocks, low (?)
+        retbuf[8] = 0x00; // reserved
+        retbuf[9] = (BLOCKSIZE >> 16) & 0xFF;      // Block size in bytes, high
+        retbuf[10] = (BLOCKSIZE >> 8) & 0xFF;     // Block size in bytes, med
+        retbuf[11] = BLOCKSIZE & 0xFF;     // Block size in bytes, low
+        header_size = 12;
+        Log_Printf(LOG_WARN, "Mode Sense: Block descriptor data: %s, size = %i blocks, blocksize = %i byte\n", bCDROM == true ? "disk is read-only" : "disk is read/write" , sectors, BLOCKSIZE);
+    }
+    retbuf[0] = header_size - 1;
+    
+    /* Mode Pages */
+    if (pagecode == 0x3F) { // return all pages!
+        Uint8 offset = header_size;
+        Uint8 counter;
+        for (pagecode = 0; pagecode < 0x3F; pagecode++) {
+            page = SCSI_GetModePage(pagecode);
+            switch (pagecontrol) {
+                case 0: // current values (not supported, using default values)
+                    memcpy(page.current, page.modepage, page.pagesize);
+                    for (counter = 0; counter < page.pagesize; counter++) {
+                        retbuf[counter+offset] = page.current[counter];
+                    }
+                    break;
+                case 1: // changeable values (not supported, all 0)
+                    memset(page.changeable, 0x00, page.pagesize);
+                    for (counter = 0; counter < page.pagesize; counter++) {
+                        retbuf[counter+offset] = page.changeable[counter];
+                    }
+                    break;
+                case 2: // default values
+                    for (counter = 0; counter < page.pagesize; counter++) {
+                        retbuf[counter+offset] = page.modepage[counter];
+                    }
+                    break;
+                case 3: // saved values (not supported, using default values)
+                    memcpy(page.saved, page.modepage, page.pagesize);
+                    for (counter = 0; counter < page.pagesize; counter++) {
+                        retbuf[counter+offset] = page.saved[counter];
+                    }
+                    break;
+                    
+                default:
+                    break;
+            }
+            offset += page.pagesize;
+            retbuf[0] += page.pagesize;
+        }
+    } else { // return only single requested page
+        page = SCSI_GetModePage(pagecode);
+        
+        Uint8 counter;
+        switch (pagecontrol) {
+            case 0: // current values (not supported, using default values)
+                memcpy(page.current, page.modepage, page.pagesize);
+                for (counter = 0; counter < page.pagesize; counter++) {
+                    retbuf[counter+header_size] = page.current[counter];
+                }
+                break;
+            case 1: // changeable values (not supported, all 0)
+                memset(page.changeable, 0x00, page.pagesize);
+                for (counter = 0; counter < page.pagesize; counter++) {
+                    retbuf[counter+header_size] = page.changeable[counter];
+                }
+                break;
+            case 2: // default values
+                for (counter = 0; counter < page.pagesize; counter++) {
+                    retbuf[counter+header_size] = page.modepage[counter];
+                }
+                break;
+            case 3: // saved values (not supported, using default values)
+                memcpy(page.saved, page.modepage, page.pagesize);
+                for (counter = 0; counter < page.pagesize; counter++) {
+                    retbuf[counter+header_size] = page.saved[counter];
+                }
+                break;
+                
+            default:
+                break;
+        }
+        
+        retbuf[0] += page.pagesize;
+    }
+    
+    
+    SCSIcommand.transfer_data_len = retbuf[0] + 1;
+    if (SCSIcommand.transfer_data_len > SCSI_GetTransferLength())
+        SCSIcommand.transfer_data_len = SCSI_GetTransferLength();
+    
+    memcpy(dma_write_buffer, retbuf, SCSIcommand.transfer_data_len);
+    
+    SCSIcommand.returnCode = HD_STATUS_OK;
+    nLastError = HD_REQSENS_OK;
+    
+	bSetLastBlockAddr = false;
 }

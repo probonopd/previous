@@ -458,7 +458,6 @@ void SCR2_Write2(void)
 		    static time_t t;
                     static struct tm * ts;
 
-
                     scr2_2=scr2_2&(~SCR2_RTDATA);
                     // get time at once to avoid problems (in burst mode only).
 	            if (!burst) {
@@ -603,8 +602,6 @@ void IntRegStatWrite(void) {
 void set_interrupt(Uint32 interrupt_val, Uint8 int_set_release) {
     
     Uint8 interrupt_level;
-
-
     
     if(int_set_release == SET_INT) {
         intStat = intStat | interrupt_val;
