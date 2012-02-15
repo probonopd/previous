@@ -303,7 +303,6 @@ void SCSI_Command_Write(void) {
             break;
         case CMD_SATN:
             Log_Printf(LOG_SCSI_LEVEL, "ESP Command: set ATN\n");
-
             break;
             /* Target */
         case CMD_SEMSG:

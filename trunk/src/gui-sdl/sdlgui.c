@@ -867,6 +867,7 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 						SDL_FillRect(pSdlGuiScrn, &rct, grey); /* Clear old */
 						SDLGui_DrawRadioButton(dlg, obj);
 						SDL_UpdateRects(pSdlGuiScrn, 1, &rct);
+                            retbutton = obj; // added by andreas_g
 						break;
 					 case SGCHECKBOX:
 						dlg[obj].state ^= SG_SELECTED;
@@ -877,6 +878,7 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 						SDL_FillRect(pSdlGuiScrn, &rct, grey); /* Clear old */
 						SDLGui_DrawCheckBox(dlg, obj);
 						SDL_UpdateRects(pSdlGuiScrn, 1, &rct);
+                            retbutton = obj; // added by andreas_g
 						break;
 					 case SGPOPUP:
 						dlg[obj].state |= SG_SELECTED;

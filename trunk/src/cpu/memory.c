@@ -743,6 +743,7 @@ static void init_mem_banks (void)
         put_mem_bank (i<<16, &BusErrMem_bank);
 }
 
+
 /*
  * Initialize the memory banks
  */
@@ -797,15 +798,14 @@ void memory_init(uae_u32 nNewNEXTMemSize)
 	{
 		FILE* fin;
 		int ret;
-	// if processor is 68030, loads a cube rom
-        if(ConfigureParams.System.nCpuLevel == 3)
-            fin=fopen("./Rev_1.0_v41.BIN","rb");
-	    // fin=fopen("./Rev_1.2.BIN","rb");
+	/* Loading ROM depending on emulated system */
+        if(ConfigureParams.System.nMachineType == NEXT_CUBE030)
+            fin=fopen(ConfigureParams.Rom.szRom030FileName,"rb");
+        else if(ConfigureParams.System.bTurbo == true)
+            fin=fopen(ConfigureParams.Rom.szRomTurboFileName,"rb");
         else
-            fin=fopen("./Rev_2.5_v66.BIN","rb");
-        //		fin=fopen("./Rev_3.3_v74.BIN","rb");
-        //		fin=fopen("./Rev_1.2.BIN","rb");
-        //		fin=fopen("./Rev_1.0_v41.BIN","rb");
+            fin=fopen(ConfigureParams.Rom.szRom040FileName, "rb");
+
 		ret=fread(ROMmemory,1,0x20000,fin);
         
 		write_log("Read ROM %d\n",ret);

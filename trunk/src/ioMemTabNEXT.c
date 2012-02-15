@@ -80,12 +80,29 @@ void DSP_icr_Write (void) {
 }
 
 
+#define	P_VIDEO_CSR	(SLOT_ID+0x02000180)
+#define	P_M2R_CSR	(SLOT_ID+0x020001d0)
+#define	P_R2M_CSR	(SLOT_ID+0x020001c0)
+
+/* DMA scratch pad (writes MUST be 32-bit) */
+#define	P_VIDEO_SPAD	(SLOT_ID+0x02004180)
+#define	P_EVENT_SPAD	(SLOT_ID+0x0200418c)
+#define	P_M2M_SPAD	(SLOT_ID+0x020041e0)
+
 /*-----------------------------------------------------------------------*/
 /*
   List of functions to handle read/write hardware interceptions.
 */
 const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 {
+/* DMA control/status (writes MUST be 32-bit) */
+    	{ 0x02000010, SIZE_LONG, DMA_SCSI_CSR_Read, DMA_SCSI_CSR_Write },
+
+    	{ 0x02000180, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    	{ 0x020001d0, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    	{ 0x020001c0, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+
+
 	// blocking device?
 	{ 0x02004350, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 
@@ -224,7 +241,6 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x02014021, SIZE_BYTE, SCSI_CSR1_Read, SCSI_CSR1_Write },
     
     /* DMA SCSI */
-    { 0x02000010, SIZE_LONG, DMA_SCSI_CSR_Read, DMA_SCSI_CSR_Write },
     { 0x02004000, SIZE_LONG, DMA_SCSI_Saved_Next_Read, DMA_SCSI_Saved_Next_Write },
     { 0x02004004, SIZE_LONG, DMA_SCSI_Saved_Limit_Read, DMA_SCSI_Saved_Limit_Write },
     { 0x02004008, SIZE_LONG, DMA_SCSI_Saved_Start_Read, DMA_SCSI_Saved_Start_Write },

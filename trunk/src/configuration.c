@@ -74,96 +74,6 @@ static const struct Config_Tag configs_Screen[] =
 	{ NULL , Error_Tag, NULL }
 };
 
-/* Used to load/save joystick 0 options */
-static const struct Config_Tag configs_Joystick0[] =
-{
-	{ "nJoystickMode", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nJoystickMode },
-	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[0].bEnableAutoFire },
-	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[0].bEnableJumpOnFire2 },
-	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nJoyId },
-	{ "nKeyCodeUp", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nKeyCodeUp },
-	{ "nKeyCodeDown", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nKeyCodeDown },
-	{ "nKeyCodeLeft", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nKeyCodeLeft },
-	{ "nKeyCodeRight", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nKeyCodeRight },
-	{ "nKeyCodeFire", Int_Tag, &ConfigureParams.Joysticks.Joy[0].nKeyCodeFire },
-	{ NULL , Error_Tag, NULL }
-};
-
-/* Used to load/save joystick 1 options */
-static const struct Config_Tag configs_Joystick1[] =
-{
-	{ "nJoystickMode", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nJoystickMode },
-	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[1].bEnableAutoFire },
-	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[1].bEnableJumpOnFire2 },
-	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nJoyId },
-	{ "nKeyCodeUp", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nKeyCodeUp },
-	{ "nKeyCodeDown", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nKeyCodeDown },
-	{ "nKeyCodeLeft", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nKeyCodeLeft },
-	{ "nKeyCodeRight", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nKeyCodeRight },
-	{ "nKeyCodeFire", Int_Tag, &ConfigureParams.Joysticks.Joy[1].nKeyCodeFire },
-	{ NULL , Error_Tag, NULL }
-};
-
-/* Used to load/save joystick 2 options */
-static const struct Config_Tag configs_Joystick2[] =
-{
-	{ "nJoystickMode", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nJoystickMode },
-	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[2].bEnableAutoFire },
-	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[2].bEnableJumpOnFire2 },
-	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nJoyId },
-	{ "nKeyCodeUp", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeUp },
-	{ "nKeyCodeDown", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeDown },
-	{ "nKeyCodeLeft", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeLeft },
-	{ "nKeyCodeRight", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeRight },
-	{ "nKeyCodeFire", Int_Tag, &ConfigureParams.Joysticks.Joy[2].nKeyCodeFire },
-	{ NULL , Error_Tag, NULL }
-};
-
-/* Used to load/save joystick 3 options */
-static const struct Config_Tag configs_Joystick3[] =
-{
-	{ "nJoystickMode", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nJoystickMode },
-	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[3].bEnableAutoFire },
-	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[3].bEnableJumpOnFire2 },
-	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nJoyId },
-	{ "nKeyCodeUp", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeUp },
-	{ "nKeyCodeDown", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeDown },
-	{ "nKeyCodeLeft", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeLeft },
-	{ "nKeyCodeRight", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeRight },
-	{ "nKeyCodeFire", Int_Tag, &ConfigureParams.Joysticks.Joy[3].nKeyCodeFire },
-	{ NULL , Error_Tag, NULL }
-};
-
-/* Used to load/save joystick 4 options */
-static const struct Config_Tag configs_Joystick4[] =
-{
-	{ "nJoystickMode", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nJoystickMode },
-	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[4].bEnableAutoFire },
-	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[4].bEnableJumpOnFire2 },
-	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nJoyId },
-	{ "nKeyCodeUp", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nKeyCodeUp },
-	{ "nKeyCodeDown", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nKeyCodeDown },
-	{ "nKeyCodeLeft", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nKeyCodeLeft },
-	{ "nKeyCodeRight", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nKeyCodeRight },
-	{ "nKeyCodeFire", Int_Tag, &ConfigureParams.Joysticks.Joy[4].nKeyCodeFire },
-	{ NULL , Error_Tag, NULL }
-};
-
-/* Used to load/save joystick 5 options */
-static const struct Config_Tag configs_Joystick5[] =
-{
-	{ "nJoystickMode", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nJoystickMode },
-	{ "bEnableAutoFire", Bool_Tag, &ConfigureParams.Joysticks.Joy[5].bEnableAutoFire },
-	{ "bEnableJumpOnFire2", Bool_Tag, &ConfigureParams.Joysticks.Joy[5].bEnableJumpOnFire2 },
-	{ "nJoyId", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nJoyId },
-	{ "nKeyCodeUp", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nKeyCodeUp },
-	{ "nKeyCodeDown", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nKeyCodeDown },
-	{ "nKeyCodeLeft", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nKeyCodeLeft },
-	{ "nKeyCodeRight", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nKeyCodeRight },
-	{ "nKeyCodeFire", Int_Tag, &ConfigureParams.Joysticks.Joy[5].nKeyCodeFire },
-	{ NULL , Error_Tag, NULL }
-};
-
 /* Used to load/save keyboard options */
 static const struct Config_Tag configs_Keyboard[] =
 {
@@ -291,23 +201,16 @@ static const struct Config_Tag configs_HardDisk[] =
     { "bCDROM6", Bool_Tag, &ConfigureParams.HardDisk.bCDROM6 },
 
 	{ "bBootFromHardDisk", Bool_Tag, &ConfigureParams.HardDisk.bBootFromHardDisk },
-	{ "bUseHardDiskDirectory", Bool_Tag, &ConfigureParams.HardDisk.bUseHardDiskDirectories },
-	{ "szHardDiskDirectory", String_Tag, ConfigureParams.HardDisk.szHardDiskDirectories[DRIVE_C] },
 	{ "nWriteProtection", Int_Tag, &ConfigureParams.HardDisk.nWriteProtection },
-	{ "bUseHardDiskImage", Bool_Tag, &ConfigureParams.HardDisk.bUseHardDiskImage },
-	{ "szHardDiskImage", String_Tag, ConfigureParams.HardDisk.szHardDiskImage },
-	{ "bUseIdeMasterHardDiskImage", Bool_Tag, &ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage },
-	{ "bUseIdeSlaveHardDiskImage", Bool_Tag, &ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage },
-	{ "szIdeMasterHardDiskImage", String_Tag, ConfigureParams.HardDisk.szIdeMasterHardDiskImage },
-	{ "szIdeSlaveHardDiskImage", String_Tag, ConfigureParams.HardDisk.szIdeSlaveHardDiskImage },
 	{ NULL , Error_Tag, NULL }
 };
 
 /* Used to load/save ROM options */
 static const struct Config_Tag configs_Rom[] =
 {
-	{ "szTosImageFileName", String_Tag, ConfigureParams.Rom.szTosImageFileName },
-	{ "szCartridgeImageFileName", String_Tag, ConfigureParams.Rom.szCartridgeImageFileName },
+    { "szRom030FileName", String_Tag, ConfigureParams.Rom.szRom030FileName },
+    { "szRom040FileName", String_Tag, ConfigureParams.Rom.szRom040FileName },
+    { "szRomTurboFileName", String_Tag, ConfigureParams.Rom.szRomTurboFileName },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -341,10 +244,16 @@ static const struct Config_Tag configs_Midi[] =
 /* Used to load/save system options */
 static const struct Config_Tag configs_System[] =
 {
+    { "nMachineType", Int_Tag, &ConfigureParams.System.nMachineType },
+    { "bColor", Bool_Tag, &ConfigureParams.System.bColor },
+    { "bTurbo", Bool_Tag, &ConfigureParams.System.bTurbo },
+    { "bADB", Bool_Tag, &ConfigureParams.System.bADB },
+    { "nSCSI", Bool_Tag, &ConfigureParams.System.nSCSI },
+    { "nRTC", Bool_Tag, &ConfigureParams.System.nRTC },
+    
 	{ "nCpuLevel", Int_Tag, &ConfigureParams.System.nCpuLevel },
 	{ "nCpuFreq", Int_Tag, &ConfigureParams.System.nCpuFreq },
 	{ "bCompatibleCpu", Bool_Tag, &ConfigureParams.System.bCompatibleCpu },
-	{ "nMachineType", Int_Tag, &ConfigureParams.System.nMachineType },
 	{ "bBlitter", Bool_Tag, &ConfigureParams.System.bBlitter },
 	{ "nDSPType", Int_Tag, &ConfigureParams.System.nDSPType },
 	{ "bRealTimeClock", Bool_Tag, &ConfigureParams.System.bRealTimeClock },
@@ -443,36 +352,6 @@ void Configuration_SetDefault(void)
     
 	ConfigureParams.HardDisk.bBootFromHardDisk = false;
 	ConfigureParams.HardDisk.nWriteProtection = WRITEPROT_OFF;
-	ConfigureParams.HardDisk.nHardDiskDir = DRIVE_C;
-	ConfigureParams.HardDisk.bUseHardDiskDirectories = false;
-	for (i = 0; i < MAX_HARDDRIVES; i++)
-	{
-		strcpy(ConfigureParams.HardDisk.szHardDiskDirectories[i], psWorkingDir);
-		File_CleanFileName(ConfigureParams.HardDisk.szHardDiskDirectories[i]);
-	}
-	ConfigureParams.HardDisk.bUseHardDiskImage = false;
-	strcpy(ConfigureParams.HardDisk.szHardDiskImage, psWorkingDir);
-	ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage = false;
-	strcpy(ConfigureParams.HardDisk.szIdeMasterHardDiskImage, psWorkingDir);
-	ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage = false;
-	strcpy(ConfigureParams.HardDisk.szIdeSlaveHardDiskImage, psWorkingDir);
-
-	/* Set defaults for Joysticks */
-	for (i = 0; i < JOYSTICK_COUNT; i++)
-	{
-		ConfigureParams.Joysticks.Joy[i].nJoystickMode = JOYSTICK_DISABLED;
-		ConfigureParams.Joysticks.Joy[i].bEnableAutoFire = false;
-		ConfigureParams.Joysticks.Joy[i].bEnableJumpOnFire2 = false;
-		ConfigureParams.Joysticks.Joy[i].nJoyId = i;
-		ConfigureParams.Joysticks.Joy[i].nKeyCodeUp = SDLK_UP;
-		ConfigureParams.Joysticks.Joy[i].nKeyCodeDown = SDLK_DOWN;
-		ConfigureParams.Joysticks.Joy[i].nKeyCodeLeft = SDLK_LEFT;
-		ConfigureParams.Joysticks.Joy[i].nKeyCodeRight = SDLK_RIGHT;
-		ConfigureParams.Joysticks.Joy[i].nKeyCodeFire = SDLK_RCTRL;
-	}
-	ConfigureParams.Joysticks.Joy[1].nJoyId = 0;    /* ST Joystick #1 is default joystick */
-	ConfigureParams.Joysticks.Joy[0].nJoyId = 1;
-	ConfigureParams.Joysticks.Joy[1].nJoystickMode = JOYSTICK_REALSTICK;
 
 	/* Set defaults for Keyboard */
 	ConfigureParams.Keyboard.bDisableKeyRepeat = false;
@@ -504,7 +383,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_INSERTDISKA] = SDLK_1;
 
 	/* Set defaults for Memory */
-	ConfigureParams.Memory.nMemorySize = 1;     /* 1 MiB */
+	ConfigureParams.Memory.nMemorySize = 8;     /* 8 MiB */
 	ConfigureParams.Memory.bAutoSave = false;
 	sprintf(ConfigureParams.Memory.szMemoryCaptureFileName, "%s%chatari.sav",
 	        psHomeDir, PATHSEP);
@@ -554,15 +433,25 @@ void Configuration_SetDefault(void)
 //  ConfigureParams.Sound.YmVolumeMixing = YM_TABLE_MIXING;
 
 	/* Set defaults for Rom */
-	sprintf(ConfigureParams.Rom.szTosImageFileName, "%s%ctos.img",
-	        Paths_GetDataDir(), PATHSEP);
-	strcpy(ConfigureParams.Rom.szCartridgeImageFileName, "");
+    sprintf(ConfigureParams.Rom.szRom030FileName, "%s%cRev_1.0_v41.BIN",
+            Paths_GetWorkingDir(), PATHSEP);
+    sprintf(ConfigureParams.Rom.szRom040FileName, "%s%cRev_2.5_v66.BIN",
+            Paths_GetWorkingDir(), PATHSEP);
+    sprintf(ConfigureParams.Rom.szRomTurboFileName, "%s%cRev_3.3_v74.BIN",
+            Paths_GetWorkingDir(), PATHSEP);
+
 
 	/* Set defaults for System */
+    ConfigureParams.System.nMachineType = NEXT_CUBE030;
+    ConfigureParams.System.bColor = false;
+    ConfigureParams.System.bTurbo = false;
+    ConfigureParams.System.bADB = false;
+    ConfigureParams.System.nSCSI = NCR53C90;
+    ConfigureParams.System.nRTC = MC68HC68T1;
+    
 	ConfigureParams.System.nCpuLevel = 3;
-	ConfigureParams.System.nCpuFreq = 32;
+	ConfigureParams.System.nCpuFreq = 25;
 	ConfigureParams.System.bCompatibleCpu = true;
-	ConfigureParams.System.nMachineType = MACHINE_ST;
 	ConfigureParams.System.bBlitter = false;
 	ConfigureParams.System.nDSPType = DSP_TYPE_NONE;
 	ConfigureParams.System.bPatchTimerD = true;
@@ -595,7 +484,9 @@ void Configuration_SetDefault(void)
 
 #if defined(__AMIGAOS4__)
 	/* Fix default path names on Amiga OS */
-	sprintf(ConfigureParams.Rom.szTosImageFileName, "%stos.img", Paths_GetDataDir());
+	sprintf(ConfigureParams.Rom.szRom030FileName, "%sRev_1.0_v41.BIN", Paths_GetWorkingDir());
+    sprintf(ConfigureParams.Rom.szRom040FileName, "%sRev_2.5_v66.BIN", Paths_GetWorkingDir());
+    sprintf(ConfigureParams.Rom.szRom040FileName, "%sRev_3.3_v74.BIN", Paths_GetWorkingDir());
 #endif
 }
 
@@ -646,10 +537,10 @@ void Configuration_Apply(bool bReset)
     */
     M68000_CheckCpuSettings();
     
-	/* Clean file and directory names */
-	File_MakeAbsoluteName(ConfigureParams.Rom.szTosImageFileName);
-	if (strlen(ConfigureParams.Rom.szCartridgeImageFileName) > 0)
-		File_MakeAbsoluteName(ConfigureParams.Rom.szCartridgeImageFileName);
+	/* Clean file and directory names */    
+    File_MakeAbsoluteName(ConfigureParams.Rom.szRom030FileName);
+    File_MakeAbsoluteName(ConfigureParams.Rom.szRom040FileName);
+    File_MakeAbsoluteName(ConfigureParams.Rom.szRomTurboFileName);
     
     File_MakeAbsoluteName(ConfigureParams.HardDisk.szSCSIDiskImage0);
     File_MakeAbsoluteName(ConfigureParams.HardDisk.szSCSIDiskImage1);
@@ -660,9 +551,6 @@ void Configuration_Apply(bool bReset)
     File_MakeAbsoluteName(ConfigureParams.HardDisk.szSCSIDiskImage6);
 
     
-	File_MakeAbsoluteName(ConfigureParams.HardDisk.szHardDiskImage);
-	File_CleanFileName(ConfigureParams.HardDisk.szHardDiskDirectories[0]);
-	File_MakeAbsoluteName(ConfigureParams.HardDisk.szHardDiskDirectories[0]);
 	File_MakeAbsoluteName(ConfigureParams.Memory.szMemoryCaptureFileName);
 	File_MakeAbsoluteName(ConfigureParams.Sound.szYMCaptureFileName);
 	if (strlen(ConfigureParams.Keyboard.szMappingFileName) > 0)
@@ -717,12 +605,6 @@ void Configuration_Load(const char *psFileName)
 	Configuration_LoadSection(psFileName, configs_Log, "[Log]");
 	Configuration_LoadSection(psFileName, configs_Debugger, "[Debugger]");
 	Configuration_LoadSection(psFileName, configs_Screen, "[Screen]");
-	Configuration_LoadSection(psFileName, configs_Joystick0, "[Joystick0]");
-	Configuration_LoadSection(psFileName, configs_Joystick1, "[Joystick1]");
-	Configuration_LoadSection(psFileName, configs_Joystick2, "[Joystick2]");
-	Configuration_LoadSection(psFileName, configs_Joystick3, "[Joystick3]");
-	Configuration_LoadSection(psFileName, configs_Joystick4, "[Joystick4]");
-	Configuration_LoadSection(psFileName, configs_Joystick5, "[Joystick5]");
 	Configuration_LoadSection(psFileName, configs_Keyboard, "[Keyboard]");
 	Configuration_LoadSection(psFileName, configs_ShortCutWithMod, "[ShortcutsWithModifiers]");
 	Configuration_LoadSection(psFileName, configs_ShortCutWithoutMod, "[ShortcutsWithoutModifiers]");
@@ -769,12 +651,6 @@ void Configuration_Save(void)
 	}
 	Configuration_SaveSection(sConfigFileName, configs_Debugger, "[Debugger]");
 	Configuration_SaveSection(sConfigFileName, configs_Screen, "[Screen]");
-	Configuration_SaveSection(sConfigFileName, configs_Joystick0, "[Joystick0]");
-	Configuration_SaveSection(sConfigFileName, configs_Joystick1, "[Joystick1]");
-	Configuration_SaveSection(sConfigFileName, configs_Joystick2, "[Joystick2]");
-	Configuration_SaveSection(sConfigFileName, configs_Joystick3, "[Joystick3]");
-	Configuration_SaveSection(sConfigFileName, configs_Joystick4, "[Joystick4]");
-	Configuration_SaveSection(sConfigFileName, configs_Joystick5, "[Joystick5]");
 	Configuration_SaveSection(sConfigFileName, configs_Keyboard, "[Keyboard]");
 	Configuration_SaveSection(sConfigFileName, configs_ShortCutWithMod, "[ShortcutsWithModifiers]");
 	Configuration_SaveSection(sConfigFileName, configs_ShortCutWithoutMod, "[ShortcutsWithoutModifiers]");
@@ -797,16 +673,12 @@ void Configuration_Save(void)
  * ('MemorySnapShot_Store' handles type)
  */
 void Configuration_MemorySnapShot_Capture(bool bSave)
-{
-	MemorySnapShot_Store(ConfigureParams.Rom.szTosImageFileName, sizeof(ConfigureParams.Rom.szTosImageFileName));
-	MemorySnapShot_Store(ConfigureParams.Rom.szCartridgeImageFileName, sizeof(ConfigureParams.Rom.szCartridgeImageFileName));
+{        
+    MemorySnapShot_Store(ConfigureParams.Rom.szRom030FileName, sizeof(ConfigureParams.Rom.szRom030FileName));
+    MemorySnapShot_Store(ConfigureParams.Rom.szRom040FileName, sizeof(ConfigureParams.Rom.szRom040FileName));
+    MemorySnapShot_Store(ConfigureParams.Rom.szRomTurboFileName, sizeof(ConfigureParams.Rom.szRomTurboFileName));
 
 	MemorySnapShot_Store(&ConfigureParams.Memory.nMemorySize, sizeof(ConfigureParams.Memory.nMemorySize));
-
-	MemorySnapShot_Store(&ConfigureParams.HardDisk.bUseHardDiskDirectories, sizeof(ConfigureParams.HardDisk.bUseHardDiskDirectories));
-	MemorySnapShot_Store(ConfigureParams.HardDisk.szHardDiskDirectories[DRIVE_C], sizeof(ConfigureParams.HardDisk.szHardDiskDirectories[DRIVE_C]));
-	MemorySnapShot_Store(&ConfigureParams.HardDisk.bUseHardDiskImage, sizeof(ConfigureParams.HardDisk.bUseHardDiskImage));
-    
     
     MemorySnapShot_Store(&ConfigureParams.HardDisk.bSCSIImageAttached0, sizeof(ConfigureParams.HardDisk.bSCSIImageAttached0));
     MemorySnapShot_Store(&ConfigureParams.HardDisk.bSCSIImageAttached1, sizeof(ConfigureParams.HardDisk.bSCSIImageAttached1));
@@ -825,10 +697,6 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
     MemorySnapShot_Store(ConfigureParams.HardDisk.szSCSIDiskImage5, sizeof(ConfigureParams.HardDisk.szSCSIDiskImage5));
     MemorySnapShot_Store(ConfigureParams.HardDisk.szSCSIDiskImage6, sizeof(ConfigureParams.HardDisk.szSCSIDiskImage6));
 
-
-    
-	MemorySnapShot_Store(ConfigureParams.HardDisk.szHardDiskImage, sizeof(ConfigureParams.HardDisk.szHardDiskImage));
-
 	MemorySnapShot_Store(&ConfigureParams.Screen.nMonitorType, sizeof(ConfigureParams.Screen.nMonitorType));
 	MemorySnapShot_Store(&ConfigureParams.Screen.bUseExtVdiResolutions, sizeof(ConfigureParams.Screen.bUseExtVdiResolutions));
 	MemorySnapShot_Store(&ConfigureParams.Screen.nVdiWidth, sizeof(ConfigureParams.Screen.nVdiWidth));
@@ -838,7 +706,15 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
 	MemorySnapShot_Store(&ConfigureParams.System.nCpuLevel, sizeof(ConfigureParams.System.nCpuLevel));
 	MemorySnapShot_Store(&ConfigureParams.System.nCpuFreq, sizeof(ConfigureParams.System.nCpuFreq));
 	MemorySnapShot_Store(&ConfigureParams.System.bCompatibleCpu, sizeof(ConfigureParams.System.bCompatibleCpu));
-	MemorySnapShot_Store(&ConfigureParams.System.nMachineType, sizeof(ConfigureParams.System.nMachineType));
+	
+    
+    MemorySnapShot_Store(&ConfigureParams.System.nMachineType, sizeof(ConfigureParams.System.nMachineType));
+    MemorySnapShot_Store(&ConfigureParams.System.bColor, sizeof(ConfigureParams.System.bColor));
+    MemorySnapShot_Store(&ConfigureParams.System.bTurbo, sizeof(ConfigureParams.System.bTurbo));
+    MemorySnapShot_Store(&ConfigureParams.System.bADB, sizeof(ConfigureParams.System.bADB));
+    MemorySnapShot_Store(&ConfigureParams.System.nSCSI, sizeof(ConfigureParams.System.nSCSI));
+    MemorySnapShot_Store(&ConfigureParams.System.nRTC, sizeof(ConfigureParams.System.nRTC));
+    
 	MemorySnapShot_Store(&ConfigureParams.System.bBlitter, sizeof(ConfigureParams.System.bBlitter));
 	MemorySnapShot_Store(&ConfigureParams.System.nDSPType, sizeof(ConfigureParams.System.nDSPType));
 	MemorySnapShot_Store(&ConfigureParams.System.bRealTimeClock, sizeof(ConfigureParams.System.bRealTimeClock));

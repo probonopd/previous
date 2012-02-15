@@ -252,6 +252,7 @@ void DlgHardDisk_Main(void)
 		{
             case DISKDLG_SCSIEJECT0:
                 ConfigureParams.HardDisk.bSCSIImageAttached0 = false;
+                ConfigureParams.HardDisk.szSCSIDiskImage0[0] = '\0';
                 dlgname_scsi0[0] = '\0';
                 break;
             case DISKDLG_SCSIBROWSE0:
