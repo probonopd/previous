@@ -4,7 +4,7 @@
   This file is distributed under the GNU Public License, version 2 or at your
   option any later version. Read the file gpl.txt for details.
 
-  Screen Conversion, High Res to 640x8Bit
+  NeXT mono, memory to SDL_Surface
 */
 
 static inline void putpixel(SDL_Surface * surface, Uint16 x, Uint16 y, Uint32 col)
@@ -81,19 +81,15 @@ static void ConvertHighRes_640x8Bit(void)
 			{
 			case 0x0:
 				col=(NEXTVideo[(x/4)+y*288]&0xC0)>>6;
-//				col=(NEXTVideo[(x/4)+y*280]&0xC0)>>6;
 				break;
 			case 0x1:
 				col=(NEXTVideo[(x/4)+y*288]&0x30)>>4;
-//				col=(NEXTVideo[(x/4)+y*280]&0x30)>>4;
 				break;
 			case 0x2:
 				col=(NEXTVideo[(x/4)+y*288]&0x0C)>>2;
-//				col=(NEXTVideo[(x/4)+y*280]&0x0C)>>2;
 				break;
 			case 0x3:
 				col=(NEXTVideo[(x/4)+y*288]&0x03);
-//				col=(NEXTVideo[(x/4)+y*280]&0x03);
 				break;
 			}
 			putpixel(sdlscrn,x,y,col);
