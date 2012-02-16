@@ -34,7 +34,7 @@ char cpu_type[16] = "68030,";
 char cpu_clock[16] = "25 MHz";
 char fpu_type[16] = "68882";
 char memory_size[16] = "8 MB";
-char scsi_conroller[16] = "NCR53C90";
+char scsi_controller[16] = "NCR53C90";
 char rtc_chip[16] = "MC68HC68T1";
 char emulate_adb[16] = " ";
 
@@ -69,7 +69,7 @@ static SGOBJ systemdlg[] =
     { SGTEXT, 0, 0, 30,8, 13,1, "Memory size:" },
     { SGTEXT, 0, 0, 44,8, 13,1, memory_size },
     { SGTEXT, 0, 0, 30,9, 13,1, "SCSI chip:" },
-    { SGTEXT, 0, 0, 44,9, 13,1, scsi_conroller },
+    { SGTEXT, 0, 0, 44,9, 13,1, scsi_controller },
     { SGTEXT, 0, 0, 30,10, 13,1, "RTC chip:" },
     { SGTEXT, 0, 0, 44,10, 13,1, rtc_chip },
     { SGTEXT, 0, 0, 30,12, 13,1, emulate_adb },
@@ -120,9 +120,9 @@ void print_system_overview(void) {
     
     switch (ConfigureParams.System.nSCSI) {
         case NCR53C90:
-            sprintf(scsi_conroller, "NRC53C90"); break;
+            sprintf(scsi_controller, "NRC53C90"); break;
         case NCR53C90A:
-            sprintf(scsi_conroller, "NCR53C90A"); break;
+            sprintf(scsi_controller, "NCR53C90A"); break;
         default: break;
     }
     
