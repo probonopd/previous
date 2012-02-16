@@ -581,24 +581,30 @@ static void Main_Init(void)
 //	DmaSnd_Init();
 	Keymap_Init();
 
+	do {
+		char *err_msg;
+
+		/* call menu at startup */
+		Dialog_DoProperty();
+
+		if (bQuitProgram)
+		{
+			SDL_Quit();
+			exit(-2);
+		}
+
+		if ((err_msg=Reset_Cold())!=NULL)
+		{
+			/* If loading of the TOS failed, we bring up the GUI to let the
+			 * user choose another TOS ROM file. */
+			DlgAlert_Notice(err_msg);
+		}
+		else break;
+	} while (1);
+
 	rtc_checksum(1);
-
-	if (Reset_Cold())             /* Reset all systems, load TOS image */
-	{
-		/* If loading of the TOS failed, we bring up the GUI to let the
-		 * user choose another TOS ROM file. */
-	}
-	/* call menu at startup */
-	Dialog_DoProperty();
-	if (bQuitProgram)
-	{
-		fprintf(stderr, "Failed to load TOS image!\n");
-		SDL_Quit();
-		exit(-2);
-	}
-
 	IoMem_Init();
-    SCSI_Init();
+    	SCSI_Init();
 	
 	/* done as last, needs CPU & DSP running... */
 	DebugUI_Init();
@@ -612,7 +618,7 @@ static void Main_Init(void)
 static void Main_UnInit(void)
 {
 	Screen_ReturnFromFullScreen();
-    SCSI_Uninit();
+    	SCSI_Uninit();
 	IoMem_UnInit();
 	SDLGui_UnInit();
 	Screen_UnInit();
@@ -730,25 +736,12 @@ int main(int argc, char *argv[])
 	/* Check if SDL_Delay is accurate */
 	Main_CheckForAccurateDelays();
 
-//	if ( AviRecordOnStartup )	/* Immediatly starts avi recording ? */
-//		Avi_StartRecording ( ConfigureParams.Video.AviRecordFile , ConfigureParams.Screen.bCrop ,
-//			ConfigureParams.Video.AviRecordFps == 0 ?
-//				ClocksTimings_GetVBLPerSec ( ConfigureParams.System.nMachineType , nScreenRefreshRate ) :
-//				(Uint32)ConfigureParams.Video.AviRecordFps << CLOCKS_TIMINGS_SHIFT_VBL ,
-//			1 << CLOCKS_TIMINGS_SHIFT_VBL ,
-//			ConfigureParams.Video.AviRecordVcodec );
 
 	/* Run emulation */
 	Main_UnPauseEmulation();
 	M68000_Start();                 /* Start emulation */
 
-//	if (bRecordingAvi)
-//	{
-		/* cleanly close the avi file */
-//		Statusbar_AddMessage("Finishing AVI file...", 100);
-//		Statusbar_Update(sdlscrn);
-//		Avi_StopRecording();
-//	}
+
 	/* Un-init emulation system */
 	Main_UnInit();
 

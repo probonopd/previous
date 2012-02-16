@@ -8,7 +8,7 @@
 #ifndef HATARI_RESET_H
 #define HATARI_RESET_H
 
-extern int Reset_Cold(void);
-extern int Reset_Warm(void);
+extern char* Reset_Cold(void);
+extern char* Reset_Warm(void);
 
 #endif

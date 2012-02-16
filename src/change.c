@@ -26,7 +26,7 @@ const char Change_fileid[] = "Hatari change.c : " __DATE__ " " __TIME__;
 #include "video.h"
 #include "hatari-glue.h"
 
-#define DEBUG 0
+#define DEBUG 1
 #if DEBUG
 #define Dprintf(a) printf(a)
 #else
@@ -48,7 +48,7 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 /**
  * Copy details back to configuration and perform reset.
  */
-void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *changed, bool bForceReset)
+bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *changed, bool bForceReset)
 {
 	bool NeedReset;
 	bool bReInitGemdosDrive = false;
@@ -98,8 +98,13 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Do we need to perform reset? */
 	if (NeedReset)
 	{
+		char *err_msg;
 		Dprintf("- reset\n");
-		Reset_Cold();
+		err_msg=Reset_Cold();
+		if (err_msg!=NULL) {
+			DlgAlert_Notice(err_msg);
+			return false;
+		}
 	}
 
 	/* Go into/return from full screen if flagged */
@@ -111,6 +116,7 @@ void Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* update statusbar info (CPU, MHz, mem etc) */
 	Statusbar_UpdateInfo();
 	Dprintf("done.\n");
+	return true;
 }
 
 
@@ -141,7 +147,11 @@ static bool Change_Options(int argc, const char *argv[])
 	}
 	/* Copy details to configuration */
 	if (bOK) {
-		Change_CopyChangedParamsToConfiguration(&current, &ConfigureParams, false);
+		if (!Change_CopyChangedParamsToConfiguration(&current, &ConfigureParams, false)) {
+			ConfigureParams = current;
+			DlgAlert_Notice("Return to old parameters...");
+			Reset_Cold();
+		}
 	} else {
 		ConfigureParams = current;
 	}

@@ -747,7 +747,7 @@ static void init_mem_banks (void)
 /*
  * Initialize the memory banks
  */
-void memory_init(uae_u32 nNewNEXTMemSize)
+char* memory_init(uae_u32 nNewNEXTMemSize)
 {
     NEXTmem_size = (nNewNEXTMemSize + 65535) & 0xFFFF0000;
     
@@ -757,7 +757,6 @@ void memory_init(uae_u32 nNewNEXTMemSize)
 	/* fill every 65536 bank with dummy */
     init_mem_banks(); 
     
-    // map_banks(&BusErrMem_bank,NEXT_RAM_START>>16,NEXT_RAM_SPACE>>16);
     
     map_banks(&NEXTmem_bank, NEXT_RAM_START>>16, NEXT_RAM_SIZE >> 16);
 
@@ -785,13 +784,9 @@ void memory_init(uae_u32 nNewNEXTMemSize)
 
     if (ConfigureParams.System.nCpuLevel > 3)
     	map_banks(&IOmem_bank, NEXT_IO2_START >> 16, NEXT_IO_SIZE>>16);
-
-    //	map_banks(&VoidMem_bank, NEXT_IO_START >> 16, NEXT_IO_SIZE>>16);
-    //    map_banks(&VoidMem_bank, NEXT_IO2_START >> 16, NEXT_IO_SIZE>>16);
     
     map_banks(&bmap_bank, NEXT_BMAP_START >> 16, NEXT_BMAP_SIZE>>16);
-    //    map_banks(&x06_bank, NEXT_X06_START >> 16, NEXT_X06_SIZE>>16);
-    //    map_banks(&x06_bank, 0x07000000 >> 16, NEXT_X06_SIZE>>16);
+
     
 	ROMmemory=NEXTRom;
 	IOmemory=NEXTIo;
@@ -807,8 +802,7 @@ void memory_init(uae_u32 nNewNEXTMemSize)
             fin=fopen(ConfigureParams.Rom.szRom040FileName, "rb");
 
 	if (fin==NULL) {
-		write_log("Rom file missing\n");
-		exit(-1);
+		return "Cannot open ROM file";
 	}
 
 		ret=fread(ROMmemory,1,0x20000,fin);
@@ -823,6 +817,7 @@ void memory_init(uae_u32 nNewNEXTMemSize)
 		for (i=0;i<sizeof(NEXTRam);i++) NEXTRam[i]=0xAA;
 	}
     
+	return NULL;
 }
 
 

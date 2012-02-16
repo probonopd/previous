@@ -29,18 +29,20 @@ static int Reset_ST(bool bCold)
 {
 	if (bCold)
 	{
-		int ret;
-		memory_init(8*1024*1024);
-
+		char* error_str;
+		error_str=memory_init(0);
+		if (error_str!=NULL) {
+			return error_str;
+		}
 	}
 	CycInt_Reset();               /* Reset interrupts */
 	Video_Reset();                /* Reset video */
 
-		Screen_Reset();               /* Reset screen */
+	Screen_Reset();               /* Reset screen */
 	M68000_Reset(bCold);          /* Reset CPU */
-    DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */
+    	DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */
 
-	return 0;
+	return NULL;
 }
 
 
@@ -48,7 +50,7 @@ static int Reset_ST(bool bCold)
 /**
  * Cold reset ST (reset memory, all registers and reboot)
  */
-int Reset_Cold(void)
+char* Reset_Cold(void)
 {
 	Main_WarpMouse(sdlscrn->w/2, sdlscrn->h/2);  /* Set mouse pointer to the middle of the screen */
 
@@ -60,7 +62,7 @@ int Reset_Cold(void)
 /**
  * Warm reset ST (reset registers, leave in same state and reboot)
  */
-int Reset_Warm(void)
+char* Reset_Warm(void)
 {
 	return Reset_ST(false);
 }
