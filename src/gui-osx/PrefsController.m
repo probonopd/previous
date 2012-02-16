@@ -632,7 +632,7 @@ static const int nSoundFreqs[] =
     IMPORT_TEXTFIELD(readRS232FromFile, ConfigureParams.RS232.szInFileName);
     IMPORT_SWITCH(realTime, ConfigureParams.System.bRealTimeClock);
     IMPORT_SWITCH(slowFDC, ConfigureParams.DiskImage.bSlowFloppy);
-    IMPORT_TEXTFIELD(tosImage, ConfigureParams.Rom.szTosImageFileName);
+//    IMPORT_TEXTFIELD(tosImage, ConfigureParams.Rom.szTosImageFileName);
     IMPORT_SWITCH(useBorders, ConfigureParams.Screen.bAllowOverscan);
     IMPORT_SWITCH(useVDIResolution, ConfigureParams.Screen.bUseExtVdiResolutions);
     IMPORT_TEXTFIELD(writeMidiToFile, ConfigureParams.Midi.sMidiOutFileName);
@@ -682,47 +682,47 @@ static const int nSoundFreqs[] =
 		[resolution selectCellWithTag:(0)];
 
 	// If the HD flag is set, load the HD path, otherwise make it blank
-	if (ConfigureParams.HardDisk.bUseHardDiskImage)
-	{
-		IMPORT_TEXTFIELD(hdImage, ConfigureParams.HardDisk.szHardDiskImage);	
-	}
-	else
-	{
+//	if (ConfigureParams.HardDisk.bUseHardDiskImage)
+//	{
+//		IMPORT_TEXTFIELD(hdImage, ConfigureParams.HardDisk.szHardDiskImage);	
+//	}
+//	else
+//	{
 		[hdImage setStringValue:@""];
-	}
+//	}
 	
 	// If the IDE HD flag is set, load the IDE HD path, otherwise make it blank
 	//Master
-	if (ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage)
-	{
-		IMPORT_TEXTFIELD(ideMasterHdImage, ConfigureParams.HardDisk.szIdeMasterHardDiskImage);	
-	}
-	else
-	{
+//	if (ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage)
+//	{
+//		IMPORT_TEXTFIELD(ideMasterHdImage, ConfigureParams.HardDisk.szIdeMasterHardDiskImage);	
+//	}
+//	else
+//	{
 		[ideMasterHdImage setStringValue:@""];
-	}
+//	}
 	//Slave
-	if (ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage)
-	{
-		IMPORT_TEXTFIELD(ideSlaveHdImage, ConfigureParams.HardDisk.szIdeSlaveHardDiskImage);	
-	}
-	else
-	{
+//	if (ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage)
+//	{
+//		IMPORT_TEXTFIELD(ideSlaveHdImage, ConfigureParams.HardDisk.szIdeSlaveHardDiskImage);	
+//	}
+//	else
+//	{
 		[ideSlaveHdImage setStringValue:@""];
-	}
+//	}
 	
 	// If the Gemdos flag is set, load the Gemdos path, otherwise make it blank
-	if (ConfigureParams.HardDisk.bUseHardDiskDirectories)
-	{
-		IMPORT_TEXTFIELD(gemdosImage, ConfigureParams.HardDisk.szHardDiskDirectories[0]);
-	}
-	else
-	{
+//	if (ConfigureParams.HardDisk.bUseHardDiskDirectories)
+//	{
+//		IMPORT_TEXTFIELD(gemdosImage, ConfigureParams.HardDisk.szHardDiskDirectories[0]);
+//	}
+//	else
+//	{
 		[gemdosImage setStringValue:@""];
-	}
+//	}
 	
 	// Set the per-joystick controls		
-	[self setJoystickControls];
+//	[self setJoystickControls];
 	
 	// Update the controls' enabled states
 	[self updateEnabledStates:self];	
@@ -738,12 +738,12 @@ static const int nSoundFreqs[] =
 	// Joystick key controls are only enabled if "Use keyboard" is selected
 	int nJoystickMode;
 	EXPORT_RADIO(joystickMode, nJoystickMode);
-	BOOL bUsingKeyboard = (nJoystickMode == JOYSTICK_KEYBOARD);
-	[joystickUp setEnabled:bUsingKeyboard];		
-	[joystickRight setEnabled:bUsingKeyboard];		
-	[joystickDown setEnabled:bUsingKeyboard];		
-	[joystickLeft setEnabled:bUsingKeyboard];		
-	[joystickFire setEnabled:bUsingKeyboard];		
+//	BOOL bUsingKeyboard = (nJoystickMode == JOYSTICK_KEYBOARD);
+//	[joystickUp setEnabled:bUsingKeyboard];		
+//	[joystickRight setEnabled:bUsingKeyboard];		
+//	[joystickDown setEnabled:bUsingKeyboard];		
+//	[joystickLeft setEnabled:bUsingKeyboard];		
+//	[joystickFire setEnabled:bUsingKeyboard];		
 
 	// Resolution and colour depth depend on Extended GEM VDI resolution
 	BOOL bUsingVDI;
@@ -768,29 +768,29 @@ static const int nSoundFreqs[] =
 	EXPORT_DROPDOWN(currentJoystick, nCurrentJoystick);
 
 	// Data validation: If the JoyID is out of bounds, correct it and, if set to use real joystick, change to disabled
-	if ( (ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoyId < 0)
-	|| (ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoyId >= cRealJoysticks) )
+//	if ( (ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoyId < 0)
+//	|| (ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoyId >= cRealJoysticks) )
 	{
-		ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoyId = 0;
-		if (ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoystickMode == JOYSTICK_REALSTICK)
+//		ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoyId = 0;
+//		if (ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoystickMode == JOYSTICK_REALSTICK)
 		{
-			ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoystickMode = JOYSTICK_DISABLED;
+//			ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoystickMode = JOYSTICK_DISABLED;
 		}	
 	}
 
 	// Don't change the realJoystick dropdown if none is available (to keep "(None available)" selected)
 	if (cRealJoysticks > 0)
 	{
-		IMPORT_DROPDOWN(realJoystick, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoyId);
+//		IMPORT_DROPDOWN(realJoystick, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoyId);
 	}
 
-	IMPORT_RADIO(joystickMode, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoystickMode);
-	IMPORT_DROPDOWN(joystickUp, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeUp);
-	IMPORT_DROPDOWN(joystickRight, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeRight);
-	IMPORT_DROPDOWN(joystickDown, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeDown);
-	IMPORT_DROPDOWN(joystickLeft, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeLeft);
-	IMPORT_DROPDOWN(joystickFire, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeFire);
-	IMPORT_SWITCH(enableAutoFire, ConfigureParams.Joysticks.Joy[nCurrentJoystick].bEnableAutoFire);
+//	IMPORT_RADIO(joystickMode, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoystickMode);
+//	IMPORT_DROPDOWN(joystickUp, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeUp);
+//	IMPORT_DROPDOWN(joystickRight, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeRight);
+//	IMPORT_DROPDOWN(joystickDown, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeDown);
+//	IMPORT_DROPDOWN(joystickLeft, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeLeft);
+//	IMPORT_DROPDOWN(joystickFire, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeFire);
+//	IMPORT_SWITCH(enableAutoFire, ConfigureParams.Joysticks.Joy[nCurrentJoystick].bEnableAutoFire);
 }
 
 
@@ -800,14 +800,14 @@ static const int nSoundFreqs[] =
 */
 - (void)saveJoystickControls
 {
-	EXPORT_RADIO(joystickMode, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoystickMode);	
-	EXPORT_DROPDOWN(realJoystick, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoyId);
-	EXPORT_DROPDOWN(joystickUp, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeUp);
-	EXPORT_DROPDOWN(joystickRight, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeRight);
-	EXPORT_DROPDOWN(joystickDown, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeDown);
-	EXPORT_DROPDOWN(joystickLeft, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeLeft);
-	EXPORT_DROPDOWN(joystickFire, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeFire);
-	EXPORT_SWITCH(enableAutoFire, ConfigureParams.Joysticks.Joy[nCurrentJoystick].bEnableAutoFire);
+//	EXPORT_RADIO(joystickMode, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoystickMode);	
+//	EXPORT_DROPDOWN(realJoystick, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nJoyId);
+//	EXPORT_DROPDOWN(joystickUp, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeUp);
+//	EXPORT_DROPDOWN(joystickRight, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeRight);
+//	EXPORT_DROPDOWN(joystickDown, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeDown);
+//	EXPORT_DROPDOWN(joystickLeft, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeLeft);
+//	EXPORT_DROPDOWN(joystickFire, ConfigureParams.Joysticks.Joy[nCurrentJoystick].nKeyCodeFire);
+//	EXPORT_SWITCH(enableAutoFire, ConfigureParams.Joysticks.Joy[nCurrentJoystick].bEnableAutoFire);
 }
 
 
@@ -822,7 +822,7 @@ static const int nSoundFreqs[] =
     EXPORT_SWITCH(blitter, ConfigureParams.System.bBlitter);
 	EXPORT_SWITCH(bootFromHD, ConfigureParams.HardDisk.bBootFromHardDisk);
 //    EXPORT_SWITCH(captureOnChange, ConfigureParams.Screen.bCrop);
-    EXPORT_TEXTFIELD(cartridgeImage, ConfigureParams.Rom.szCartridgeImageFileName);
+//    EXPORT_TEXTFIELD(cartridgeImage, ConfigureParams.Rom.szCartridgeImageFileName);
     EXPORT_RADIO(colorDepth, ConfigureParams.Screen.nVdiColors);
     EXPORT_SWITCH(compatibleCpu, ConfigureParams.System.bCompatibleCpu);
     EXPORT_RADIO(cpuClock, ConfigureParams.System.nCpuFreq);
@@ -843,7 +843,7 @@ static const int nSoundFreqs[] =
     EXPORT_TEXTFIELD(readRS232FromFile, ConfigureParams.RS232.szInFileName);
     EXPORT_SWITCH(realTime, ConfigureParams.System.bRealTimeClock);
     EXPORT_SWITCH(slowFDC, ConfigureParams.DiskImage.bSlowFloppy);
-    EXPORT_TEXTFIELD(tosImage, ConfigureParams.Rom.szTosImageFileName);
+//    EXPORT_TEXTFIELD(tosImage, ConfigureParams.Rom.szTosImageFileName);
     EXPORT_SWITCH(useBorders, ConfigureParams.Screen.bAllowOverscan);
     EXPORT_SWITCH(useVDIResolution, ConfigureParams.Screen.bUseExtVdiResolutions);
     EXPORT_TEXTFIELD(writeMidiToFile, ConfigureParams.Midi.sMidiOutFileName);
@@ -883,45 +883,45 @@ static const int nSoundFreqs[] =
 	// Define the HD flag, and export the HD path if one is selected
 	if ([[hdImage stringValue] length] > 0)
 	{
-		EXPORT_TEXTFIELD(hdImage, ConfigureParams.HardDisk.szHardDiskImage);
-		ConfigureParams.HardDisk.bUseHardDiskImage = true;
+//		EXPORT_TEXTFIELD(hdImage, ConfigureParams.HardDisk.szHardDiskImage);
+//		ConfigureParams.HardDisk.bUseHardDiskImage = true;
 	}
 	else
 	{
-		ConfigureParams.HardDisk.bUseHardDiskImage = false;
+//		ConfigureParams.HardDisk.bUseHardDiskImage = false;
 	}
 	
 	// Define the IDE HD flag, and export the IDE HD path if one is selected
 	if ([[ideMasterHdImage stringValue] length] > 0)
 	{
-		EXPORT_TEXTFIELD(ideMasterHdImage, ConfigureParams.HardDisk.szIdeMasterHardDiskImage);
-		ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage = true;
+//		EXPORT_TEXTFIELD(ideMasterHdImage, ConfigureParams.HardDisk.szIdeMasterHardDiskImage);
+//		ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage = true;
 	}
 	else
 	{
-		ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage = false;
+//		ConfigureParams.HardDisk.bUseIdeMasterHardDiskImage = false;
 	}
 	
 	// IDE Slave
 	if ([[ideSlaveHdImage stringValue] length] > 0)
 	{
-		EXPORT_TEXTFIELD(ideSlaveHdImage, ConfigureParams.HardDisk.szIdeSlaveHardDiskImage);
-		ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage = true;
+//		EXPORT_TEXTFIELD(ideSlaveHdImage, ConfigureParams.HardDisk.szIdeSlaveHardDiskImage);
+//		ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage = true;
 	}
 	else
 	{
-		ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage = false;
+//		ConfigureParams.HardDisk.bUseIdeSlaveHardDiskImage = false;
 	}
 	
 	// Define the Gemdos flag, and export the Gemdos path if one is selected
 	if ([[gemdosImage stringValue] length] > 0)
 	{
-		EXPORT_TEXTFIELD(gemdosImage, ConfigureParams.HardDisk.szHardDiskDirectories[0]);
-		ConfigureParams.HardDisk.bUseHardDiskDirectories = true;
+//		EXPORT_TEXTFIELD(gemdosImage, ConfigureParams.HardDisk.szHardDiskDirectories[0]);
+//		ConfigureParams.HardDisk.bUseHardDiskDirectories = true;
 	}
 	else
 	{
-		ConfigureParams.HardDisk.bUseHardDiskDirectories = false;
+//		ConfigureParams.HardDisk.bUseHardDiskDirectories = false;
 	}
 	
 	// Save the per-joystick controls		

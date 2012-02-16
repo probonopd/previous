@@ -59,7 +59,7 @@ static SGOBJ memorydlg[] =
 
 /* Variable objects */
 SGOBJ disable_128mb_option = { SGTEXT, 0, 0, 3,10, 7,1, " " };
-//SGOBJ enable_128mb_option = { SGRADIOBUT, 0, 0, 3,10, 7,1, "128 MB" };
+SGOBJ enable_128mb_option = { SGRADIOBUT, 0, 0, 3,10, 7,1, "128 MB" };
 
 /**
  * Show and process the memory dialog.
@@ -107,6 +107,8 @@ bool Dialog_MemDlg(void)
     /* Remove 128MB option if system is not NeXTstation */
     if (ConfigureParams.System.nMachineType != NEXT_STATION) {
         memorydlg[DLGMEM_128MB] = disable_128mb_option;
+    } else {
+        memorydlg[DLGMEM_128MB] = enable_128mb_option;
     }
 
 	File_ShrinkName(dlgSnapShotName, ConfigureParams.Memory.szMemoryCaptureFileName, memorydlg[DLGMEM_FILENAME].w);

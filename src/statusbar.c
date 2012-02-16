@@ -82,7 +82,7 @@ static Uint32 LedColorOn, LedColorOff, RecColorOn, RecColorOff;
 static Uint32 GrayBg, LedColorBg;
 
 
-#define MAX_MESSAGE_LEN 33
+#define MAX_MESSAGE_LEN 50
 typedef struct msg_item {
 	struct msg_item *next;
 	char msg[MAX_MESSAGE_LEN+1];
@@ -385,27 +385,47 @@ void Statusbar_UpdateInfo(void)
 
 	/* CPU type */
 	if(ConfigureParams.System.nCpuLevel > 0) {
+        *end++ = '6';
+        *end++ = '8';
 		*end++ = '0';
-		*end++ = '0' + ConfigureParams.System.nCpuLevel % 10;
+        switch (ConfigureParams.System.nCpuLevel) {
+            case 0: *end++ = '0'; break;
+            case 1: *end++ = '1'; break;
+            case 2: *end++ = '2'; break;
+            case 3: *end++ = '3'; break;
+            case 4: *end++ = '4'; break;
+            case 5: *end++ = '6'; break;
+            default: break;
+        }
 		*end++ = '0';
 		*end++ = '/';
 	}
 
 	/* amount of memory */
-	if (ConfigureParams.Memory.nMemorySize > 9) {
-		*end++ = '1';
-		*end++ = '0' + ConfigureParams.Memory.nMemorySize % 10;
-	} else {
-		if (ConfigureParams.Memory.nMemorySize) {
-			*end++ = '0' + ConfigureParams.Memory.nMemorySize;
-		} else {
-			end = Statusbar_AddString(end, "1/2");
-		}
-	}
-	end = Statusbar_AddString(end, "MB ");
+    char memsize[8];
+    sprintf(memsize, "%iMB/", ConfigureParams.Memory.nMemorySize);
+    end = Statusbar_AddString(end, memsize);
 
 	/* machine type */
-		end = Statusbar_AddString(end, "NEXT");
+    switch (ConfigureParams.System.nMachineType) {
+        case NEXT_CUBE030:
+            end = Statusbar_AddString(end, "NeXT Computer");
+            break;
+        case NEXT_CUBE040:
+            end = Statusbar_AddString(end, "NeXTcube");
+            break;
+        case NEXT_STATION:
+            end = Statusbar_AddString(end, "NeXTstation");
+            break;
+            
+        default:
+            break;
+    }
+    if (ConfigureParams.System.bTurbo)
+        end = Statusbar_AddString(end, " Turbo");
+    
+    if (ConfigureParams.System.bColor)
+        end = Statusbar_AddString(end, " Color");
 
 	*end = '\0';
 

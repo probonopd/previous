@@ -537,6 +537,14 @@ void Configuration_Apply(bool bReset)
     */
     M68000_CheckCpuSettings();
     
+    /* Cut memory size to supported values */
+    if (ConfigureParams.System.nMachineType == NEXT_CUBE030 && ConfigureParams.Memory.nMemorySize > 64)
+        ConfigureParams.Memory.nMemorySize = 64;
+    else if (ConfigureParams.Memory.nMemorySize > 128)
+        ConfigureParams.Memory.nMemorySize = 128;
+    else if (ConfigureParams.Memory.nMemorySize < 8)
+        ConfigureParams.Memory.nMemorySize = 8;
+    
 	/* Clean file and directory names */    
     File_MakeAbsoluteName(ConfigureParams.Rom.szRom030FileName);
     File_MakeAbsoluteName(ConfigureParams.Rom.szRom040FileName);
