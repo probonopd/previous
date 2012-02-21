@@ -31,9 +31,10 @@ const char DlgMain_fileid[] = "Hatari dlgMain.c : " __DATE__ " " __TIME__;
 #define MAINDLG_SAVECFG  15
 #define MAINDLG_NORESET  16
 #define MAINDLG_RESET    17
-#define MAINDLG_OK       18
-#define MAINDLG_QUIT     19
-#define MAINDLG_CANCEL   20
+#define MAINDLG_SHOW     18
+#define MAINDLG_OK       19
+#define MAINDLG_QUIT     20
+#define MAINDLG_CANCEL   21
 
 
 /* The main dialog: */
@@ -45,8 +46,8 @@ static SGOBJ maindlg[] =
 	{ SGBUTTON, 0, 0, 2,6, 13,1, "System" },
 	{ SGBUTTON, 0, 0, 2,8, 13,1, "ROM" },
 	{ SGBUTTON, 0, 0, 2,10, 13,1, "Memory" },
-	{ SGBUTTON, 0, 0, 17,4, 16,1, "(not yet)" },
-	{ SGBUTTON, 0, 0, 17,6, 16,1, "SCSI Disks" },
+	{ SGBUTTON, 0, 0, 17,4, 16,1, "(test)" },
+	{ SGBUTTON, 0, 0, 17,6, 16,1, "SCSI disks" },
 	{ SGBUTTON, 0, 0, 17,8, 16,1, "(not yet)" },
 	{ SGBUTTON, 0, 0, 17,10, 16,1, "(not yet)" },
 	{ SGBUTTON, 0, 0, 35,4, 13,1, "(not yet)" },
@@ -56,7 +57,8 @@ static SGOBJ maindlg[] =
 	{ SGBUTTON, 0, 0, 7,13, 16,1, "Load config." },
 	{ SGBUTTON, 0, 0, 27,13, 16,1, "Save config." },
 	{ SGRADIOBUT, 0, 0, 3,15, 15,1, "No Reset" },
-	{ SGRADIOBUT, 0, 0, 3,17, 15,1, "Reset machine" },
+	{ SGRADIOBUT, 0, 0, 3,16, 15,1, "Reset machine" },
+    { SGCHECKBOX, 0, 0, 3,17, 15,1, "Show at startup" },
 	{ SGBUTTON, SG_DEFAULT, 0, 21,15, 8,3, "OK" },
 	{ SGBUTTON, 0, 0, 36,15, 10,1, "Quit" },
 	{ SGBUTTON, SG_CANCEL, 0, 36,17, 10,1, "Cancel" },
@@ -88,6 +90,11 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 
 	maindlg[MAINDLG_NORESET].state |= SG_SELECTED;
 	maindlg[MAINDLG_RESET].state &= ~SG_SELECTED;
+    
+    if(ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup)
+        maindlg[MAINDLG_SHOW].state |= SG_SELECTED;
+    else
+        maindlg[MAINDLG_SHOW].state &= ~SG_SELECTED;
 
 	do
 	{
@@ -153,6 +160,12 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 				free(psNewCfg);
 			}
 			break;
+         case MAINDLG_SHOW:
+            if (maindlg[MAINDLG_SHOW].state & SG_SELECTED)
+                ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = true;
+            else
+                ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup = false;
+            break;
 		 case MAINDLG_QUIT:
 			bQuitProgram = true;
 			break;
@@ -161,7 +174,7 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 	while (retbut != MAINDLG_OK && retbut != MAINDLG_CANCEL && retbut != SDLGUI_QUIT
 	        && retbut != SDLGUI_ERROR && !bQuitProgram);
 
-
+    
 	if (maindlg[MAINDLG_RESET].state & SG_SELECTED)
 		*bReset = true;
 

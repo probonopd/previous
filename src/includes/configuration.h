@@ -8,6 +8,13 @@
 #ifndef HATARI_CONFIGURATION_H
 #define HATARI_CONFIGURATION_H
 
+
+/* Configuration Dialog */
+typedef struct
+{
+  bool bShowConfigDialogAtStartup;
+} CNF_CONFIGDLG;
+
 /* Logging and tracing */
 typedef struct
 {
@@ -147,30 +154,16 @@ typedef enum
   DRIVE_F
 } DRIVELETTER;
 
+typedef struct {
+  char szImageName[FILENAME_MAX];
+  bool bAttached;
+  bool bCDROM;
+} SCSIDISK;
+
+#define ESP_MAX_DEVS 7
 typedef struct
 {
-    char szSCSIDiskImage0[FILENAME_MAX];
-    bool bSCSIImageAttached0;
-    bool bCDROM0;
-    char szSCSIDiskImage1[FILENAME_MAX];
-    bool bSCSIImageAttached1;
-    bool bCDROM1;
-    char szSCSIDiskImage2[FILENAME_MAX];
-    bool bSCSIImageAttached2;
-    bool bCDROM2;
-    char szSCSIDiskImage3[FILENAME_MAX];
-    bool bSCSIImageAttached3;
-    bool bCDROM3;
-    char szSCSIDiskImage4[FILENAME_MAX];
-    bool bSCSIImageAttached4;
-    bool bCDROM4;
-    char szSCSIDiskImage5[FILENAME_MAX];
-    bool bSCSIImageAttached5;
-    bool bCDROM5;
-    char szSCSIDiskImage6[FILENAME_MAX];
-    bool bSCSIImageAttached6;
-    bool bCDROM6;
-    
+  SCSIDISK target[ESP_MAX_DEVS];    
   
   WRITEPROTECTION nWriteProtection;
   bool bBootFromHardDisk;
@@ -314,6 +307,7 @@ typedef struct
 typedef struct
 {
   /* Configure */
+  CNF_CONFIGDLG ConfigDialog;
   CNF_LOG Log;
   CNF_DEBUGGER Debugger;
   CNF_SCREEN Screen;
@@ -322,7 +316,7 @@ typedef struct
   CNF_SOUND Sound;
   CNF_MEMORY Memory;
   CNF_DISKIMAGE DiskImage;
-  CNF_HARDDISK HardDisk;
+  CNF_HARDDISK SCSI;
   CNF_ROM Rom;
   CNF_RS232 RS232;
   CNF_PRINTER Printer;

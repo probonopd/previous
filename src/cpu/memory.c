@@ -747,7 +747,7 @@ static void init_mem_banks (void)
 /*
  * Initialize the memory banks
  */
-char* memory_init(uae_u32 nNewNEXTMemSize)
+const char* memory_init(uae_u32 nNewNEXTMemSize)
 {
     NEXTmem_size = (nNewNEXTMemSize + 65535) & 0xFFFF0000;
     

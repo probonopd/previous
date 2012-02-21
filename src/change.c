@@ -98,7 +98,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Do we need to perform reset? */
 	if (NeedReset)
 	{
-		char *err_msg;
+		const char *err_msg;
 		Dprintf("- reset\n");
 		err_msg=Reset_Cold();
 		if (err_msg!=NULL) {

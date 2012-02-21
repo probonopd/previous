@@ -1,6 +1,4 @@
 /* SCSI Bus and Disk emulation */
-#include <sys/stat.h>
-
 #include "main.h"
 #include "ioMem.h"
 #include "ioMemTables.h"
@@ -13,6 +11,8 @@
 #include "scsi.h"
 #include "dma.h"
 #include "esp.h"
+#include "dialog.h"
+#include "file.h"
 
 
 #define COMMAND_ReadInt16(a, i) (((unsigned) a[i] << 8) | a[i + 1])
@@ -36,97 +36,46 @@ bool bTargetDevice;
 
 static FILE *scsidisk = NULL;
 
-FILE* scsidisk0;
-FILE* scsidisk1;
-FILE* scsidisk2;
-FILE* scsidisk3;
-FILE* scsidisk4;
-FILE* scsidisk5;
-FILE* scsidisk6;
+FILE* scsiimage[ESP_MAX_DEVS];
 
 
 /* Initialize/Uninitialize SCSI disks */
 void SCSI_Init(void) {
-    struct stat st;
     Log_Printf(LOG_WARN, "CALL SCSI INIT\n");
-    char *filename0 = ConfigureParams.HardDisk.szSCSIDiskImage0;
-    char *filename1 = ConfigureParams.HardDisk.szSCSIDiskImage1;
-    char *filename2 = ConfigureParams.HardDisk.szSCSIDiskImage2;
-    char *filename3 = ConfigureParams.HardDisk.szSCSIDiskImage3;
-    char *filename4 = ConfigureParams.HardDisk.szSCSIDiskImage4;
-    char *filename5 = ConfigureParams.HardDisk.szSCSIDiskImage5;
-    char *filename6 = ConfigureParams.HardDisk.szSCSIDiskImage6;
-
-    stat(filename0,&st);
-    if (S_ISREG(st.st_mode))
-	scsidisk0 = ConfigureParams.HardDisk.bCDROM0 == true ? fopen(filename0, "r") : fopen(filename0, "r+");
-    else
-	scsidisk0=NULL;
-
-    stat(filename1,&st);
-    if (S_ISREG(st.st_mode))
-
-	scsidisk1 = ConfigureParams.HardDisk.bCDROM1 == true ? fopen(filename1, "r") : fopen(filename1, "r+");
-    else
-	scsidisk1=NULL;
-
-    stat(filename2,&st);
-    if (S_ISREG(st.st_mode))
-
-	scsidisk2 = ConfigureParams.HardDisk.bCDROM2 == true ? fopen(filename2, "r") : fopen(filename2, "r+");
-    else
-	scsidisk2=NULL;
-
-    stat(filename3,&st);
-    if (S_ISREG(st.st_mode))
-	scsidisk3 = ConfigureParams.HardDisk.bCDROM3 == true ? fopen(filename3, "r") : fopen(filename3, "r+");
-    else
-	scsidisk3=NULL;
-
-    stat(filename4,&st);
-    if (S_ISREG(st.st_mode))
-	scsidisk4 = ConfigureParams.HardDisk.bCDROM4 == true ? fopen(filename4, "r") : fopen(filename4, "r+");
-    else
-	scsidisk4=NULL;
-
-    stat(filename5,&st);
-    if (S_ISREG(st.st_mode))
-	scsidisk5 = ConfigureParams.HardDisk.bCDROM5 == true ? fopen(filename5, "r") : fopen(filename5, "r+");
-    else
-	scsidisk5=NULL;
-
-    stat(filename6,&st);
-    if (S_ISREG(st.st_mode))
-	scsidisk6 = ConfigureParams.HardDisk.bCDROM6 == true ? fopen(filename6, "r") : fopen(filename6, "r+");
-    else
-	scsidisk6=NULL;
     
+    /* Check if files exist. Present dialog to re-select missing files. */        
+    int target;
+    for (target = 0; target < ESP_MAX_DEVS; target++) {
+        while (ConfigureParams.SCSI.target[target].bAttached && !File_Exists(ConfigureParams.SCSI.target[target].szImageName)) {
+            DlgMissing_SCSIdisk(target);
+            if (bQuitProgram) {
+                Main_RequestQuit();
+                if (bQuitProgram)
+                    break;
+            }
+        }
+        if (bQuitProgram)
+            break;
+
+        if (File_Exists(ConfigureParams.SCSI.target[target].szImageName) && ConfigureParams.SCSI.target[target].bAttached)
+            scsiimage[target] = ConfigureParams.SCSI.target[target].bCDROM == true ? fopen(ConfigureParams.SCSI.target[target].szImageName, "r") : fopen(ConfigureParams.SCSI.target[target].szImageName, "r+");
+        else
+            scsiimage[target]=NULL;
+    }
+
 //  TODO: Better get disksize here or in SCSI_ReadCapacity?
     
-    Log_Printf(LOG_WARN, "Disk0: %s\n", filename0);
-    Log_Printf(LOG_WARN, "Disk1: %s\n", filename1);
-    Log_Printf(LOG_WARN, "Disk2: %s\n", filename2);
-    Log_Printf(LOG_WARN, "Disk3: %s\n", filename3);
-    Log_Printf(LOG_WARN, "Disk4: %s\n", filename4);
-    Log_Printf(LOG_WARN, "Disk5: %s\n", filename5);
-    Log_Printf(LOG_WARN, "Disk6: %s\n", filename6);
+    for (target = 0; target < ESP_MAX_DEVS; target++) {
+        Log_Printf(LOG_WARN, "Disk0: %s\n", ConfigureParams.SCSI.target[target].szImageName);
+    }
 }
 
 void SCSI_Uninit(void) {
-	if (scsidisk0)
-    		fclose(scsidisk0);
-	if (scsidisk1)
-    		fclose(scsidisk1);
-	if (scsidisk2)
-    		fclose(scsidisk2);
-	if (scsidisk3)
-    		fclose(scsidisk3);
-	if (scsidisk4)
-    		fclose(scsidisk4);
-	if (scsidisk5)
-    		fclose(scsidisk5);
-	if (scsidisk6)
-    		fclose(scsidisk6);
+    int target;
+    for (target = 0; target < ESP_MAX_DEVS; target++) {
+        if (scsiimage[target])
+    		fclose(scsiimage[target]);
+    }
     
     scsidisk = NULL;
 }
@@ -161,54 +110,23 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
     }
 
     SCSIcommand.opcode = SCSIcommand.command[0];
+    if (target >= ESP_MAX_DEVS) {
+        Log_Printf(LOG_WARN, "Invalid target: %i!\n", target);
+        abort();
+    }
     SCSIcommand.target = target;
     SCSIcommand.lun = lun;
     Log_Printf(LOG_WARN, "SCSI command: Length = %i, Opcode = $%02x, target = %i, lun=%i\n", size, SCSIcommand.opcode, SCSIcommand.target,SCSIcommand.lun);
+    
+    scsidisk = scsiimage[target];
+    bCDROM = ConfigureParams.SCSI.target[target].bCDROM;
+    bTargetDevice = ConfigureParams.SCSI.target[target].bAttached;
 
-    switch (SCSIcommand.target) {
-        case 0:
-            scsidisk = scsidisk0;
-            bCDROM = ConfigureParams.HardDisk.bCDROM0;
-            bTargetDevice = ConfigureParams.HardDisk.bSCSIImageAttached0;
-            break;
-        case 1:
-            scsidisk = scsidisk1;
-            bCDROM = ConfigureParams.HardDisk.bCDROM1;
-            bTargetDevice = ConfigureParams.HardDisk.bSCSIImageAttached1;
-            break;
-        case 2:
-            scsidisk = scsidisk2;
-            bCDROM = ConfigureParams.HardDisk.bCDROM2;
-            bTargetDevice = ConfigureParams.HardDisk.bSCSIImageAttached2;
-            break;
-        case 3:
-            scsidisk = scsidisk3;
-            bCDROM = ConfigureParams.HardDisk.bCDROM3;
-            bTargetDevice = ConfigureParams.HardDisk.bSCSIImageAttached3;
-            break;
-        case 4:
-            scsidisk = scsidisk4;
-            bCDROM = ConfigureParams.HardDisk.bCDROM4;
-            bTargetDevice = ConfigureParams.HardDisk.bSCSIImageAttached4;
-            break;
-        case 5:
-            scsidisk = scsidisk5;
-            bCDROM = ConfigureParams.HardDisk.bCDROM5;
-            bTargetDevice = ConfigureParams.HardDisk.bSCSIImageAttached5;
-            break;
-        case 6:
-            scsidisk = scsidisk6;
-            bCDROM = ConfigureParams.HardDisk.bCDROM6;
-            bTargetDevice = ConfigureParams.HardDisk.bSCSIImageAttached6;
-            break;
-
-        default:
-            Log_Printf(LOG_WARN, "SCSI command: Invalid target: %i\n", SCSIcommand.target);
-            break;
-    }
     //bTargetDevice |= bCDROM; // handle empty cd-rom drive - does not work yet!
     if(scsidisk) { // experimental!
-   	if (SCSIcommand.lun!=LUN_DISC)
+        SCSIcommand.nodevice = false;
+        SCSIcommand.timeout = false;
+   	if ((SCSIcommand.lun!=LUN_DISC) && (SCSIcommand.opcode!=HD_REQ_SENSE) && (SCSIcommand.opcode!=HD_INQUIRY))
 	{
         	Log_Printf(LOG_WARN, "SCSI command: No device at target %i\n", SCSIcommand.target);
         	SCSIcommand.nodevice = true;
@@ -219,13 +137,11 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
 		nLastError= HD_REQSENS_NODRIVE;
 		return;
     	}
-
-        SCSIcommand.nodevice = false;
-        SCSIcommand.timeout = false;
         SCSI_Emulate_Command();
     } else {	
 	// hacks for NeXT (to be tested on real life...)
 	// question is : what an SCSI controler should answer for missing drives (and if SCSI controler is aware of SCSI opcodes)
+//	if (SCSIcommand.opcode==HD_TEST_UNIT_RDY) {SCSI_TestMissingUnitReady();SCSIcommand.nodevice = false;return;}
         SCSIcommand.nodevice = false;
         SCSIcommand.timeout = false;
 	if (SCSIcommand.opcode==HD_REQ_SENSE) {SCSI_Emulate_Command();return;}
