@@ -15,6 +15,7 @@ const char Dialog_fileid[] = "Hatari dialog.c : " __DATE__ " " __TIME__;
 #include "log.h"
 #include "sdlgui.h"
 #include "screen.h"
+#include "file.h"
 
 
 /*-----------------------------------------------------------------------*/
@@ -73,4 +74,71 @@ bool Dialog_DoProperty(void)
 		Main_RequestQuit();
 
 	return bOKDialog;
+}
+
+
+void Dialog_CheckFiles(void) {
+    bool bOldMouseVisibility;
+    bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
+    SDL_ShowCursor(SDL_ENABLE);
+
+    /* Check if ROM file exists. If it is missing present a dialog to select a new ROM file. */
+    switch (ConfigureParams.System.nMachineType) {
+        case NEXT_CUBE030:
+            while (!File_Exists(ConfigureParams.Rom.szRom030FileName)) {
+                DlgMissing_Rom();
+                if (bQuitProgram) {
+                    Main_RequestQuit();
+                    if (bQuitProgram)
+                        break;
+                }
+            }
+            break;
+        case NEXT_CUBE040:
+        case NEXT_STATION:
+            if (ConfigureParams.System.bTurbo) {
+                while (!File_Exists(ConfigureParams.Rom.szRomTurboFileName)) {
+                    DlgMissing_Rom();
+                    if (bQuitProgram) {
+                        Main_RequestQuit();
+                        if (bQuitProgram)
+                            break;
+                    }
+                }
+            } else {
+                while (!File_Exists(ConfigureParams.Rom.szRom040FileName)) {
+                    DlgMissing_Rom();
+                    if (bQuitProgram) {
+                        Main_RequestQuit();
+                        if (bQuitProgram)
+                            break;
+                    }
+                }
+            }
+            break;
+            
+        default:
+            break;
+    }
+    if (bQuitProgram)
+        return;
+    
+    /* Check if SCSI disk images exist. Present a dialog to select missing files. */
+    int target;
+    for (target = 0; target < ESP_MAX_DEVS; target++) {
+        while (ConfigureParams.SCSI.target[target].bAttached && !File_Exists(ConfigureParams.SCSI.target[target].szImageName)) {
+            DlgMissing_SCSIdisk(target);
+            if (bQuitProgram) {
+                Main_RequestQuit();
+                if (bQuitProgram)
+                    break;
+            }
+        }
+        if (bQuitProgram)
+            break;
+    }
+    if (bQuitProgram)
+        return;
+    
+    SDL_ShowCursor(bOldMouseVisibility);
 }

@@ -67,7 +67,6 @@ Uint32 async_len;
 Uint8 *async_buf;
 int dma_enabled = 1;
 void (*dma_cb);
-#define ESP_MAX_DEVS 7
 
 static bool no_target=false;
 static int bus_id_command=0;
