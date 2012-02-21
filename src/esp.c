@@ -244,7 +244,7 @@ void SCSI_Command_Write(void) {
             esp_reset_soft();
             if (!(configuration & CFG1_RESREPT)) {
                 intstatus = INTR_RST;
-		status = (status&STAT_MASK)|STAT_CD;
+		status = (status&STAT_MASK)|STAT_MI;
             	seqstep = 0;
                 Log_Printf(LOG_SCSI_LEVEL,"Bus Reset raising IRQ configuration=%x\n",configuration);
                 esp_raise_irq();
@@ -539,6 +539,7 @@ void do_busid_cmd(Uint8 busid) {
     Log_Printf(LOG_SCSI_LEVEL, "No target found !! Target %d Lun %d raise irq %s at %d",target,lun,__FILE__,__LINE__);
         intstatus = INTR_DC;
 	seqstep = SEQ_SELTIMEOUT;
+	status = STAT_MI; // seems weird... http://permalink.gmane.org/gmane.os.netbsd.ports.next68k/305
 	no_target=true;
         esp_raise_irq();
 	return;
