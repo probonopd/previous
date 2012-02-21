@@ -45,6 +45,7 @@ const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 #include <sys/time.h>
 #endif
 
+int nFrameSkips;
 
 bool bQuitProgram = false;                /* Flag to quit program cleanly */
 
@@ -290,11 +291,11 @@ void Main_WaitOnVbl(void)
 			if (!nFirstMilliTick)
 				nFirstMilliTick = Main_GetTicks();
 		}
-//		if (nFrameSkips < ConfigureParams.Screen.nFrameSkips)
-//		{
-//			nFrameSkips += 1;
-			// Log_Printf(LOG_DEBUG, "Increased frameskip to %d\n", nFrameSkips);
-//		}
+		if (nFrameSkips < ConfigureParams.Screen.nFrameSkips)
+		{
+			nFrameSkips += 1;
+			Log_Printf(LOG_DEBUG, "Increased frameskip to %d\n", nFrameSkips);
+		}
 		/* Only update DestTicks for next VBL */
 		DestTicks = CurrentTicks + FrameDuration_micro;
 		return;
@@ -302,13 +303,13 @@ void Main_WaitOnVbl(void)
 	/* If automatic frameskip is enabled and delay's more than twice
 	 * the effect of single frameskip, decrease frameskip
 	 */
-//	if (nFrameSkips > 0
-//	    && ConfigureParams.Screen.nFrameSkips >= AUTO_FRAMESKIP_LIMIT
-//	    && 2*nDelay > FrameDuration_micro/nFrameSkips)
-//	{
-//		nFrameSkips -= 1;
-		// Log_Printf(LOG_DEBUG, "Decreased frameskip to %d\n", nFrameSkips);
-//	}
+	if (nFrameSkips > 0
+	    && ConfigureParams.Screen.nFrameSkips >= AUTO_FRAMESKIP_LIMIT
+	    && 2*nDelay > FrameDuration_micro/nFrameSkips)
+	{
+		nFrameSkips -= 1;
+		Log_Printf(LOG_DEBUG, "Decreased frameskip to %d\n", nFrameSkips);
+	}
 
 	if (bAccurateDelays)
 	{
@@ -584,34 +585,38 @@ static void Main_Init(void)
 
 
     /* call menu at startup */
-    if (!File_Exists(sConfigFileName) || ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup)
+    if (!File_Exists(sConfigFileName) || ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup) {
         Dialog_DoProperty();
-    
-    /* If loading of the ROM fails, we bring up a dialog to let the
-     * user choose another ROM file. */
-
-    const char *err_msg;
-    
-    while ((err_msg=Reset_Cold())!=NULL)
-    {
-        DlgMissing_Rom();
-        if (bQuitProgram) {
-            Main_RequestQuit();
-            break;
+        if (bQuitProgram)
+        {
+            SDL_Quit();
+            exit(-2);
         }
     }
+    
+    /* If loading of a file fails, we bring up a dialog to let the
+     * user choose another file. 
+     * --> moved to Reset_ST()
+     */
 
-    if (bQuitProgram)
-    {
-        SDL_Quit();
-        exit(-2);
-    }
+//    const char *err_msg;
+//    
+//    while ((err_msg=Reset_Cold())!=NULL)
+//    {
+//        DlgMissing_Rom();
+//        if (bQuitProgram) {
+//            Main_RequestQuit();
+//            break;
+//        }
+//    }
+
+    Reset_Cold();
     
     SCSI_Init(); // experimental
-    if (bQuitProgram) {
-        SDL_Quit();
-        exit(-2);
-    }
+//    if (bQuitProgram) {
+//        SDL_Quit();
+//        exit(-2);
+//    }
 	rtc_checksum(1);
 	IoMem_Init();
 	

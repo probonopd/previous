@@ -46,17 +46,6 @@ void SCSI_Init(void) {
     /* Check if files exist. Present dialog to re-select missing files. */        
     int target;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
-        while (ConfigureParams.SCSI.target[target].bAttached && !File_Exists(ConfigureParams.SCSI.target[target].szImageName)) {
-            DlgMissing_SCSIdisk(target);
-            if (bQuitProgram) {
-                Main_RequestQuit();
-                if (bQuitProgram)
-                    break;
-            }
-        }
-        if (bQuitProgram)
-            break;
-
         if (File_Exists(ConfigureParams.SCSI.target[target].szImageName) && ConfigureParams.SCSI.target[target].bAttached)
             scsiimage[target] = ConfigureParams.SCSI.target[target].bCDROM == true ? fopen(ConfigureParams.SCSI.target[target].szImageName, "r") : fopen(ConfigureParams.SCSI.target[target].szImageName, "r+");
         else
@@ -124,9 +113,7 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
 
     //bTargetDevice |= bCDROM; // handle empty cd-rom drive - does not work yet!
     if(scsidisk) { // experimental!
-        SCSIcommand.nodevice = false;
-        SCSIcommand.timeout = false;
-   	if ((SCSIcommand.lun!=LUN_DISC) && (SCSIcommand.opcode!=HD_REQ_SENSE) && (SCSIcommand.opcode!=HD_INQUIRY))
+   	if (SCSIcommand.lun!=LUN_DISC)
 	{
         	Log_Printf(LOG_WARN, "SCSI command: No device at target %i\n", SCSIcommand.target);
         	SCSIcommand.nodevice = true;
@@ -137,11 +124,13 @@ void scsi_command_analyzer(Uint8 commandbuf[], int size, int target, int lun) {
 		nLastError= HD_REQSENS_NODRIVE;
 		return;
     	}
+
+        SCSIcommand.nodevice = false;
+        SCSIcommand.timeout = false;
         SCSI_Emulate_Command();
     } else {	
 	// hacks for NeXT (to be tested on real life...)
 	// question is : what an SCSI controler should answer for missing drives (and if SCSI controler is aware of SCSI opcodes)
-//	if (SCSIcommand.opcode==HD_TEST_UNIT_RDY) {SCSI_TestMissingUnitReady();SCSIcommand.nodevice = false;return;}
         SCSIcommand.nodevice = false;
         SCSIcommand.timeout = false;
 	if (SCSIcommand.opcode==HD_REQ_SENSE) {SCSI_Emulate_Command();return;}
