@@ -137,111 +137,32 @@ static SGOBJ diskdlg[] =
 void DlgHardDisk_Main(void)
 {
     int but;
-    char dlgname_scsi0[64];
-    char dlgname_scsi1[64];
-    char dlgname_scsi2[64];
-    char dlgname_scsi3[64];
-    char dlgname_scsi4[64];
-    char dlgname_scsi5[64];
-    char dlgname_scsi6[64];
+    char dlgname_scsi[ESP_MAX_DEVS][64];
+    int dialog_offset = DISKDLG_SCSINAME1 - DISKDLG_SCSINAME0;
 
 	SDLGui_CenterDlg(diskdlg);
 
 	/* Set up dialog to actual values: */
 
 	/* SCSI hard disk image: */
-	if (ConfigureParams.HardDisk.bSCSIImageAttached0) {
-		File_ShrinkName(dlgname_scsi0, ConfigureParams.HardDisk.szSCSIDiskImage0,
-		                diskdlg[DISKDLG_SCSINAME0].w);
-    } else {
-        dlgname_scsi0[0] = '\0';
+    int target;
+    for (target = 0; target < ESP_MAX_DEVS; target++) {
+        if (ConfigureParams.SCSI.target[target].bAttached) {
+            File_ShrinkName(dlgname_scsi[target], ConfigureParams.SCSI.target[target].szImageName,
+                            diskdlg[DISKDLG_SCSINAME0+target*dialog_offset].w);
+        } else {
+            dlgname_scsi[target][0] = '\0';
+        }
+        diskdlg[DISKDLG_SCSINAME0+target*dialog_offset].txt = dlgname_scsi[target];
     }
-        
-    if (ConfigureParams.HardDisk.bSCSIImageAttached1) {
-        File_ShrinkName(dlgname_scsi1, ConfigureParams.HardDisk.szSCSIDiskImage1,
-                    diskdlg[DISKDLG_SCSINAME1].w);
-    } else {
-        dlgname_scsi1[0] = '\0';
-    }
-        
-    if (ConfigureParams.HardDisk.bSCSIImageAttached2) {
-        File_ShrinkName(dlgname_scsi2, ConfigureParams.HardDisk.szSCSIDiskImage2,
-                        diskdlg[DISKDLG_SCSINAME2].w);
-	} else {
-        dlgname_scsi2[0] = '\0';
-    }
-    
-    if (ConfigureParams.HardDisk.bSCSIImageAttached3) {
-        File_ShrinkName(dlgname_scsi3, ConfigureParams.HardDisk.szSCSIDiskImage3,
-                        diskdlg[DISKDLG_SCSINAME3].w);
-	} else {
-        dlgname_scsi3[0] = '\0';
-    }
-    
-    if (ConfigureParams.HardDisk.bSCSIImageAttached4) {
-        File_ShrinkName(dlgname_scsi4, ConfigureParams.HardDisk.szSCSIDiskImage4,
-                        diskdlg[DISKDLG_SCSINAME4].w);
-	} else {
-        dlgname_scsi4[0] = '\0';
-    }
-
-    if (ConfigureParams.HardDisk.bSCSIImageAttached5) {
-        File_ShrinkName(dlgname_scsi5, ConfigureParams.HardDisk.szSCSIDiskImage5,
-                        diskdlg[DISKDLG_SCSINAME5].w);
-	} else {
-        dlgname_scsi5[0] = '\0';
-    }
-
-    if (ConfigureParams.HardDisk.bSCSIImageAttached6) {
-        File_ShrinkName(dlgname_scsi6, ConfigureParams.HardDisk.szSCSIDiskImage6,
-                        diskdlg[DISKDLG_SCSINAME6].w);
-	} else {
-        dlgname_scsi6[0] = '\0';
-    }
-
-	diskdlg[DISKDLG_SCSINAME0].txt = dlgname_scsi0;
-    diskdlg[DISKDLG_SCSINAME1].txt = dlgname_scsi1;
-    diskdlg[DISKDLG_SCSINAME2].txt = dlgname_scsi2;
-	diskdlg[DISKDLG_SCSINAME3].txt = dlgname_scsi3;
-    diskdlg[DISKDLG_SCSINAME4].txt = dlgname_scsi4;
-    diskdlg[DISKDLG_SCSINAME5].txt = dlgname_scsi5;
-    diskdlg[DISKDLG_SCSINAME6].txt = dlgname_scsi6;
 
     /* CD-ROM true or false? */
-    if (ConfigureParams.HardDisk.bCDROM0)
-        diskdlg[DISKDLG_CDROM0].state |= SG_SELECTED;
-    else
-        diskdlg[DISKDLG_CDROM0].state &= ~SG_SELECTED;
-    
-    if (ConfigureParams.HardDisk.bCDROM1)
-        diskdlg[DISKDLG_CDROM1].state |= SG_SELECTED;
-    else
-        diskdlg[DISKDLG_CDROM1].state &= ~SG_SELECTED;
-    
-    if (ConfigureParams.HardDisk.bCDROM2)
-        diskdlg[DISKDLG_CDROM2].state |= SG_SELECTED;
-    else
-        diskdlg[DISKDLG_CDROM2].state &= ~SG_SELECTED;
-    
-    if (ConfigureParams.HardDisk.bCDROM3)
-        diskdlg[DISKDLG_CDROM3].state |= SG_SELECTED;
-    else
-        diskdlg[DISKDLG_CDROM3].state &= ~SG_SELECTED;
-    
-    if (ConfigureParams.HardDisk.bCDROM4)
-        diskdlg[DISKDLG_CDROM4].state |= SG_SELECTED;
-    else
-        diskdlg[DISKDLG_CDROM4].state &= ~SG_SELECTED;
-    
-    if (ConfigureParams.HardDisk.bCDROM5)
-        diskdlg[DISKDLG_CDROM5].state |= SG_SELECTED;
-    else
-        diskdlg[DISKDLG_CDROM5].state &= ~SG_SELECTED;
-    
-    if (ConfigureParams.HardDisk.bCDROM6)
-        diskdlg[DISKDLG_CDROM6].state |= SG_SELECTED;
-    else
-        diskdlg[DISKDLG_CDROM6].state &= ~SG_SELECTED;
+    for (target = 0; target < ESP_MAX_DEVS; target++) {
+        if (ConfigureParams.SCSI.target[target].bCDROM)
+            diskdlg[DISKDLG_CDROM0+target*dialog_offset].state |= SG_SELECTED;
+        else
+            diskdlg[DISKDLG_CDROM0+target*dialog_offset].state &= ~SG_SELECTED;
+    }
 
     
 	/* Draw and process the dialog */
@@ -251,90 +172,82 @@ void DlgHardDisk_Main(void)
 		switch (but)
 		{
             case DISKDLG_SCSIEJECT0:
-                ConfigureParams.HardDisk.bSCSIImageAttached0 = false;
-                ConfigureParams.HardDisk.szSCSIDiskImage0[0] = '\0';
-                dlgname_scsi0[0] = '\0';
+                ConfigureParams.SCSI.target[0].bAttached = false;
+                ConfigureParams.SCSI.target[0].szImageName[0] = '\0';
+                dlgname_scsi[0][0] = '\0';
                 break;
             case DISKDLG_SCSIBROWSE0:
-                if (SDLGui_FileConfSelect(dlgname_scsi0,
-                                          ConfigureParams.HardDisk.szSCSIDiskImage0,
-                                          diskdlg[DISKDLG_SCSINAME0].w, false))
-                    ConfigureParams.HardDisk.bSCSIImageAttached0 = true;
+                if (SDLGui_FileConfSelect(dlgname_scsi[0], ConfigureParams.SCSI.target[0].szImageName, diskdlg[DISKDLG_SCSINAME0].w, false))
+                    ConfigureParams.SCSI.target[0].bAttached = true;
                 break;
                 
             case DISKDLG_SCSIEJECT1:
-//                diskdlg[DISKDLG_CDROM1].state &= ~SG_SELECTED; // useful?
-                ConfigureParams.HardDisk.bSCSIImageAttached1 = false;
-                ConfigureParams.HardDisk.szSCSIDiskImage1[0] = '\0';
-
-                dlgname_scsi1[0] = '\0';
+                ConfigureParams.SCSI.target[1].bAttached = false;
+                ConfigureParams.SCSI.target[1].szImageName[0] = '\0';
+                dlgname_scsi[1][0] = '\0';
                 break;
             case DISKDLG_SCSIBROWSE1:
-                if (SDLGui_FileConfSelect(dlgname_scsi1, ConfigureParams.HardDisk.szSCSIDiskImage1, diskdlg[DISKDLG_SCSINAME1].w, false))
-                    ConfigureParams.HardDisk.bSCSIImageAttached1 = true;
+                if (SDLGui_FileConfSelect(dlgname_scsi[1], ConfigureParams.SCSI.target[1].szImageName, diskdlg[DISKDLG_SCSINAME1].w, false))
+                    ConfigureParams.SCSI.target[1].bAttached = true;
                 break;
-                
+
             case DISKDLG_SCSIEJECT2:
-                ConfigureParams.HardDisk.bSCSIImageAttached2 = false;
-                ConfigureParams.HardDisk.szSCSIDiskImage2[0] = '\0';
-                dlgname_scsi2[0] = '\0';
+                ConfigureParams.SCSI.target[2].bAttached = false;
+                ConfigureParams.SCSI.target[2].szImageName[0] = '\0';
+                dlgname_scsi[2][0] = '\0';
                 break;
             case DISKDLG_SCSIBROWSE2:
-                if (SDLGui_FileConfSelect(dlgname_scsi2, ConfigureParams.HardDisk.szSCSIDiskImage2, diskdlg[DISKDLG_SCSINAME2].w, false))
-                    ConfigureParams.HardDisk.bSCSIImageAttached2 = true;
+                if (SDLGui_FileConfSelect(dlgname_scsi[2], ConfigureParams.SCSI.target[2].szImageName, diskdlg[DISKDLG_SCSINAME2].w, false))
+                    ConfigureParams.SCSI.target[2].bAttached = true;
                 break;
-                
+
             case DISKDLG_SCSIEJECT3:
-                ConfigureParams.HardDisk.bSCSIImageAttached3 = false;
-                ConfigureParams.HardDisk.szSCSIDiskImage3[0] = '\0';
-                dlgname_scsi3[0] = '\0';
+                ConfigureParams.SCSI.target[3].bAttached = false;
+                ConfigureParams.SCSI.target[3].szImageName[3] = '\0';
+                dlgname_scsi[3][0] = '\0';
                 break;
             case DISKDLG_SCSIBROWSE3:
-                if (SDLGui_FileConfSelect(dlgname_scsi3, ConfigureParams.HardDisk.szSCSIDiskImage3, diskdlg[DISKDLG_SCSINAME3].w, false))
-                    ConfigureParams.HardDisk.bSCSIImageAttached3 = true;
+                if (SDLGui_FileConfSelect(dlgname_scsi[3], ConfigureParams.SCSI.target[3].szImageName, diskdlg[DISKDLG_SCSINAME3].w, false))
+                    ConfigureParams.SCSI.target[3].bAttached = true;
                 break;
-                
+
             case DISKDLG_SCSIEJECT4:
-                ConfigureParams.HardDisk.bSCSIImageAttached4 = false;
-                ConfigureParams.HardDisk.szSCSIDiskImage4[0] = '\0';
-                dlgname_scsi4[0] = '\0';
+                ConfigureParams.SCSI.target[4].bAttached = false;
+                ConfigureParams.SCSI.target[4].szImageName[4] = '\0';
+                dlgname_scsi[4][0] = '\0';
                 break;
             case DISKDLG_SCSIBROWSE4:
-                if (SDLGui_FileConfSelect(dlgname_scsi4, ConfigureParams.HardDisk.szSCSIDiskImage4, diskdlg[DISKDLG_SCSINAME4].w, false))
-                    ConfigureParams.HardDisk.bSCSIImageAttached4 = true;
+                if (SDLGui_FileConfSelect(dlgname_scsi[4], ConfigureParams.SCSI.target[4].szImageName, diskdlg[DISKDLG_SCSINAME4].w, false))
+                    ConfigureParams.SCSI.target[4].bAttached = true;
                 break;
-
+                
             case DISKDLG_SCSIEJECT5:
-                ConfigureParams.HardDisk.bSCSIImageAttached5 = false;
-                ConfigureParams.HardDisk.szSCSIDiskImage5[0] = '\0';
-                dlgname_scsi5[0] = '\0';
+                ConfigureParams.SCSI.target[5].bAttached = false;
+                ConfigureParams.SCSI.target[5].szImageName[0] = '\0';
+                dlgname_scsi[5][0] = '\0';
                 break;
             case DISKDLG_SCSIBROWSE5:
-                if (SDLGui_FileConfSelect(dlgname_scsi5, ConfigureParams.HardDisk.szSCSIDiskImage5, diskdlg[DISKDLG_SCSINAME5].w, false))
-                    ConfigureParams.HardDisk.bSCSIImageAttached5 = true;
+                if (SDLGui_FileConfSelect(dlgname_scsi[5], ConfigureParams.SCSI.target[5].szImageName, diskdlg[DISKDLG_SCSINAME5].w, false))
+                    ConfigureParams.SCSI.target[5].bAttached = true;
                 break;
-
+                
             case DISKDLG_SCSIEJECT6:
-                ConfigureParams.HardDisk.bSCSIImageAttached6 = false;
-                ConfigureParams.HardDisk.szSCSIDiskImage6[0] = '\0';
-                dlgname_scsi6[0] = '\0';
+                ConfigureParams.SCSI.target[6].bAttached = false;
+                ConfigureParams.SCSI.target[6].szImageName[0] = '\0';
+                dlgname_scsi[6][0] = '\0';
                 break;
             case DISKDLG_SCSIBROWSE6:
-                if (SDLGui_FileConfSelect(dlgname_scsi6, ConfigureParams.HardDisk.szSCSIDiskImage6, diskdlg[DISKDLG_SCSINAME6].w, false))
-                    ConfigureParams.HardDisk.bSCSIImageAttached6 = true;
+                if (SDLGui_FileConfSelect(dlgname_scsi[6], ConfigureParams.SCSI.target[6].szImageName, diskdlg[DISKDLG_SCSINAME6].w, false))
+                    ConfigureParams.SCSI.target[6].bAttached = true;
                 break;
-		}
+        }
 	}
 	while (but != DISKDLG_EXIT && but != SDLGUI_QUIT
 	        && but != SDLGUI_ERROR && !bQuitProgram);
     
     /* Read values from dialog: */
-    ConfigureParams.HardDisk.bCDROM0 = (diskdlg[DISKDLG_CDROM0].state & SG_SELECTED);
-    ConfigureParams.HardDisk.bCDROM1 = (diskdlg[DISKDLG_CDROM1].state & SG_SELECTED);
-    ConfigureParams.HardDisk.bCDROM2 = (diskdlg[DISKDLG_CDROM2].state & SG_SELECTED);
-    ConfigureParams.HardDisk.bCDROM3 = (diskdlg[DISKDLG_CDROM3].state & SG_SELECTED);
-    ConfigureParams.HardDisk.bCDROM4 = (diskdlg[DISKDLG_CDROM4].state & SG_SELECTED);
-    ConfigureParams.HardDisk.bCDROM5 = (diskdlg[DISKDLG_CDROM5].state & SG_SELECTED);
-    ConfigureParams.HardDisk.bCDROM6 = (diskdlg[DISKDLG_CDROM6].state & SG_SELECTED);
+    for (target = 0; target < ESP_MAX_DEVS; target++) {
+        ConfigureParams.SCSI.target[target].bCDROM = (diskdlg[DISKDLG_CDROM0+target*dialog_offset].state & SG_SELECTED);
+    }
 }
 

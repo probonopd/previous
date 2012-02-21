@@ -27,10 +27,10 @@ const char DlgSystem_fileid[] = "Hatari dlgSystem.c : " __DATE__ " " __TIME__;
 #define DLGSYS_CUSTOMIZE  8
 #define DLGSYS_RESET      9
 
-#define DLGSYS_EXIT       24
+#define DLGSYS_EXIT       25
 
 /* Variable strings */
-char cpu_type[16] = "68030,";
+char cpu_type[16] = "68030";
 char cpu_clock[16] = "25 MHz";
 char fpu_type[16] = "68882";
 char memory_size[16] = "8 MB";
@@ -63,16 +63,17 @@ static SGOBJ systemdlg[] =
  	{ SGTEXT, 0, 0, 30,4, 13,1, "System overview:" },
     { SGTEXT, 0, 0, 30,6, 13,1, "CPU type:" },
     { SGTEXT, 0, 0, 44,6, 13,1, cpu_type },
-    { SGTEXT, 0, 0, 51,6, 13,1, cpu_clock },
-    { SGTEXT, 0, 0, 30,7, 13,1, "FPU type:" },
-    { SGTEXT, 0, 0, 44,7, 13,1, fpu_type },
-    { SGTEXT, 0, 0, 30,8, 13,1, "Memory size:" },
-    { SGTEXT, 0, 0, 44,8, 13,1, memory_size },
-    { SGTEXT, 0, 0, 30,9, 13,1, "SCSI chip:" },
-    { SGTEXT, 0, 0, 44,9, 13,1, scsi_controller },
-    { SGTEXT, 0, 0, 30,10, 13,1, "RTC chip:" },
-    { SGTEXT, 0, 0, 44,10, 13,1, rtc_chip },
-    { SGTEXT, 0, 0, 30,12, 13,1, emulate_adb },
+    { SGTEXT, 0, 0, 30,7, 13,1, "CPU clock:" },
+    { SGTEXT, 0, 0, 44,7, 13,1, cpu_clock },
+    { SGTEXT, 0, 0, 30,8, 13,1, "FPU type:" },
+    { SGTEXT, 0, 0, 44,8, 13,1, fpu_type },
+    { SGTEXT, 0, 0, 30,9, 13,1, "Memory size:" },
+    { SGTEXT, 0, 0, 44,9, 13,1, memory_size },
+    { SGTEXT, 0, 0, 30,10, 13,1, "SCSI chip:" },
+    { SGTEXT, 0, 0, 44,10, 13,1, scsi_controller },
+    { SGTEXT, 0, 0, 30,11, 13,1, "RTC chip:" },
+    { SGTEXT, 0, 0, 44,11, 13,1, rtc_chip },
+    { SGTEXT, 0, 0, 30,13, 13,1, emulate_adb },
     
     { SGTEXT, 0, 0, 4,18, 13,1, "Changing machine type resets all advanced options." },
     
@@ -86,17 +87,17 @@ static SGOBJ systemdlg[] =
 void print_system_overview(void) {
     switch (ConfigureParams.System.nCpuLevel) {
         case 0:
-            sprintf(cpu_type, "68000,"); break;
+            sprintf(cpu_type, "68000"); break;
         case 1:
-            sprintf(cpu_type, "68010,"); break;
+            sprintf(cpu_type, "68010"); break;
         case 2:
-            sprintf(cpu_type, "68020,"); break;
+            sprintf(cpu_type, "68020"); break;
         case 3:
-            sprintf(cpu_type, "68030,"); break;
+            sprintf(cpu_type, "68030"); break;
         case 4:
-            sprintf(cpu_type, "68040,"); break;
+            sprintf(cpu_type, "68040"); break;
         case 5:
-            sprintf(cpu_type, "68060,"); break;
+            sprintf(cpu_type, "68060"); break;
         default: break;
     }
     
@@ -204,7 +205,6 @@ void Dialog_SystemDlg(void)
     do
 	{
         but = SDLGui_DoDialog(systemdlg, NULL);
-        printf("Button: %i\n", but);
         switch (but) {
             case DLGSYS_CUBE030:
                 ConfigureParams.System.nMachineType = NEXT_CUBE030;
@@ -231,7 +231,6 @@ void Dialog_SystemDlg(void)
                 } else {
                     ConfigureParams.System.bColor = false;
                 }
-                printf("color: %i\n", ConfigureParams.System.bColor ? 1 : 0);
                 get_default_values();
                 print_system_overview();
                 break;
@@ -245,7 +244,6 @@ void Dialog_SystemDlg(void)
                 } else {
                     ConfigureParams.System.bTurbo = false;
                 }
-                printf("turbo: %i\n", ConfigureParams.System.bTurbo ? 1 : 0);
                 get_default_values();
                 print_system_overview();
                 break;

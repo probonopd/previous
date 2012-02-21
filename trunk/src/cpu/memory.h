@@ -99,7 +99,7 @@ extern addrbank mem_banks[65536];
 #define put_mem_bank(addr, b) (mem_banks[bankindex(addr)] = *(b))
 #endif
 
-extern char* memory_init(uae_u32 nNewNEXTMemSize);
+extern const char* memory_init(uae_u32 nNewNEXTMemSize);
 extern void memory_uninit (void);
 extern void map_banks(addrbank *bank, int first, int count);
 

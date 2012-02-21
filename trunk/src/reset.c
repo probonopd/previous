@@ -18,6 +18,7 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
 #include "nextMemory.h"
 #include "video.h"
 #include "debugcpu.h"
+#include "scsi.h"
 
 
 /*-----------------------------------------------------------------------*/
@@ -25,11 +26,11 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
  * Reset ST emulator states, chips, interrupts and registers.
  * Return zero or negative TOS image load error code.
  */
-static int Reset_ST(bool bCold)
+static const char* Reset_ST(bool bCold)
 {
 	if (bCold)
 	{
-		char* error_str;
+		const char* error_str;
 		error_str=memory_init(0);
 		if (error_str!=NULL) {
 			return error_str;
@@ -37,7 +38,8 @@ static int Reset_ST(bool bCold)
 	}
 	CycInt_Reset();               /* Reset interrupts */
 	Video_Reset();                /* Reset video */
-
+    SCSI_Uninit(); // experimental
+    SCSI_Init(); // experimental
 	Screen_Reset();               /* Reset screen */
 	M68000_Reset(bCold);          /* Reset CPU */
     	DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */
@@ -50,7 +52,7 @@ static int Reset_ST(bool bCold)
 /**
  * Cold reset ST (reset memory, all registers and reboot)
  */
-char* Reset_Cold(void)
+const char* Reset_Cold(void)
 {
 	Main_WarpMouse(sdlscrn->w/2, sdlscrn->h/2);  /* Set mouse pointer to the middle of the screen */
 
@@ -62,7 +64,7 @@ char* Reset_Cold(void)
 /**
  * Warm reset ST (reset registers, leave in same state and reboot)
  */
-char* Reset_Warm(void)
+const char* Reset_Warm(void)
 {
 	return Reset_ST(false);
 }
