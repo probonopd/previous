@@ -192,7 +192,7 @@ Uint32	ClocksTimings_GetVBLDuration_micro ( MACHINETYPE MachineType , int Screen
 {
 	Uint32	VBLDuration_micro;
 
-	VBLDuration_micro = (Uint32) (1000000.0 / ScreenRefreshRate + 0.5);	/* default rounded value, round to closest integer */
+	VBLDuration_micro = (Uint32) (33000000.0 / ScreenRefreshRate + 0.5);	/* default rounded value, round to closest integer */
 	return VBLDuration_micro;
 }
 

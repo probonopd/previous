@@ -44,6 +44,7 @@ const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 #include <sys/time.h>
 #endif
 
+int nFrameSkips;
 
 bool bQuitProgram = false;                /* Flag to quit program cleanly */
 
@@ -289,11 +290,11 @@ void Main_WaitOnVbl(void)
 			if (!nFirstMilliTick)
 				nFirstMilliTick = Main_GetTicks();
 		}
-//		if (nFrameSkips < ConfigureParams.Screen.nFrameSkips)
-//		{
-//			nFrameSkips += 1;
-			// Log_Printf(LOG_DEBUG, "Increased frameskip to %d\n", nFrameSkips);
-//		}
+		if (nFrameSkips < ConfigureParams.Screen.nFrameSkips)
+		{
+			nFrameSkips += 1;
+			Log_Printf(LOG_DEBUG, "Increased frameskip to %d\n", nFrameSkips);
+		}
 		/* Only update DestTicks for next VBL */
 		DestTicks = CurrentTicks + FrameDuration_micro;
 		return;
@@ -301,13 +302,13 @@ void Main_WaitOnVbl(void)
 	/* If automatic frameskip is enabled and delay's more than twice
 	 * the effect of single frameskip, decrease frameskip
 	 */
-//	if (nFrameSkips > 0
-//	    && ConfigureParams.Screen.nFrameSkips >= AUTO_FRAMESKIP_LIMIT
-//	    && 2*nDelay > FrameDuration_micro/nFrameSkips)
-//	{
-//		nFrameSkips -= 1;
-		// Log_Printf(LOG_DEBUG, "Decreased frameskip to %d\n", nFrameSkips);
-//	}
+	if (nFrameSkips > 0
+	    && ConfigureParams.Screen.nFrameSkips >= AUTO_FRAMESKIP_LIMIT
+	    && 2*nDelay > FrameDuration_micro/nFrameSkips)
+	{
+		nFrameSkips -= 1;
+		Log_Printf(LOG_DEBUG, "Decreased frameskip to %d\n", nFrameSkips);
+	}
 
 	if (bAccurateDelays)
 	{
