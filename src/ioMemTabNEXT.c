@@ -162,8 +162,6 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 	{ 0x02006012, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
 	{ 0x02006013, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
 	{ 0x02006014, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_ReadWithoutInterceptionButTrace },
-
-
 	{ 0x02007000, SIZE_LONG, IntRegStatRead, IntRegStatWrite },
 	{ 0x02007800, SIZE_LONG, IntRegMaskRead, IntRegMaskWrite },
 

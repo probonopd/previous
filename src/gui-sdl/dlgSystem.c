@@ -121,7 +121,7 @@ void print_system_overview(void) {
     
     switch (ConfigureParams.System.nSCSI) {
         case NCR53C90:
-            sprintf(scsi_controller, "NRC53C90"); break;
+            sprintf(scsi_controller, "NCR53C90"); break;
         case NCR53C90A:
             sprintf(scsi_controller, "NCR53C90A"); break;
         default: break;

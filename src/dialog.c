@@ -69,13 +69,17 @@ bool Dialog_DoProperty(void)
 	}
 
 	Main_UnPauseEmulation();
-
+    
 	if (bQuitProgram)
 		Main_RequestQuit();
-
+ 
 	return bOKDialog;
 }
 
+
+/* Function to check if all necessary files exist. If loading of a file fails, we bring up a dialog to let the
+ * user choose another file. This is repeated for each missing file.
+ */
 
 void Dialog_CheckFiles(void) {
     bool bOldMouseVisibility;

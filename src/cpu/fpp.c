@@ -191,9 +191,9 @@ STATIC_INLINE int fault_if_no_fpu (uae_u32 opcode, int pcoffset)
 static int get_fpu_version (void)
 {
 	int v = 0;
-
+/* removed for previous by andreas_g
 	if (currprefs.fpu_revision >= 0)
-		return currprefs.fpu_revision;
+		return currprefs.fpu_revision; */
 	switch (currprefs.fpu_model)
 	{
 	case 68881:

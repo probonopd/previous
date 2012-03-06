@@ -176,8 +176,22 @@ static const struct Config_Tag configs_Floppy[] =
 	{ NULL , Error_Tag, NULL }
 };
 
-/* Used to load/save HD options */
-static const struct Config_Tag configs_HardDisk[] =
+/* Used to load/save boot options */
+static const struct Config_Tag configs_Boot[] =
+{
+	{ "nBootDevice", Int_Tag, &ConfigureParams.Boot.nBootDevice },
+	{ "bEnableDRAMTest", Bool_Tag, &ConfigureParams.Boot.bEnableDRAMTest },
+	{ "bEnablePot", Bool_Tag, &ConfigureParams.Boot.bEnablePot },
+	{ "bEnableSoundTest", Bool_Tag, &ConfigureParams.Boot.bEnableSoundTest },
+	{ "bEnableSCSITest", Bool_Tag, &ConfigureParams.Boot.bEnableSCSITest },
+    { "bLoopPot", Bool_Tag, &ConfigureParams.Boot.bLoopPot },
+	{ "bVerbose", Bool_Tag, &ConfigureParams.Boot.bVerbose },
+    { "bExtendedPot", Bool_Tag, &ConfigureParams.Boot.bExtendedPot },
+	{ NULL , Error_Tag, NULL }
+};
+
+/* Used to load/save SCSI options */
+static const struct Config_Tag configs_SCSI[] =
 {
     { "szImageName0", String_Tag, ConfigureParams.SCSI.target[0].szImageName },
     { "bAttached0", Bool_Tag, &ConfigureParams.SCSI.target[0].bAttached },
@@ -331,7 +345,17 @@ void Configuration_SetDefault(void)
 	strcpy(ConfigureParams.DiskImage.szDiskImageDirectory, psWorkingDir);
 	File_AddSlashToEndFileName(ConfigureParams.DiskImage.szDiskImageDirectory);
 
-	/* Set defaults for hard disks */
+    /* Set defaults for Boot options */
+    ConfigureParams.Boot.nBootDevice = BOOT_ROM;
+    ConfigureParams.Boot.bEnableDRAMTest = false;
+    ConfigureParams.Boot.bEnablePot = true;
+    ConfigureParams.Boot.bEnableSoundTest = true;
+    ConfigureParams.Boot.bEnableSCSITest = true;
+    ConfigureParams.Boot.bLoopPot = false;
+    ConfigureParams.Boot.bVerbose = true;
+    ConfigureParams.Boot.bExtendedPot = false;
+    
+	/* Set defaults for SCSI disks */
     int target;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
         strcpy(ConfigureParams.SCSI.target[target].szImageName, psWorkingDir);
@@ -602,7 +626,8 @@ void Configuration_Load(const char *psFileName)
 	Configuration_LoadSection(psFileName, configs_Sound, "[Sound]");
 	Configuration_LoadSection(psFileName, configs_Memory, "[Memory]");
 	Configuration_LoadSection(psFileName, configs_Floppy, "[Floppy]");
-	Configuration_LoadSection(psFileName, configs_HardDisk, "[HardDisk]");
+    Configuration_LoadSection(psFileName, configs_Boot, "[Boot]");
+	Configuration_LoadSection(psFileName, configs_SCSI, "[HardDisk]");
 	Configuration_LoadSection(psFileName, configs_Rom, "[ROM]");
 	Configuration_LoadSection(psFileName, configs_Rs232, "[RS232]");
 	Configuration_LoadSection(psFileName, configs_Printer, "[Printer]");
@@ -649,7 +674,8 @@ void Configuration_Save(void)
 	Configuration_SaveSection(sConfigFileName, configs_Sound, "[Sound]");
 	Configuration_SaveSection(sConfigFileName, configs_Memory, "[Memory]");
 	Configuration_SaveSection(sConfigFileName, configs_Floppy, "[Floppy]");
-	Configuration_SaveSection(sConfigFileName, configs_HardDisk, "[HardDisk]");
+    Configuration_SaveSection(sConfigFileName, configs_Boot, "[Boot]");
+	Configuration_SaveSection(sConfigFileName, configs_SCSI, "[HardDisk]");
 	Configuration_SaveSection(sConfigFileName, configs_Rom, "[ROM]");
 	Configuration_SaveSection(sConfigFileName, configs_Rs232, "[RS232]");
 	Configuration_SaveSection(sConfigFileName, configs_Printer, "[Printer]");
@@ -665,13 +691,15 @@ void Configuration_Save(void)
  * ('MemorySnapShot_Store' handles type)
  */
 void Configuration_MemorySnapShot_Capture(bool bSave)
-{        
+{       
+    /* ROM files */
     MemorySnapShot_Store(ConfigureParams.Rom.szRom030FileName, sizeof(ConfigureParams.Rom.szRom030FileName));
     MemorySnapShot_Store(ConfigureParams.Rom.szRom040FileName, sizeof(ConfigureParams.Rom.szRom040FileName));
     MemorySnapShot_Store(ConfigureParams.Rom.szRomTurboFileName, sizeof(ConfigureParams.Rom.szRomTurboFileName));
 
 	MemorySnapShot_Store(&ConfigureParams.Memory.nMemorySize, sizeof(ConfigureParams.Memory.nMemorySize));
     
+    /* SCSI disks */
     int target;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
         MemorySnapShot_Store(ConfigureParams.SCSI.target[target].szImageName, sizeof(ConfigureParams.SCSI.target[target].szImageName));
@@ -679,17 +707,18 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
         MemorySnapShot_Store(&ConfigureParams.SCSI.target[target].bCDROM, sizeof(ConfigureParams.SCSI.target[target].bCDROM));
     }
 
+    /* Monitor options */
 	MemorySnapShot_Store(&ConfigureParams.Screen.nMonitorType, sizeof(ConfigureParams.Screen.nMonitorType));
 	MemorySnapShot_Store(&ConfigureParams.Screen.bUseExtVdiResolutions, sizeof(ConfigureParams.Screen.bUseExtVdiResolutions));
 	MemorySnapShot_Store(&ConfigureParams.Screen.nVdiWidth, sizeof(ConfigureParams.Screen.nVdiWidth));
 	MemorySnapShot_Store(&ConfigureParams.Screen.nVdiHeight, sizeof(ConfigureParams.Screen.nVdiHeight));
 	MemorySnapShot_Store(&ConfigureParams.Screen.nVdiColors, sizeof(ConfigureParams.Screen.nVdiColors));
 
+    /* System options */
 	MemorySnapShot_Store(&ConfigureParams.System.nCpuLevel, sizeof(ConfigureParams.System.nCpuLevel));
 	MemorySnapShot_Store(&ConfigureParams.System.nCpuFreq, sizeof(ConfigureParams.System.nCpuFreq));
 	MemorySnapShot_Store(&ConfigureParams.System.bCompatibleCpu, sizeof(ConfigureParams.System.bCompatibleCpu));
 	
-    
     MemorySnapShot_Store(&ConfigureParams.System.nMachineType, sizeof(ConfigureParams.System.nMachineType));
     MemorySnapShot_Store(&ConfigureParams.System.bColor, sizeof(ConfigureParams.System.bColor));
     MemorySnapShot_Store(&ConfigureParams.System.bTurbo, sizeof(ConfigureParams.System.bTurbo));
@@ -710,6 +739,7 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
     MemorySnapShot_Store(&ConfigureParams.System.bMMU, sizeof(ConfigureParams.System.bMMU));
 #endif
     
+    /* Other */
 	MemorySnapShot_Store(&ConfigureParams.DiskImage.bSlowFloppy, sizeof(ConfigureParams.DiskImage.bSlowFloppy));
 
 	if (!bSave)
