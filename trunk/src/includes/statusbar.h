@@ -21,6 +21,7 @@ extern int Statusbar_GetHeightForSize(int width, int height);
 extern int Statusbar_GetHeight(void);
 extern void Statusbar_EnableHDLed(void);
 extern void Statusbar_SetFloppyLed(drive_index_t drive, bool state);
+extern void Statusbar_SetSCR2Led(bool state);
 
 extern void Statusbar_Init(SDL_Surface *screen);
 extern void Statusbar_UpdateInfo(void);

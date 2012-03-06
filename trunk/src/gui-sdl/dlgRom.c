@@ -29,6 +29,7 @@ const char DlgRom_fileid[] = "Hatari dlgRom.c : " __DATE__ " " __TIME__;
 #define DLGROM_EXIT              18
 
 
+
 /* The ROM dialog: */
 static SGOBJ romdlg[] =
 {
@@ -57,6 +58,7 @@ static SGOBJ romdlg[] =
 	{ SGBUTTON, SG_DEFAULT, 0, 16,25, 20,1, "Back to main menu" },
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
+
 
 
 /*-----------------------------------------------------------------------*/

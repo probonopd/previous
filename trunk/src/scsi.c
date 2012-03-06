@@ -69,6 +69,11 @@ void SCSI_Uninit(void) {
     scsidisk = NULL;
 }
 
+void SCSI_Reset(void) {
+    SCSI_Uninit();
+    SCSI_Init();
+}
+
 
 
 /* INQUIRY response data */

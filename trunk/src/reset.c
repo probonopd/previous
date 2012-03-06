@@ -19,8 +19,7 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
 #include "video.h"
 #include "debugcpu.h"
 #include "scsi.h"
-#include "dialog.h"
-#include "sdlgui.h"
+#include "sysReg.h"
 
 
 /*-----------------------------------------------------------------------*/
@@ -30,14 +29,6 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
  */
 static const char* Reset_ST(bool bCold)
 {
-    /* Check if all files exist */
-    Dialog_CheckFiles(); // better have this in another place?
-    if (bQuitProgram)
-    {
-        SDL_Quit();
-        exit(-2);
-    }
-
 	if (bCold)
 	{
 		const char* error_str;
@@ -48,8 +39,8 @@ static const char* Reset_ST(bool bCold)
 	}
 	CycInt_Reset();               /* Reset interrupts */
 	Video_Reset();                /* Reset video */
-    SCSI_Uninit(); // experimental
-    SCSI_Init(); // experimental
+    nvram_init();                 /* Reset NVRAM */
+    SCSI_Reset();                 /* Reset SCSI disks */
 	Screen_Reset();               /* Reset screen */
 	M68000_Reset(bCold);          /* Reset CPU */
     	DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */

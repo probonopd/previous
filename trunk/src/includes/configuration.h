@@ -121,6 +121,30 @@ typedef struct
 } CNF_MEMORY;
 
 
+/* Dialog Boot options */
+
+typedef enum
+{
+    BOOT_ROM,
+    BOOT_SCSI,
+    BOOT_ETHERNET,
+    BOOT_MO,
+    BOOT_FLOPPY
+} BOOT_DEVICE;
+
+typedef struct
+{
+    BOOT_DEVICE nBootDevice;
+    bool bEnableDRAMTest;
+    bool bEnablePot;
+    bool bExtendedPot;
+    bool bEnableSoundTest;
+    bool bEnableSCSITest;
+    bool bLoopPot;
+    bool bVerbose;
+} CNF_BOOT;
+
+
 /* Disk image configuration */
 
 typedef enum
@@ -167,7 +191,7 @@ typedef struct
   
   WRITEPROTECTION nWriteProtection;
   bool bBootFromHardDisk;
-} CNF_HARDDISK;
+} CNF_SCSI;
 
 /* Falcon register $FFFF8006 bits 6 & 7 (mirrored in $FFFF82C0 bits 0 & 1):
  * 00 Monochrome
@@ -259,10 +283,10 @@ typedef enum
 #if ENABLE_WINUAE_CPU
 typedef enum
 {
-  FPU_NONE,
-  FPU_68881,
-  FPU_68882,
-  FPU_CPU
+  FPU_NONE = 0,
+  FPU_68881 = 68881,
+  FPU_68882 = 68882,
+  FPU_CPU = 68040
 } FPUTYPE;
 #endif
 
@@ -316,7 +340,8 @@ typedef struct
   CNF_SOUND Sound;
   CNF_MEMORY Memory;
   CNF_DISKIMAGE DiskImage;
-  CNF_HARDDISK SCSI;
+  CNF_BOOT Boot;
+  CNF_SCSI SCSI;
   CNF_ROM Rom;
   CNF_RS232 RS232;
   CNF_PRINTER Printer;

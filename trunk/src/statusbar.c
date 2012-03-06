@@ -172,6 +172,16 @@ void Statusbar_SetFloppyLed(drive_index_t drive, bool state)
 	Led[drive].state = state;
 }
 
+/*-----------------------------------------------------------------------*/
+/**
+ * Set scr2 led state, anything enabling led with this
+ * needs also to take care of disabling it.
+ */
+void Statusbar_SetSCR2Led(bool state)
+{
+        bOldRecording = state;
+}
+
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -314,7 +324,7 @@ void Statusbar_Init(SDL_Surface *surf)
 	RecLedRect = LedRect;
 	RecLedRect.x = surf->w - fontw - RecLedRect.w;
 	ledbox.x = RecLedRect.x - 1;
-	SDLGui_Text(ledbox.x - 4*fontw - fontw/2, MessageRect.y, "REC:");
+	SDLGui_Text(ledbox.x - 4*fontw - fontw/2, MessageRect.y, "LED:");
 	SDL_FillRect(surf, &ledbox, LedColorBg);
 	SDL_FillRect(surf, &RecLedRect, RecColorOff);
 	bOldRecording = false;
@@ -639,5 +649,13 @@ void Statusbar_Update(SDL_Surface *surf)
 
 	Statusbar_ShowMessage(surf, currentticks);
 
-
+    /* Draw scr2 LED */
+    if (bOldRecording) {
+        color = RecColorOn;
+    } else {
+        color = RecColorOff;
+    }
+    SDL_FillRect(surf, &RecLedRect, color);
+    SDL_UpdateRects(surf, 1, &RecLedRect);
+    DEBUGPRINT(("SCR2 LED = ON\n"));
 }
