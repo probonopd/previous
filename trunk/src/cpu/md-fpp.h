@@ -20,10 +20,27 @@
 #define	FPCR_PRECISION_DOUBLE	0x00000080
 #define FPCR_PRECISION_EXTENDED	0x00000000
 
+STATIC_INLINE int big_endian(void) {
+    union {
+        uae_u32 l;
+        char c[4];
+    } test = {0x01020304};
+    return test.c[0] == 1;
+}
+
 #if USE_LONG_DOUBLE
 STATIC_INLINE long double to_exten(uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
 {
-    uae_u32 longarray[] = {wrd3,wrd2,((wrd1>>16)&0xffff)}; // little endian
+    uae_u32 longarray[3];
+    if (big_endian()) {
+        longarray[0] = (wrd1&0xFFFF0000)|((wrd2&0xFFFF0000)>>16);
+        longarray[1] = ((wrd2&0xFFFF)<<16)|((wrd3&0xFFFF0000)>>16);
+        longarray[2] = (wrd3&0xFFFF)<<16; // big endian
+    } else {
+        longarray[0] = wrd3;
+        longarray[1] = wrd2;
+        longarray[2] = (wrd1>>16)&0xFFFF; // little endian
+    }
     register long double *longdoublewords = (long double *)longarray;
 
     return(*longdoublewords);
@@ -33,12 +50,15 @@ STATIC_INLINE long double to_exten(uae_u32 wrd1, uae_u32 wrd2, uae_u32 wrd3)
 STATIC_INLINE void from_exten(long double src, uae_u32 * wrd1, uae_u32 * wrd2, uae_u32 * wrd3)
 {
     register uae_u32 *longarray = (uae_u32 *)&src;
-//    register uae_u16 *finalword = (uae_u16 *)(&src + 8);
-
-//    *wrd1 = ((uae_u32)*finalword)<<16;
-    *wrd1 = (longarray[2] & 0xffff)<<16; // replaced by andreas_g
-    *wrd2 = longarray[1];
-    *wrd3 = longarray[0]; // little endian
+    if (big_endian()) {
+        *wrd1 = longarray[0]&0xFFFF0000;
+        *wrd2 = ((longarray[0]&0xFFFF)<<16)|((longarray[1]&0xFFFF0000)>>16);
+        *wrd3 = ((longarray[1]&0xFFFF)<<16)|((longarray[2]&0xFFFF0000)>>16); // big endian
+    } else {
+        *wrd1 = (longarray[2] & 0xFFFF)<<16;
+        *wrd2 = longarray[1];
+        *wrd3 = longarray[0]; // little endian
+    }
 }
 #define HAVE_from_exten
 #endif /* USE_LONG_DOUBLE */
@@ -142,9 +162,13 @@ STATIC_INLINE double to_double(uae_u32 wrd1, uae_u32 wrd2)
     double d;
     uae_u32 u[2];
     } val;
-
-    val.u[0] = wrd2; // little endian
-    val.u[1] = wrd1;
+    if (big_endian()) {
+        val.u[0] = wrd1;
+        val.u[1] = wrd2; // big endian
+    } else {
+        val.u[0] = wrd2; // little endian
+        val.u[1] = wrd1;
+    }
     return val.d;
 }
 #endif
@@ -154,9 +178,13 @@ STATIC_INLINE double to_double(uae_u32 wrd1, uae_u32 wrd2)
 STATIC_INLINE void from_double(double src, uae_u32 * wrd1, uae_u32 * wrd2)
 {
     register uae_u32 *longarray = (uae_u32 *)&src;
-
-    *wrd1 = longarray[1]; // little endian
-    *wrd2 = longarray[0];
+    if (big_endian()) {
+        *wrd1 = longarray[0];
+        *wrd2 = longarray[1]; // big endian
+    } else {
+        *wrd1 = longarray[1]; // little endian
+        *wrd2 = longarray[0];
+    }
 }
 #endif
 
