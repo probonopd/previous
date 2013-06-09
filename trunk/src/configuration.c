@@ -154,7 +154,11 @@ static const struct Config_Tag configs_Sound[] =
 /* Used to load/save memory options */
 static const struct Config_Tag configs_Memory[] =
 {
-	{ "nMemorySize", Int_Tag, &ConfigureParams.Memory.nMemorySize },
+	{ "nMemoryBankSize0", Int_Tag, &ConfigureParams.Memory.nMemoryBankSize[0] },
+    { "nMemoryBankSize1", Int_Tag, &ConfigureParams.Memory.nMemoryBankSize[1] },
+	{ "nMemoryBankSize2", Int_Tag, &ConfigureParams.Memory.nMemoryBankSize[2] },
+	{ "nMemoryBankSize3", Int_Tag, &ConfigureParams.Memory.nMemoryBankSize[3] },
+    { "nMemorySpeed", Int_Tag, &ConfigureParams.Memory.nMemorySpeed },
 	{ "bAutoSave", Bool_Tag, &ConfigureParams.Memory.bAutoSave },
 	{ "szMemoryCaptureFileName", String_Tag, ConfigureParams.Memory.szMemoryCaptureFileName },
 	{ "szAutoSaveFileName", String_Tag, ConfigureParams.Memory.szAutoSaveFileName },
@@ -393,7 +397,9 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_INSERTDISKA] = SDLK_1;
 
 	/* Set defaults for Memory */
-	ConfigureParams.Memory.nMemorySize = 8;     /* 8 MiB */
+	memset(ConfigureParams.Memory.nMemoryBankSize, 16, 
+           sizeof(ConfigureParams.Memory.nMemoryBankSize)); /* 64 MiB */
+    ConfigureParams.Memory.nMemorySpeed = MEMORY_100NS;
 	ConfigureParams.Memory.bAutoSave = false;
 	sprintf(ConfigureParams.Memory.szMemoryCaptureFileName, "%s%chatari.sav",
 	        psHomeDir, PATHSEP);
@@ -547,13 +553,8 @@ void Configuration_Apply(bool bReset)
     */
     M68000_CheckCpuSettings();
     
-    /* Cut memory size to supported values */
-    if (ConfigureParams.System.nMachineType == NEXT_CUBE030 && ConfigureParams.Memory.nMemorySize > 64)
-        ConfigureParams.Memory.nMemorySize = 64;
-    else if (ConfigureParams.Memory.nMemorySize > 128)
-        ConfigureParams.Memory.nMemorySize = 128;
-    else if (ConfigureParams.Memory.nMemorySize < 8)
-        ConfigureParams.Memory.nMemorySize = 8;
+    /* Check memory size for each bank and change to supported values */
+    Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize);
     
 	/* Clean file and directory names */    
     File_MakeAbsoluteName(ConfigureParams.Rom.szRom030FileName);
@@ -579,6 +580,71 @@ void Configuration_Apply(bool bReset)
 	File_MakeAbsoluteSpecialName(ConfigureParams.Midi.sMidiInFileName);
 	File_MakeAbsoluteSpecialName(ConfigureParams.Midi.sMidiOutFileName);
 	File_MakeAbsoluteSpecialName(ConfigureParams.Printer.szPrintToFileName);
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Check memory bank sizes for compatibility with the selected system.
+ */
+int Configuration_CheckMemory(int *banksize) {
+    int i;
+    
+#define RESTRICTIVE_MEMCHECK 0
+#if RESTRICTIVE_MEMCHECK
+    /* To boot we need at least 4 MB in bank0 */
+    if (banksize[0]<4) {
+        banksize[0]=4;
+    }
+    
+    /* On monochrome non-Turbo NeXTstations only the first
+     * 2 banks are accessible via memory sockets */
+    if (ConfigureParams.System.nMachineType == NEXT_STATION &&
+        !ConfigureParams.System.bTurbo && !ConfigureParams.System.bColor) {
+        banksize[2]=0;
+        banksize[3]=0;
+    }
+#endif
+    
+    if (ConfigureParams.System.bTurbo) {
+        for (i=0; i<4; i++) {
+            if (banksize[i]<=0)
+                banksize[i]=0;
+            else if (banksize[i]<=2)
+                banksize[i]=2;
+            else if (banksize[i]<=8)
+                banksize[i]=8;
+            else if (banksize[i]<=32)
+                banksize[i]=32;
+            else
+                banksize[i]=32;
+        }
+    } else if (ConfigureParams.System.bColor) {
+        for (i=0; i<4; i++) {
+            if (banksize[i]<=0)
+                banksize[i]=0;
+            else if (banksize[i]<=2)
+                banksize[i]=2;
+            else if (banksize[i]<=8)
+                banksize[i]=8;
+            else
+                banksize[i]=8;
+        }
+    } else {
+        for (i=0; i<4; i++) {
+            if (banksize[i]<=0)
+                banksize[i]=0;
+            else if (banksize[i]<=1)
+                banksize[i]=1;
+            else if (banksize[i]<=4)
+                banksize[i]=4;
+            else if (banksize[i]<=16)
+                banksize[i]=16;
+            else
+                banksize[i]=16;
+        }
+    }
+    return (banksize[0]+banksize[1]+banksize[2]+banksize[3]);
 }
 
 
@@ -697,7 +763,9 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
     MemorySnapShot_Store(ConfigureParams.Rom.szRom040FileName, sizeof(ConfigureParams.Rom.szRom040FileName));
     MemorySnapShot_Store(ConfigureParams.Rom.szRomTurboFileName, sizeof(ConfigureParams.Rom.szRomTurboFileName));
 
-	MemorySnapShot_Store(&ConfigureParams.Memory.nMemorySize, sizeof(ConfigureParams.Memory.nMemorySize));
+    /* Memory options */
+	MemorySnapShot_Store(ConfigureParams.Memory.nMemoryBankSize, sizeof(ConfigureParams.Memory.nMemoryBankSize));
+    MemorySnapShot_Store(&ConfigureParams.Memory.nMemorySpeed, sizeof(ConfigureParams.Memory.nMemorySpeed));
     
     /* SCSI disks */
     int target;

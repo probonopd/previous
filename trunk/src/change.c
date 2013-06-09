@@ -102,9 +102,12 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
     }
     
     /* Did we change memory size? */
-    if (current->Memory.nMemorySize != changed->Memory.nMemorySize) {
-        printf("memory size reset\n");
-        return true;
+    int i;
+    for (i = 0; i < 4; i++) {
+        if (current->Memory.nMemoryBankSize[i] != changed->Memory.nMemoryBankSize[i]) {
+            printf("memory size reset\n");
+            return true;
+        }
     }
     
     /* Did we change boot options? */

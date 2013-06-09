@@ -147,6 +147,16 @@ struct cache040
 	uae_u32 tag[CACHELINES040];
 };
 
+uae_u64 srp_030, crp_030;
+uae_u32 tt0_030, tt1_030, tc_030;
+uae_u16 mmusr_030;
+
+struct mmufixup
+{
+    int reg;
+    uae_u32 value;
+};
+extern struct mmufixup mmufixup[2];
 
 struct regstruct
 {
@@ -431,6 +441,7 @@ extern const struct cputbl op_smalltbl_31_ff[]; // MMU
 /* 68030 */
 extern const struct cputbl op_smalltbl_2_ff[];
 extern const struct cputbl op_smalltbl_22_ff[]; // CE
+extern const struct cputbl op_smalltbl_32_ff[]; // MMU
 /* 68020 */
 extern const struct cputbl op_smalltbl_3_ff[];
 extern const struct cputbl op_smalltbl_23_ff[]; // CE

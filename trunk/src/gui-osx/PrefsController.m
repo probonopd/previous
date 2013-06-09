@@ -628,7 +628,7 @@ static const int nSoundFreqs[] =
     IMPORT_RADIO(monitor, ConfigureParams.Screen.nMonitorType);
     IMPORT_SWITCH(patchTimerD, ConfigureParams.System.bPatchTimerD);
     IMPORT_TEXTFIELD(printToFile, ConfigureParams.Printer.szPrintToFileName);
-    IMPORT_RADIO(ramSize, ConfigureParams.Memory.nMemorySize);
+//    IMPORT_RADIO(ramSize, ConfigureParams.Memory.nMemorySize);
     IMPORT_TEXTFIELD(readRS232FromFile, ConfigureParams.RS232.szInFileName);
     IMPORT_SWITCH(realTime, ConfigureParams.System.bRealTimeClock);
     IMPORT_SWITCH(slowFDC, ConfigureParams.DiskImage.bSlowFloppy);
@@ -839,7 +839,7 @@ static const int nSoundFreqs[] =
     EXPORT_RADIO(monitor, ConfigureParams.Screen.nMonitorType);
     EXPORT_SWITCH(patchTimerD, ConfigureParams.System.bPatchTimerD);
     EXPORT_TEXTFIELD(printToFile, ConfigureParams.Printer.szPrintToFileName);
-    EXPORT_RADIO(ramSize, ConfigureParams.Memory.nMemorySize);
+//    EXPORT_RADIO(ramSize, ConfigureParams.Memory.nMemorySize);
     EXPORT_TEXTFIELD(readRS232FromFile, ConfigureParams.RS232.szInFileName);
     EXPORT_SWITCH(realTime, ConfigureParams.System.bRealTimeClock);
     EXPORT_SWITCH(slowFDC, ConfigureParams.DiskImage.bSlowFloppy);

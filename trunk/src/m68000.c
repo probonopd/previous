@@ -19,6 +19,9 @@ const char M68000_fileid[] = "Hatari m68000.c : " __DATE__ " " __TIME__;
 #include "savestate.h"
 #include "nextMemory.h"
 
+#if ENABLE_WINUAE_CPU
+#include "mmu_common.h"
+#endif
 
 Uint32 BusErrorAddress;         /* Stores the offending address for bus-/address errors */
 Uint32 BusErrorPC;              /* Value of the PC when bus error occurs */
@@ -151,20 +154,26 @@ void M68000_Init(void)
  */
 void M68000_Reset(bool bCold)
 {
-	/* Clear registers */
-	if (bCold)
-	{
-		memset(&regs, 0, sizeof(regs));
-	}
-
-	/* Now directly reset the UAE CPU core: */
-	/* Laurent : for now, using parameter 0, but some other parameters can be used here (see newcpu.c) */
 #if ENABLE_WINUAE_CPU
-	m68k_reset(0);
-#else
-	m68k_reset();
+    if (bCold)
+    {
+        /* Clear registers, but we need to keep SPCFLAG_MODE_CHANGE and SPCFLAG_BRK unchanged */
+        int spcFlags = regs.spcflags & (SPCFLAG_MODE_CHANGE | SPCFLAG_BRK);
+        memset(&regs, 0, sizeof(regs));
+        regs.spcflags = spcFlags;
+    }
+    /* Now reset the WINUAE CPU core */
+    m68k_reset(bCold);
+#else /* UAE CPU core */
+    if (bCold)
+    {
+        /* Clear registers */
+        memset(&regs, 0, sizeof(regs));
+    }
+    /* Now reset the UAE CPU core */
+    m68k_reset();
 #endif
-	BusMode = BUS_MODE_CPU;
+    BusMode = BUS_MODE_CPU;
 }
 
 
@@ -346,8 +355,15 @@ void M68000_BusError(Uint32 addr, bool bRead)
 	
 	if ((regs.spcflags & SPCFLAG_BUSERROR) == 0)	/* [NP] Check that the opcode has not already generated a read bus error */
 	{
+        regs.mmu_fault_addr = addr;
 		BusErrorAddress = addr;				/* Store for exception frame */
 		bBusErrorReadWrite = bRead;
+#if ENABLE_WINUAE_CPU
+        if (currprefs.mmu_model) {
+            THROW(2);
+            return;
+        }
+#endif
 		M68000_SetSpecial(SPCFLAG_BUSERROR);		/* The exception will be done in newcpu.c */
 	}
 }

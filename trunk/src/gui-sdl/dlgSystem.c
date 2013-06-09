@@ -103,9 +103,7 @@ void print_system_overview(void) {
     
     sprintf(cpu_clock, "%i MHz", ConfigureParams.System.nCpuFreq);
     
-    if (ConfigureParams.System.nMachineType != NEXT_STATION && ConfigureParams.Memory.nMemorySize > 64)
-        ConfigureParams.Memory.nMemorySize = 64;
-    sprintf(memory_size, "%i MB", ConfigureParams.Memory.nMemorySize);
+    sprintf(memory_size, "%i MB", Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
     
     switch (ConfigureParams.System.n_FPUType) {
         case FPU_NONE:

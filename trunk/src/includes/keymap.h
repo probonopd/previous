@@ -5,8 +5,8 @@
   your option any later version. Read the file gpl.txt for details.
 */
 
-#ifndef HATARI_KEYMAP_H
-#define HATARI_KEYMAP_H
+//#ifndef HATARI_KEYMAP_H
+//#define HATARI_KEYMAP_H
 
 #include <SDL_keyboard.h>
 #include "SDL.h"
@@ -25,4 +25,7 @@ void Keycode_Read(void);
 void KeyTranslator(SDL_keysym *sdlkey);
 void KeyRelease(SDL_keysym *sdlkey);
 
-#endif
+//#endif
+
+void Monitor_CSR_Read(void);
+void Monitor_CSR_Write(void);

@@ -1254,7 +1254,7 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 			{
 				return Opt_ShowError(OPT_MEMSIZE, argv[i], "Invalid memory size");
 			}
-			ConfigureParams.Memory.nMemorySize = memsize;
+//			ConfigureParams.Memory.nMemorySize = memsize;
 			bLoadAutoSave = false;
 			break;
       

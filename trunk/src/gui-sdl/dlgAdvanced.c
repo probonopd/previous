@@ -233,7 +233,7 @@ void Dialog_AdvancedDlg(void) {
         ConfigureParams.System.nCpuFreq = 16;
     else if (advanceddlg[DLGADV_20MHZ].state & SG_SELECTED)
         ConfigureParams.System.nCpuFreq = 20;
-    else if (advanceddlg[DLGADV_20MHZ].state & SG_SELECTED)
+    else if (advanceddlg[DLGADV_25MHZ].state & SG_SELECTED)
         ConfigureParams.System.nCpuFreq = 25;
     else if (advanceddlg[DLGADV_33MHZ].state & SG_SELECTED)
         ConfigureParams.System.nCpuFreq = 33;

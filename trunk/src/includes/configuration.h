@@ -111,10 +111,20 @@ typedef struct
   int withoutModifier[SHORTCUT_KEYS];
 } CNF_SHORTCUT;
 
+/* Memory configuration */
+
+typedef enum
+{
+  MEMORY_120NS,
+  MEMORY_100NS,
+  MEMORY_80NS,
+  MEMORY_60NS
+} MEMORY_SPEED;
 
 typedef struct
 {
-  int nMemorySize;
+  int nMemoryBankSize[4];
+  MEMORY_SPEED nMemorySpeed;
   bool bAutoSave;
   char szMemoryCaptureFileName[FILENAME_MAX];
   char szAutoSaveFileName[FILENAME_MAX];
@@ -356,6 +366,7 @@ extern char sConfigFileName[FILENAME_MAX];
 
 extern void Configuration_SetDefault(void);
 extern void Configuration_Apply(bool bReset);
+extern int Configuration_CheckMemory(int *banksize);
 extern void Configuration_Load(const char *psFileName);
 extern void Configuration_Save(void);
 extern void Configuration_MemorySnapShot_Capture(bool bSave);

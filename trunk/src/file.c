@@ -553,8 +553,10 @@ FILE *File_Open(const char *path, const char *mode)
 	/* Open a normal log file */
 	fp = fopen(path, mode);
 	if (!fp)
-		fprintf(stderr, "Can't open file '%s':\n  %s\n", path, strerror(errno));
-	/* printf("'%s' opened in mode '%s'\n", path, mode, fp); */
+        fprintf(stderr, "Can't open file '%s' (wr=%i, rd=%i):\n  %s\n",
+                path, wr, rd, strerror(errno));
+    
+    /* printf("'%s' opened in mode '%s'\n", path, mode, fp); */
 	return fp;
 }
 
