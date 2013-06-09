@@ -74,6 +74,7 @@ uae_u8 bankshift;
 
 /* Video memory for monochrome systems */
 #define NEXT_SCREEN			0x0B000000
+#define NEXT_SCREEN_TURBO			0x0C000000
 #define NEXT_SCREEN_SIZE	0x00040000
 #define NEXTvideo_size NEXT_SCREEN_SIZE
 #define NEXTvideo_mask		0x0003FFFF
@@ -984,11 +985,19 @@ const char* memory_init(int *nNewNEXTMemSize)
         map_banks(&ColorVideo_bank, NEXT_COLORSCREEN>>16, NEXT_COLORSCREEN_SIZE >> 16);
         write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_COLORSCREEN, NEXT_COLORSCREEN_SIZE/1024);
     } else {
-        map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
-        map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
-        map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
-        map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
-        write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_SCREEN, NEXT_SCREEN_SIZE/1024);
+    if (ConfigureParams.System.bTurbo) {
+		map_banks(&Video_bank, NEXT_SCREEN_TURBO>>16, NEXT_SCREEN_SIZE >> 16);
+		map_banks(&Video_bank, NEXT_SCREEN_TURBO>>16, NEXT_SCREEN_SIZE >> 16);
+		map_banks(&Video_bank, NEXT_SCREEN_TURBO>>16, NEXT_SCREEN_SIZE >> 16);
+		map_banks(&Video_bank, NEXT_SCREEN_TURBO>>16, NEXT_SCREEN_SIZE >> 16);
+		write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_SCREEN, NEXT_SCREEN_SIZE/1024);
+	} else {
+		map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
+		map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
+		map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
+		map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
+		write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_SCREEN, NEXT_SCREEN_SIZE/1024);
+	}
     }
         
     map_banks(&ROMmem_bank, NEXT_EPROM_START >> 16, NEXT_EPROM_SIZE>>16);
@@ -1001,7 +1010,8 @@ const char* memory_init(int *nNewNEXTMemSize)
 
     if (ConfigureParams.System.bTurbo)
         map_banks(&IOmem_bank, NEXT_IO3_START >> 16, NEXT_IO_SIZE>>16);
-    
+
+// turbo rom makes test here... both read and write    
     map_banks(&bmap_bank, NEXT_BMAP_START >> 16, NEXT_BMAP_SIZE>>16);
     map_banks(&bmap_bank, NEXT_BMAP2_START >> 16, NEXT_BMAP_SIZE>>16);
 

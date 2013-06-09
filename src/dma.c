@@ -158,10 +158,12 @@ void DMA_CSR_Write(void) {
             Ethernet_Transmit(); // Ethernet Transmit
         }
 #if 1 /* hack for nextstep 0.8 */
+    if(ConfigureParams.System.nMachineType == NEXT_CUBE030) { // for 68030 based NeXT Computer
         if ((channel == CHANNEL_R2M) || (channel == CHANNEL_M2R)) {
             dma[channel].csr = DMA_COMPLETE;
             set_interrupt(interrupt, SET_INT);
         }
+    }
 #endif
     }
     if(writecsr & DMA_SETSUPDATE) {
