@@ -15,6 +15,7 @@
 #define CMD_SELATN   0x42
 #define CMD_SELATNS  0x43
 #define CMD_ENSEL    0x44
+#define CMD_DISSEL   0x45
 
 #define CMD_SEMSG    0x20
 #define CMD_SESTAT   0x21
@@ -96,6 +97,7 @@ void SCSI_Configuration_Write(void);
 void SCSI_ClockConv_Write(void);
 void SCSI_Test_Write(void);
 
+void SCSI_Conf2_Read(void);
 
 void esp_reset_hard(void);
 void esp_reset_soft(void);

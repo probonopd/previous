@@ -39,6 +39,7 @@ static int using_ce;
 static int cpu_level;
 static int count_read, count_write, count_cycles, count_ncycles;
 static int count_read_ea, count_write_ea, count_cycles_ea;
+static const char *mmu_postfix;
 
 static int optimized_flags;
 
@@ -269,7 +270,7 @@ static void gen_nextilong (const char *type, const char *name, int flags)
 			printf ("\t%s %s = get_ilongi (%d);\n", type, name, r);
 		} else if (using_mmu) {
 			insn_n_cycles += 8;
-			printf ("\t%s %s = get_ilong_mmu (%d);\n", type, name, r);
+			printf ("\t%s %s = get_ilong_mmu%s (%d);\n", type, name, mmu_postfix, r);
 		} else {
 			insn_n_cycles += 8;
 			printf ("\t%s %s = get_ilong (%d);\n", type, name, r);
@@ -306,7 +307,7 @@ static const char *gen_nextiword (int flags)
 			sprintf (buffer, "get_iwordi(%d)", r);
 			insn_n_cycles += 4;
 		} else if (using_mmu) {
-			sprintf (buffer, "get_iword_mmu (%d)", r);
+			sprintf (buffer, "get_iword_mmu%s (%d)", mmu_postfix, r);
 			insn_n_cycles += 4;
 		} else {
 			sprintf (buffer, "get_iword (%d)", r);
@@ -346,7 +347,7 @@ static const char *gen_nextibyte (int flags)
 			sprintf (buffer, "get_ibytei (%d)", r);
 			insn_n_cycles += 4;
 		} else if (using_mmu)  {
-			sprintf (buffer, "get_ibyte_mmu (%d)", r);
+			sprintf (buffer, "get_ibyte_mmu%s (%d)", mmu_postfix, r);
 			insn_n_cycles += 4;
 		} else {
 			sprintf (buffer, "get_ibyte (%d)", r);
@@ -782,16 +783,16 @@ static void genamode2 (amodes mode, const char *reg, wordsizes size, const char 
 		} else if (using_mmu) {
 			if (flags & GF_FC) {
 				switch (size) {
-				case sz_byte: insn_n_cycles += 4; printf ("\tuae_s8 %s = sfc_get_byte (%sa);\n", name, name); break;
-				case sz_word: insn_n_cycles += 4; printf ("\tuae_s16 %s = sfc_get_word (%sa);\n", name, name); break;
-				case sz_long: insn_n_cycles += 8; printf ("\tuae_s32 %s = sfc_get_long (%sa);\n", name, name); break;
+				case sz_byte: insn_n_cycles += 4; printf ("\tuae_s8 %s = sfc%s_get_byte (%sa);\n", name, mmu_postfix, name); break;
+				case sz_word: insn_n_cycles += 4; printf ("\tuae_s16 %s = sfc%s_get_word (%sa);\n", name, mmu_postfix, name); break;
+				case sz_long: insn_n_cycles += 8; printf ("\tuae_s32 %s = sfc%s_get_long (%sa);\n", name, mmu_postfix, name); break;
 				default: abort ();
 				}
 			} else {
 				switch (size) {
-				case sz_byte: insn_n_cycles += 4; printf ("\tuae_s8 %s = get_byte_mmu (%sa);\n", name, name); break;
-				case sz_word: insn_n_cycles += 4; printf ("\tuae_s16 %s = get_word_mmu (%sa);\n", name, name); break;
-				case sz_long: insn_n_cycles += 8; printf ("\tuae_s32 %s = get_long_mmu (%sa);\n", name, name); break;
+				case sz_byte: insn_n_cycles += 4; printf ("\tuae_s8 %s = get_byte_mmu%s (%sa);\n", name, mmu_postfix, name); break;
+				case sz_word: insn_n_cycles += 4; printf ("\tuae_s16 %s = get_word_mmu%s (%sa);\n", name, mmu_postfix, name); break;
+				case sz_long: insn_n_cycles += 8; printf ("\tuae_s32 %s = get_long_mmu%s (%sa);\n", name, mmu_postfix, name); break;
 				default: abort ();
 				}
 			}
@@ -961,27 +962,27 @@ static void genastore_2 (const char *from, amodes mode, const char *reg, wordsiz
 			case sz_byte:
 				insn_n_cycles += 4;
 				if (flags & GF_FC)
-					printf ("\tdfc_put_byte (%sa, %s);\n", to, from);
+					printf ("\tdfc%s_put_byte (%sa, %s);\n", mmu_postfix, to, from);
 				else
-					printf ("\tput_byte_mmu (%sa, %s);\n", to, from);
+					printf ("\tput_byte_mmu%s (%sa, %s);\n", mmu_postfix, to, from);
 				break;
 			case sz_word:
 				insn_n_cycles += 4;
 				if (cpu_level < 2 && (mode == PC16 || mode == PC8r))
 					abort ();
 				if (flags & GF_FC)
-					printf ("\tdfc_put_word (%sa, %s);\n", to, from);
+					printf ("\tdfc%s_put_word (%sa, %s);\n", mmu_postfix, to, from);
 				else
-					printf ("\tput_word_mmu (%sa, %s);\n", to, from);
+					printf ("\tput_word_mmu%s (%sa, %s);\n", mmu_postfix, to, from);
 				break;
 			case sz_long:
 				insn_n_cycles += 8;
 				if (cpu_level < 2 && (mode == PC16 || mode == PC8r))
 					abort ();
 				if (flags & GF_FC)
-					printf ("\tdfc_put_long (%sa, %s);\n", to, from);
+					printf ("\tdfc%s_put_long (%sa, %s);\n", mmu_postfix, to, from);
 				else
-					printf ("\tput_long_mmu (%sa, %s);\n", to, from);
+					printf ("\tput_long_mmu%s (%sa, %s);\n", mmu_postfix, to, from);
 				break;
 			default:
 				abort ();
@@ -1515,6 +1516,13 @@ static void gen_opcode (unsigned long int opcode)
 			srcb = "get_byte_ce020";
 			dstb = "put_byte_ce020";
 		}
+    } else if (using_mmu && cpu_level == 3) {
+        srcl = "get_long_mmu030";
+		dstl = "put_long_mmu030";
+		srcw = "get_word_mmu030";
+		dstw = "put_word_mmu030";
+		srcb = "get_byte_mmu030";
+		dstb = "put_byte_mmu030";
 	} else if (using_mmu) {
 		srcl = "get_long_mmu";
 		dstl = "put_long_mmu";
@@ -2120,9 +2128,9 @@ static void gen_opcode (unsigned long int opcode)
 		    printf ("\tuae_u16 newsr; uae_u32 newpc;\n");
 			printf ("\tfor (;;) {\n");
 			printf ("\t\tuaecptr a = m68k_areg (regs, 7);\n");
-			printf ("\t\tuae_s16 sr = %s (a);\n", srcw);
-			printf ("\t\tuae_s32 pc = %s (a + 2);\n", srcl);
-			printf ("\t\tuae_s16 format = %s (a + 2 + 4);\n", srcw);
+			printf ("\t\tuae_u16 sr = %s (a);\n", srcw);
+			printf ("\t\tuae_u32 pc = %s (a + 2);\n", srcl);
+			printf ("\t\tuae_u16 format = %s (a + 2 + 4);\n", srcw);
 			printf ("\t\tint frame = format >> 12;\n");
 			printf ("\t\tint offset = 8;\n");
 			printf ("\t\tnewsr = sr; newpc = pc;\n");
@@ -2131,7 +2139,7 @@ static void gen_opcode (unsigned long int opcode)
 		    printf ("\t\telse if (frame == 0x2) { m68k_areg (regs, 7) += offset + 4; break; }\n");
 		    printf ("\t\telse if (frame == 0x4) { m68k_areg (regs, 7) += offset + 8; break; }\n");
 			if (using_mmu)
-		    	printf ("\t\telse if (frame == 0x7) { m68k_do_rte_mmu (a); m68k_areg (regs, 7) += offset + 52; break; }\n");
+		    	printf ("\t\telse if (frame == 0x7) { m68k_do_rte_mmu%s (a); m68k_areg (regs, 7) += offset + 52; break; }\n", mmu_postfix);
 		    printf ("\t\telse if (frame == 0x8) { m68k_areg (regs, 7) += offset + 50; break; }\n");
 		    printf ("\t\telse if (frame == 0x9) { m68k_areg (regs, 7) += offset + 12; break; }\n");
 		    printf ("\t\telse if (frame == 0xa) { m68k_areg (regs, 7) += offset + 24; break; }\n");
@@ -2202,7 +2210,7 @@ static void gen_opcode (unsigned long int opcode)
 		// ce confirmed
 		if (using_mmu) {
 			genamode (curi->smode, "srcreg", curi->size, "src", 1, 0, 0);
-			printf ("\tuae_s32 old = get_long_mmu (src);\n");
+			printf ("\tuae_s32 old = get_long_mmu%s (src);\n", mmu_postfix);
 			printf ("\tm68k_areg (regs, 7) = src + 4;\n");
 			printf ("\tm68k_areg (regs, srcreg) = old;\n");
 		} else {
@@ -2224,7 +2232,7 @@ static void gen_opcode (unsigned long int opcode)
 		else if (using_indirect)
 			printf ("\tm68k_do_rtsi ();\n");
 		else if (using_mmu)
-			printf ("\tm68k_do_rts_mmu ();\n");
+			printf ("\tm68k_do_rts_mmu%s ();\n", mmu_postfix);
 		else
 			printf ("\tm68k_do_rts ();\n");
 	    printf ("\tif (m68k_getpc () & 1) {\n");
@@ -2331,10 +2339,10 @@ static void gen_opcode (unsigned long int opcode)
 			printf ("\tm68k_do_bsr_ce030 (m68k_getpc () + %d, s);\n", m68k_pc_offset);
 		} else if (using_ce) {
 			printf ("\tm68k_do_bsr_ce (m68k_getpc () + %d, s);\n", m68k_pc_offset);
-		} else if (using_indirect) {	
+		} else if (using_indirect) {
 			printf ("\tm68k_do_bsri (m68k_getpc () + %d, s);\n", m68k_pc_offset);
 		} else if (using_mmu) {
-			printf ("\tm68k_do_bsr_mmu (m68k_getpc () + %d, s);\n", m68k_pc_offset);
+			printf ("\tm68k_do_bsr_mmu%s (m68k_getpc () + %d, s);\n", mmu_postfix, m68k_pc_offset);
 		} else {
 			printf ("\tm68k_do_bsr (m68k_getpc () + %d, s);\n", m68k_pc_offset);
 		}
@@ -3411,7 +3419,7 @@ static void gen_opcode (unsigned long int opcode)
 	case i_CPUSHP:
 	case i_CPUSHA:
 		if (using_mmu)
-			printf ("\tflush_mmu(m68k_areg (regs, opcode & 3), (opcode >> 6) & 3);\n");
+			printf ("\tflush_mmu%s(m68k_areg (regs, opcode & 3), (opcode >> 6) & 3);\n", mmu_postfix);
 		printf ("\tif (opcode & 0x80)\n");
 		printf ("\t\tflush_icache(m68k_areg (regs, opcode & 3), (opcode >> 6) & 3);\n");
 		break;
@@ -3512,8 +3520,6 @@ static void generate_includes (FILE * f)
 	fprintf (f, "#include \"cpu_prefetch.h\"\n");
 	fprintf (f, "#include \"cputbl.h\"\n");
 	fprintf (f, "#include \"main.h\"\n");
-	fprintf (f, "#include \"cpummu.h\"\n");
-
 
 	fprintf (f, "#define CPUFUNC(x) x##_ff\n"
 		"#define SET_CFLG_ALWAYS(x) SET_CFLG(x)\n"
@@ -3836,12 +3842,12 @@ int main (int argc, char **argv)
 	using_ce = 0;
 
 	postfix2 = -1;
-	for (i = 0; i < 32; i++) {
+	for (i = 0; i <= 32; i++) {
 		postfix = i;
 		if ((i >= 6 && i < 11) || (i > 12 && i < 20) || (i > 23 && i < 31))
 			continue;
 		generate_stbl = 1;
-		if (i == 0 || i == 11 || i == 12 || i == 20 || i == 21 || i == 31) {
+		if (i == 0 || i == 11 || i == 12 || i == 20 || i == 21 || i == 31 || i == 32) {
 			if (generate_stbl)
 				fprintf (stblfile, "#ifdef CPUEMU_%d\n", postfix);
 			postfix2 = postfix;
@@ -3875,16 +3881,24 @@ int main (int argc, char **argv)
 		} else if (i == 21 || i == 22 || i == 23) {
 			cpu_level = 3 + (23 - i);
 			using_ce020 = 2;
-			using_mmu = 1;
 			if (i == 21) {
 				read_counts ();
 				for (rp = 0; rp < nr_cpuop_funcs; rp++)
 					opcode_next_clev[rp] = cpu_level;
 			}
 		} else if (i >= 31 && i < 40) {
-			cpu_level = 4;
+			cpu_level = 3 + 32 - i;
 			using_mmu = 1;
-			if (i == 31)
+			if (cpu_level == 3) {
+                fprintf (stdout, "#include \"cpummu030.h\"\n");
+                mmu_postfix = "030";
+            }
+            else {
+                fprintf (stdout, "#include \"cpummu.h\"\n");
+                mmu_postfix = "";
+            }
+            
+            if (i == 31)
 				read_counts ();
 			for (rp = 0; rp < nr_cpuop_funcs; rp++)
 				opcode_next_clev[rp] = cpu_level;

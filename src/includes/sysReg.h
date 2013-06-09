@@ -10,8 +10,8 @@
 #define INT_DSP_L3      0x00000040
 #define INT_PHONE       0x00000080  // Floppy?
 #define INT_SOUND_OVRUN 0x00000100
-#define INT_ENETR       0x00000200
-#define INT_ENETX       0x00000400
+#define INT_EN_RX       0x00000200
+#define INT_EN_TX       0x00000400
 #define INT_PRINTER     0x00000800
 #define INT_SCSI        0x00001000
 #define INT_DISK        0x00002000  // in color systems this is INT_C16VIDEO
@@ -28,8 +28,8 @@
 #define INT_PRINTER_DMA 0x01000000
 #define INT_DISK_DMA    0x02000000
 #define INT_SCSI_DMA    0x04000000
-#define INT_ENETR_DMA   0x08000000
-#define INT_ENETX_DMA   0x10000000
+#define INT_EN_RX_DMA   0x08000000
+#define INT_EN_TX_DMA   0x10000000
 #define INT_TIMER       0x20000000
 #define INT_PFAIL       0x40000000  // level 7
 #define INT_NMI         0x80000000
@@ -37,13 +37,19 @@
 #define SET_INT         0x01
 #define RELEASE_INT     0x00
 
+Uint8 read_rtc_ram(Uint8 position);
 
 void SID_Read(void);
 
+void SCR_Reset(void);
 void SCR1_Read0(void);
 void SCR1_Read1(void);
 void SCR1_Read2(void);
 void SCR1_Read3(void);
+
+void TurboSCR1_Reset(void);
+void TurboSCR1_Read0(void);
+void TurboSCR1_Read2(void);
 
 void SCR2_Read0(void);
 void SCR2_Write0(void);

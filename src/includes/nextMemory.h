@@ -15,7 +15,7 @@
 
 extern Uint32 NEXTRamEnd;
 
-extern Uint8 NEXTRam[64*1024*1024];
+extern Uint8 NEXTRam[128*1024*1024];
 extern Uint8 NEXTRom[0x20000];
 extern Uint8 NEXTIo[0x20000];
 

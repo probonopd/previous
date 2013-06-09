@@ -413,7 +413,7 @@ void Statusbar_UpdateInfo(void)
 
 	/* amount of memory */
     char memsize[8];
-    sprintf(memsize, "%iMB/", ConfigureParams.Memory.nMemorySize);
+    sprintf(memsize, "%iMB/", Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
     end = Statusbar_AddString(end, memsize);
 
 	/* machine type */

@@ -28,8 +28,13 @@ extern void cache_free (uae_u8*);
 #define call_mem_get_func(func, addr) ((*func)(addr))
 #define call_mem_put_func(func, addr, v) ((*func)(addr, v))
 
-#define NEXT_SCREEN_SIZE	0x00040000
+#define NEXT_SCREEN_SIZE        0x00040000
 extern uae_u8 NEXTVideo[256*1024];
+
+#define NEXT_COLORSCREEN_SIZE   0x00200000
+extern uae_u8 NEXTColorVideo[2*1024*1024];
+
+uae_u32 MemBank_Size[4]; // experimental, sizes for all 4 memory banks
 
 
 /* Enabling this adds one additional native memory reference per 68k memory
@@ -99,7 +104,7 @@ extern addrbank mem_banks[65536];
 #define put_mem_bank(addr, b) (mem_banks[bankindex(addr)] = *(b))
 #endif
 
-extern const char* memory_init(uae_u32 nNewNEXTMemSize);
+extern const char* memory_init(int *membanks);
 extern void memory_uninit (void);
 extern void map_banks(addrbank *bank, int first, int count);
 

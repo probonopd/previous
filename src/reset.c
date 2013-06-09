@@ -20,6 +20,8 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
 #include "debugcpu.h"
 #include "scsi.h"
 #include "sysReg.h"
+#include "scc.h"
+#include "ethernet.h"
 
 
 /*-----------------------------------------------------------------------*/
@@ -32,15 +34,18 @@ static const char* Reset_ST(bool bCold)
 	if (bCold)
 	{
 		const char* error_str;
-		error_str=memory_init(0);
+		error_str=memory_init(ConfigureParams.Memory.nMemoryBankSize);
 		if (error_str!=NULL) {
 			return error_str;
 		}
 	}
 	CycInt_Reset();               /* Reset interrupts */
 	Video_Reset();                /* Reset video */
+    SCR_Reset();                  /* Reset System Control Registers */
     nvram_init();                 /* Reset NVRAM */
     SCSI_Reset();                 /* Reset SCSI disks */
+    SCC_Reset();                  /* Reset SCC */
+    Ethernet_Reset();             /* Reset Ethernet */
 	Screen_Reset();               /* Reset screen */
 	M68000_Reset(bCold);          /* Reset CPU */
     	DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */

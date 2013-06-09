@@ -10,32 +10,7 @@
 #define MMUOP_DEBUG 2
 #define DEBUG_CD32CDTVIO 0
 
-/*
- * #include "compat.h"
-#include "sysconfig.h"
-#include "sysdeps.h"
-
-#include "options_cpu.h"
-#include "events.h"
-//#include "uae.h"
-#include "memory.h"
-#include "custom.h"
-#include "newcpu.h"
-#include "cpummu.h"
-#include "cpu_prefetch.h"
-//#include "autoconf.h"
-//#include "traps.h"
-//#include "ersatz.h"
-//#include "debug.h"
-//#include "gui.h"
-#include "savestate.h"
-#include "blitter.h"
-#include "ar.h"
-//#include "gayle.h"
-//#include "cia.h"
-//#include "inputdevice.h"
-*/
-
+#include "main.h"
 #include "compat.h"
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -46,8 +21,8 @@
 #include "maccess.h"
 #include "memory.h"
 #include "newcpu.h"
-#include "main.h"
 #include "cpummu.h"
+#include "cpummu030.h"
 #include "cpu_prefetch.h"
 #include "main.h"
 #include "m68000.h"
@@ -111,10 +86,10 @@ extern uae_u32 get_fpsr (void);
 #define COUNT_INSTRS 0
 #define MC68060_PCR   0x04300000
 #define MC68EC060_PCR 0x04310000
-
-static uae_u64 srp_030, crp_030;
-static uae_u32 tt0_030, tt1_030, tc_030;
-static uae_u16 mmusr_030;
+//moved to newcpu.h
+//static uae_u64 srp_030, crp_030;
+//static uae_u32 tt0_030, tt1_030, tc_030;
+//static uae_u16 mmusr_030;
 
 static struct cache020 caches020[CACHELINES020];
 static struct cache030 icaches030[CACHELINES030];
@@ -189,7 +164,17 @@ void (*x_put_byte)(uaecptr,uae_u32);
 // shared memory access functions
 static void set_x_funcs (void)
 {
-	if (currprefs.mmu_model) {
+	if (currprefs.mmu_model && currprefs.cpu_model == 68030) {
+        x_prefetch = get_iword_mmu030;
+		x_next_iword = next_iword_mmu030;
+		x_next_ilong = next_ilong_mmu030;
+		x_put_long = put_long_mmu030;
+		x_put_word = put_word_mmu030;
+		x_put_byte = put_byte_mmu030;
+		x_get_long = get_long_mmu030;
+		x_get_word = get_word_mmu030;
+		x_get_byte = get_byte_mmu030;
+    } else if (currprefs.mmu_model) {
 		x_prefetch = get_iword_mmu;
 		x_next_iword = next_iword_mmu;
 		x_next_ilong = next_ilong_mmu;
@@ -347,7 +332,7 @@ void build_cpufunctbl (void)
 		break;
 	case 68030:
 		lvl = 3;
-		tbl = op_smalltbl_31_ff;
+		tbl = op_smalltbl_32_ff;
 		break;
 	case 68020:
 		lvl = 2;
@@ -421,10 +406,14 @@ void build_cpufunctbl (void)
 #endif
 	set_cpu_caches ();
 	if (currprefs.mmu_model) {
-		mmu_reset ();
-		mmu_set_tc (regs.tcr);
-		mmu_set_super (regs.s != 0);
-	}
+        if (currprefs.cpu_model >= 68040) {
+            mmu_reset ();
+            mmu_set_tc (regs.tcr);
+            mmu_set_super (regs.s != 0);
+        } else {
+            mmu030_reset(1);
+        }
+    }
 }
 
 void fill_prefetch_slow (void)
@@ -1471,6 +1460,153 @@ kludge_me_do:
 }
 #endif
 
+
+static void Exception_build_stack_frame (uae_u32 oldpc, uae_u32 currpc, uae_u16 ssw, int nr, int format) {
+    int i;
+    
+    if (nr < 24 || nr > 31) { // do not print debugging for interrupts
+        write_log("Building exception stack frame (format %X)\n", format);
+    }
+    
+    switch (format) {
+        case 0x0: // four word stack frame
+        case 0x1: // throwaway four word stack frame
+            break;
+        case 0x2: // six word stack frame
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), oldpc);
+            break;
+        case 0x7: // access error stack frame (68040)
+            for (i = 0 ; i < 7 ; i++) {
+                m68k_areg (regs, 7) -= 4;
+                x_put_long (m68k_areg (regs, 7), 0);
+            }
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), regs.wb3_data);
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), regs.mmu_fault_addr);
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), regs.mmu_fault_addr);
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), 0);
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), 0);
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), regs.wb3_status);
+            regs.wb3_status = 0;
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), ssw);
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), regs.mmu_fault_addr);
+            break;
+        case 0x9: // coprocessor mid-instruction stack frame (68020, 68030)
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), 0);
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), 0);
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), oldpc);
+            break;
+        case 0xA: // short bus cycle fault stack frame (68020, 68030)
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), 0);  // Internal register
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), regs.wb3_data);  // Data output buffer
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), 0);  // Internal register
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), regs.mmu_fault_addr);
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), 0);  // Instr. pipe stage B
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), 0);  // Instr. pipe stage C
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), ssw);
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), 0);  // Internal register
+            break;
+        case 0xB: // long bus cycle fault stack frame (68020, 68030)
+            for (i = 0 ; i < 36; i++) {
+                m68k_areg (regs, 7) -= 2;
+                x_put_word (m68k_areg (regs, 7), 0);
+            }
+            m68k_areg (regs, 7) -= 4;
+            x_put_long (m68k_areg (regs, 7), last_fault_for_exception_3);
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), 0);
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), 0);
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), ssw);
+            m68k_areg (regs, 7) -= 2;
+            x_put_word (m68k_areg (regs, 7), 0);
+            break;
+        case 0x3: // floating point post-instruction stack frame (68040)
+        case 0x4: // floating point unimplemented stack frame (68LC040, 68EC040)
+        case 0x8: // bus and address error stack frame (68010)
+            write_log("Exception stack frame format %X not implemented\n", format);
+            return;
+        default:
+            write_log("Unknown exception stack frame format: %X\n", format);
+            return;
+    }
+    m68k_areg (regs, 7) -= 2;
+    x_put_word (m68k_areg (regs, 7), (format<<12) | (nr * 4));
+    m68k_areg (regs, 7) -= 4;
+    x_put_long (m68k_areg (regs, 7), currpc);
+    m68k_areg (regs, 7) -= 2;
+    x_put_word (m68k_areg (regs, 7), regs.sr);
+}
+
+/* Called from Exception() function if we are emulating 68030 */
+static void Exception_mmu030 (int nr, uaecptr oldpc) {
+    uae_u32 currpc = m68k_getpc(), newpc;
+    int sv = regs.s;
+    int i;
+    
+    exception_debug(nr);
+    MakeSR();
+    
+    if (!regs.s) {
+        regs.usp = m68k_areg(regs, 7);
+        m68k_areg(regs, 7) = regs.m ? regs.msp : regs.isp;
+        regs.s = 1;
+        mmu_set_super(1);
+    }
+    
+    if (nr < 24 || nr > 31) { // do not print debugging for interrupts
+        write_log ("Exception_mmu030: Exception %i: %08x %08x %08x\n",
+                   nr, currpc, oldpc, regs.mmu_fault_addr);
+    }
+    
+    if (regs.m && nr >= 24 && nr < 32) { /* M + Interrupt */
+        Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x1);
+    } else if (nr ==5 || nr == 6 || nr == 7 || nr == 9 || nr == 56) {
+        Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x2);
+    } else if (nr == 2 || nr == 3) {
+        Exception_build_stack_frame(oldpc, currpc, 0x0145, nr, 0xA); // ssw hacked for NeXT
+    } else {
+        Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x0);
+    }
+    
+    newpc = x_get_long (regs.vbr + 4 * nr);
+	if (newpc & 1) {
+		if (nr == 2 || nr == 3)
+			Reset_Cold();  /* there is nothing else we can do.. */
+		else
+			exception3 (regs.ir, m68k_getpc (), newpc);
+		return;
+	}
+	m68k_setpc (newpc);
+#ifdef JIT
+	set_special (SPCFLAG_END_COMPILE);
+#endif
+	fill_prefetch_slow ();
+	exception_trace (nr);
+}
+
+
+/* Called from Exception() function if we are emulating 68040 */
 static void Exception_mmu (int nr, uaecptr oldpc)
 {
 	uae_u32 currpc = m68k_getpc (), newpc;
@@ -1489,96 +1625,25 @@ static void Exception_mmu (int nr, uaecptr oldpc)
 		regs.s = 1;
 		mmu_set_super (1);
 	}
-	if (nr == 2) {
-		write_log ("Exception_mmu %08x %08x %08x\n", currpc, oldpc, regs.mmu_fault_addr);
-		// bus error
-		for (i = 0 ; i < 7 ; i++) {
-			m68k_areg (regs, 7) -= 4;
-			put_long_mmu (m68k_areg (regs, 7), 0);
-		}
-		m68k_areg (regs, 7) -= 4;
-		put_long_mmu (m68k_areg (regs, 7), regs.wb3_data);
-		m68k_areg (regs, 7) -= 4;
-		put_long_mmu (m68k_areg (regs, 7), regs.mmu_fault_addr);
-		m68k_areg (regs, 7) -= 4;
-		put_long_mmu (m68k_areg (regs, 7), regs.mmu_fault_addr);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), 0);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), 0);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), regs.wb3_status);
-		regs.wb3_status = 0;
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), regs.mmu_ssw);
-		m68k_areg (regs, 7) -= 4;
-		put_long_mmu (m68k_areg (regs, 7), regs.mmu_fault_addr);
-
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), 0x7000 + nr * 4);
-		m68k_areg (regs, 7) -= 4;
-		put_long_mmu (m68k_areg (regs, 7), oldpc);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), regs.sr);
-		goto kludge_me_do;
-
-	} else if (nr == 3) {
-
-		// address error
+    
+    if (nr == 2) { // bus error
+        write_log ("Exception_mmu %08x %08x %08x\n", currpc, oldpc, regs.mmu_fault_addr);
+        Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x7);
+	} else if (nr == 3) { // address error
 		uae_u16 ssw = (sv ? 4 : 0) | (last_instructionaccess_for_exception_3 ? 2 : 1);
 		ssw |= last_writeaccess_for_exception_3 ? 0 : 0x40;
 		ssw |= 0x20;
-		for (i = 0 ; i < 36; i++) {
-			m68k_areg (regs, 7) -= 2;
-			put_word_mmu (m68k_areg (regs, 7), 0);
-		}
-		m68k_areg (regs, 7) -= 4;
-		put_long_mmu (m68k_areg (regs, 7), last_fault_for_exception_3);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), 0);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), 0);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), 0);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), ssw);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), 0xb000 + nr * 4);
+        Exception_build_stack_frame(oldpc, currpc, ssw, nr, 0xB);
 		write_log ("Exception %d (%x) at %x -> %x! %s at %d\n", nr, oldpc, currpc, get_long (regs.vbr + 4*nr),__FILE__,__LINE__);
-
 	} else if (nr ==5 || nr == 6 || nr == 7 || nr == 9) {
-
-		m68k_areg (regs, 7) -= 4;
-		put_long_mmu (m68k_areg (regs, 7), oldpc);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), 0x2000 + nr * 4);
-
+        Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x2);
 	} else if (regs.m && nr >= 24 && nr < 32) { /* M + Interrupt */
-
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), nr * 4);
-		m68k_areg (regs, 7) -= 4;
-		put_long_mmu (m68k_areg (regs, 7), currpc);
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), regs.sr);
-		regs.sr |= (1 << 13);
-		regs.msp = m68k_areg (regs, 7);
-		m68k_areg (regs, 7) = regs.isp;
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), 0x1000 + nr * 4);
-
+        Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x1);
 	} else {
-
-		m68k_areg (regs, 7) -= 2;
-		put_word_mmu (m68k_areg (regs, 7), nr * 4);
-
+        Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x0);
 	}
-	m68k_areg (regs, 7) -= 4;
-	put_long_mmu (m68k_areg (regs, 7), currpc);
-	m68k_areg (regs, 7) -= 2;
-	put_word_mmu (m68k_areg (regs, 7), regs.sr);
-kludge_me_do:
-	newpc = get_long_mmu (regs.vbr + 4 * nr);
+    
+	newpc = x_get_long (regs.vbr + 4 * nr);
 	if (newpc & 1) {
 		if (nr == 2 || nr == 3)
 			Reset_Cold();  /* there is nothing else we can do.. */
@@ -1836,11 +1901,12 @@ kludge_me_do:
 /* and get a conflict with 'normal' cpu exceptions. */
 void REGPARAM2 Exception (int nr, uaecptr oldpc, int ExceptionSource)
 {
-		if (currprefs.mmu_model)
-			Exception_mmu (nr, oldpc); // Todo: add ExceptionSource
-		else
-			Exception_normal (nr, oldpc, ExceptionSource);
-
+    if (currprefs.mmu_model && currprefs.cpu_model == 68030)
+        Exception_mmu030(nr, oldpc);
+    else if (currprefs.mmu_model)
+        Exception_mmu (nr, oldpc); // Todo: add ExceptionSource
+    else
+        Exception_normal (nr, oldpc, ExceptionSource);
 }
 
 STATIC_INLINE void do_interrupt (int nr, int Pending)
@@ -2345,24 +2411,19 @@ void m68k_reset (int hardreset)
 	mmufixup[0].reg = -1;
 	mmufixup[1].reg = -1;
 	if (currprefs.mmu_model) {
-		mmu_reset ();
-		mmu_set_tc (regs.tcr);
-		mmu_set_super (regs.s != 0);
-	}
-
-	/* only (E)nable bit is zeroed when CPU is reset, A3000 SuperKickstart expects this */
-	tc_030 &= ~0x80000000;
-	tt0_030 &= ~0x80000000;
-	tt1_030 &= ~0x80000000;
-	if (hardreset) {
-		srp_030 = crp_030 = 0;
-		tt0_030 = tt1_030 = tc_030 = 0;
-	}
-	mmusr_030 = 0;
+        if (currprefs.cpu_model >= 68040) {
+            mmu_reset ();
+            mmu_set_tc (regs.tcr);
+            mmu_set_super (regs.s != 0);
+        }
+        else {
+            mmu030_reset(hardreset);
+        }
+    }
 
 	/* 68060 FPU is not compatible with 68040,
-	* 68060 accelerators' boot ROM disables the FPU
-	*/
+     * 68060 accelerators' boot ROM disables the FPU
+     */
 	regs.pcr = 0;
 	if (currprefs.cpu_model == 68060) {
 		regs.pcr = currprefs.fpu_model == 68060 ? MC68060_PCR : MC68EC060_PCR;
@@ -2394,127 +2455,6 @@ unsigned long REGPARAM2 op_illg (uae_u32 opcode)
 
 #ifdef CPUEMU_0
 
-static const TCHAR *mmu30regs[] = { "TCR", "", "SRP", "CRP", "", "", "", "" };
-
-static void mmu_op30_pmove (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
-{
-	int preg = (next >> 10) & 31;
-	int rw = (next >> 9) & 1;
-	int fd = (next >> 8) & 1;
-	const TCHAR *reg = NULL;
-	uae_u32 otc = tc_030;
-	int siz;
-
-	switch (preg)
-	{
-	case 0x10: // TC
-		reg = "TC";
-		siz = 4;
-		if (rw)
-			x_put_long (extra, tc_030);
-		else
-			tc_030 = x_get_long (extra);
-		break;
-	case 0x12: // SRP
-		reg = "SRP";
-		siz = 8;
-		if (rw) {
-			x_put_long (extra, srp_030 >> 32);
-			x_put_long (extra + 4, srp_030);
-		} else {
-			srp_030 = (uae_u64)x_get_long (extra) << 32;
-			srp_030 |= x_get_long (extra + 4);
-		}
-		break;
-	case 0x13: // CRP
-		reg = "CRP";
-		siz = 8;
-		if (rw) {
-			x_put_long (extra, crp_030 >> 32);
-			x_put_long (extra + 4, crp_030);
-		} else {
-			crp_030 = (uae_u64)x_get_long (extra) << 32;
-			crp_030 |= x_get_long (extra + 4);
-		}
-		break;
-	case 0x18: // MMUSR
-		reg = "MMUSR";
-		siz = 2;
-		if (rw)
-			x_put_word (extra, mmusr_030);
-		else
-			mmusr_030 = x_get_word (extra);
-		break;
-	case 0x02: // TT0
-		reg = "TT0";
-		siz = 4;
-		if (rw)
-			x_put_long (extra, tt0_030);
-		else
-			tt0_030 = x_get_long (extra);
-		break;
-	case 0x03: // TT1
-		reg = "TT1";
-		siz = 4;
-		if (rw)
-			x_put_long (extra, tt1_030);
-		else
-			tt1_030 = x_get_long (extra);
-		break;
-	}
-
-	if (!reg) {
-		write_log ("Bad PMOVE at %08x\n",m68k_getpc());
-		op_illg (opcode);
-		return;
-	}
-#if MMUOP_DEBUG > 0
-	{
-		uae_u32 val;
-		if (siz == 8) {
-			uae_u32 val2 = x_get_long (extra);
-			val = x_get_long (extra + 4);
-			if (rw)
-				write_log ("PMOVE %s,%08X%08X", reg, val2, val);
-			else
-				write_log ("PMOVE %08X%08X,%s", val2, val, reg);
-		} else {
-			if (siz == 4)
-				val = x_get_long (extra);
-			else
-				val = x_get_word (extra);
-			if (rw)
-				write_log ("PMOVE %s,%08X", reg, val);
-			else
-				write_log ("PMOVE %08X,%s", val, reg);
-		}
-		write_log (" PC=%08X\n", pc);
-	}
-#endif
-
-}
-
-static void mmu_op30_ptest (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
-{
-#if MMUOP_DEBUG > 0
-	TCHAR tmp[10];
-
-	tmp[0] = 0;
-	if ((next >> 8) & 1)
-		_stprintf (tmp, ",A%d", (next >> 4) & 15);
-	write_log ("PTEST%c %02X,%08X,#%X%s PC=%08X\n",
-		((next >> 9) & 1) ? 'W' : 'R', (next & 15), extra, (next >> 10) & 7, tmp, pc);
-#endif
-	mmusr_030 = 0;
-}
-
-static void mmu_op30_pflush (uaecptr pc, uae_u32 opcode, uae_u16 next, uaecptr extra)
-{
-#if MMUOP_DEBUG > 0
-	write_log ("PFLUSH PC=%08X\n", pc);
-#endif
-}
-
 void mmu_op30 (uaecptr pc, uae_u32 opcode, uae_u16 extra, uaecptr extraa)
 {
 	if (currprefs.cpu_model != 68030) {
@@ -2524,8 +2464,10 @@ void mmu_op30 (uaecptr pc, uae_u32 opcode, uae_u16 extra, uaecptr extraa)
 	}
 	if (extra & 0x8000)
 		mmu_op30_ptest (pc, opcode, extra, extraa);
-	else if (extra & 0x2000)
+	else if ((extra&0xE000)==0x2000 && (extra & 0x1C00))
 		mmu_op30_pflush (pc, opcode, extra, extraa);
+    else if ((extra&0xE000)==0x2000 && !(extra & 0x1C00))
+        mmu_op30_pload (pc, opcode, extra, extraa);
 	else
 		mmu_op30_pmove (pc, opcode, extra, extraa);
 }
@@ -2660,8 +2602,16 @@ static bool do_specialties_interrupt (int Pending)
 
 STATIC_INLINE int do_specialties (int cycles)
 {
-
-
+#if 0
+    if (regs.spcflags & SPCFLAG_BUSERROR) {
+        /* We can not execute bus errors directly in the memory handler
+         * functions since the PC should point to the address of the next
+         * instruction, so we're executing the bus errors here: */
+        unset_special(SPCFLAG_BUSERROR);
+        Exception(2, 0, M68000_EXC_SRC_CPU);
+    }
+#endif
+    
 	if(regs.spcflags & SPCFLAG_EXTRA_CYCLES) {
 		/* Add some extra cycles to simulate a wait state */
 		unset_special(SPCFLAG_EXTRA_CYCLES);
@@ -3102,7 +3052,7 @@ static void m68k_run_mmu040 (void)
 		}
 
 		TRY (prb) {
-			Exception_mmu (save_except, oldpc);
+			Exception (save_except, oldpc, 0); // TODO: Add exception source
 		} CATCH (prb) {
     			Log_Printf(LOG_WARN, "[FATAL] double fault");	
 			abort();		
@@ -3361,7 +3311,7 @@ void m68k_go (int may_quit)
 #ifdef JIT
 				currprefs.cpu_model >= 68020 && currprefs.cachesize ? m68k_run_jit :
 #endif
-				(currprefs.cpu_model == 68040 || currprefs.cpu_model == 68060) && currprefs.mmu_model ? m68k_run_mmu040 :
+				currprefs.cpu_model >= 68030 && currprefs.mmu_model ? m68k_run_mmu040 :
 				currprefs.cpu_model >= 68020 && currprefs.cpu_cycle_exact ? m68k_run_2ce :
 				currprefs.cpu_compatible ? m68k_run_2p : m68k_run_2;
 				*/

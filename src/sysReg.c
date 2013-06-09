@@ -14,6 +14,8 @@
 
 #define IO_SEG_MASK	0x1FFFF
 
+static Uint32 scr1=0x00000000;
+static Uint32 turboscr1=0x00000000;
 
 static Uint8 scr2_0=0x00;
 static Uint8 scr2_1=0x00;
@@ -72,13 +74,13 @@ static Uint32 intMask=0x00000000;
 // #define	VOL_NOM		0
 
 /* bits in ni_pot[0] */
- #define POT_ON             0x01
- #define EXTENDED_POT		0x02
- #define LOOP_POT           0x04
- #define VERBOSE_POT		0x08
- #define TEST_DRAM_POT		0x10
- #define BOOT_POT           0x20
- #define TEST_MONITOR_POT	0x40
+#define POT_ON              0x01
+#define EXTENDED_POT        0x02
+#define LOOP_POT            0x04
+#define VERBOSE_POT         0x08
+#define TEST_DRAM_POT       0x10
+#define BOOT_POT            0x20
+#define TEST_MONITOR_POT    0x40
 
 /* bits in byte 17 */
 #define NEW_CLOCK_CHIP      0x80
@@ -87,22 +89,49 @@ static Uint32 intMask=0x00000000;
 #define CONSOLE_SLOT        0x18
 #define USE_PARITY_MEM      0x40
 
+/* bits in ni_simm (rtc ram byte 10 and 11) *
+ * -------- -----xxx bit 0 - 2: 1st simm: bit 1+2 define size, bit 3 defines page mode
+ * -------- --xxx--- bit 3 - 5: 2nd simm: bit 1+2 define size, bit 3 defines page mode
+ * -------x xx------ bit 6 - 8: 3rd simm: bit 1+2 define size, bit 3 defines page mode
+ * ----xxx- -------- bit 9 -11: 4th simm: bit 1+2 define size, bit 3 defines page mode
+ * xxxx---- -------- bit 12-15: defines parity, 1 bit for each simm (ignored on 68030)
+ */
+/* for 68030 and monochrome non-turbo systems */
+#define SIMM_EMPTY          0x0
+#define SIMM_16MB           0x1 /* Group of four 4 Mbyte SIMMs */
+#define SIMM_4MB            0x2 /* Group of four 1 Mbyte SIMMs */
+#define SIMM_1MB            0x3 /* Group of four 256 KByte SIMMs */
+#define SIMM_PAGE_MODE      0x4 /* SIMM type is page mode, else nibble mode */
+/* for all 68040 systems */
+#define SIMM_PARITY         0x8 /* SIMMs support parity */
+/* for non-turbo color systems */
+#define SIMM_8MB_C          0x1 /* Pair of 4 Mbyte SIMMs */
+#define SIMM_2MB_C          0x2 /* Pair of 1 Mbyte SIMMs */
+#define SIMM_EMPTY2         0x3 /* reserved */
+/* for turbo systems */
+#define SIMM_32MB_T         0x1 /* Pair of 16 or 32 MByte SIMMs (front or back) */
+#define SIMM_8MB_T          0x2 /* Pair of 4 or 8 MByte SIMMs (front or back) */
+#define SIMM_2MB_T          0x3 /* Pair of 1 or 2 MByte SIMMs (front or back) */
+
 
 /* RTC RAM */
 Uint8 rtc_ram[32]={
     0x94,0x0f,0x40,0x00, // byte 0 - 3
     0x00,0x00,0x00,0x00,0x00,0x00, // byte 4 - 9: hardware password, ethernet address (?)
-    0xfb,0x6d, // byte 10, 11: simm (4 simms, 4 bits per simm), 3 bits per simm on old ROM?
+    0x00,0x00, // byte 10, 11: simm type and size (4 simms, 4 bits per simm), see bits in ni_simm above
     0x00,0x00, // byte 12, 13: adobe (?)
     0x4b,0x00,0x00, // byte 14: POT, byte 15: oldest ..., byte 16: most recent selftest error code
     0x00, // byte 17: bit7:clock chip; 6:auto poweron; 5:enable console slot; 3,4:console slot; 2:parity mem
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00, // byte 18 - 29: boot command
     0x0F,0x13 // byte 30, 31: checksum
 };
+Uint8 read_rtc_ram(Uint8 position) {
+    return rtc_ram[position];
+}
 
 Uint8 rtc_ram_default[32]={
     0x94,0x0f,0x40,0x00,0x00,0x00,0x00,0x00,
-    0x00,0x00,0xfb,0x6d,0x00,0x00,0x4b,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x4b,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     0x00,0x00,0x00,0x00,0x00,0x00,0x0F,0x13
 };
@@ -155,6 +184,53 @@ void nvram_init(void) {
             
         default: break;
     }
+    
+    /* Copy ethernet address from ROM to RTC RAM */
+    int i;
+    for (i = 0; i<6; i++) {
+        rtc_ram[i+4]=NEXTRom[i+8];
+    }
+    
+    /* Build SIMM bytes (for now only valid on monochrome systems) */
+    Uint16 SIMMconfig = 0x0000;
+    Uint8 simm[4];
+    Uint8 parity = 0xF0;
+    if (ConfigureParams.System.bTurbo) {
+        for (i = 0; i<4; i++) {
+            switch (MemBank_Size[i]>>20) {
+                case 0: simm[i] = SIMM_EMPTY; parity &= ~(0x10<<i); break;
+                case 2: simm[i] = SIMM_2MB_T; break;
+                case 8: simm[i] = SIMM_8MB_T; break;
+                case 32: simm[i] = SIMM_32MB_T; break;
+                default: simm[i] = SIMM_EMPTY; break;
+            }
+        }
+
+    } else if (ConfigureParams.System.bColor) {
+        for (i = 0; i<4; i++) {
+            switch (MemBank_Size[i]>>20) {
+                case 0: simm[i] = SIMM_EMPTY; parity &= ~(0x10<<i); break;
+                case 2: simm[i] = SIMM_2MB_C; break;
+                case 8: simm[i] = SIMM_8MB_C; break;
+                default: simm[i] = SIMM_EMPTY; break;
+            }
+        }
+
+    } else {
+        for (i = 0; i<4; i++) {
+            switch (MemBank_Size[i]>>20) {
+                case 0: simm[i] = SIMM_EMPTY; parity &= ~(0x10<<i); break;
+                case 1: simm[i] = SIMM_1MB | SIMM_PAGE_MODE; break;
+                case 4: simm[i] = SIMM_4MB | SIMM_PAGE_MODE; break;
+                case 16: simm[i] = SIMM_16MB | SIMM_PAGE_MODE; break;
+                default: simm[i] = SIMM_EMPTY | SIMM_PAGE_MODE; break;
+            }
+        }
+    }
+    
+    SIMMconfig = ((parity&0xF0)<<8) | (simm[3]<<9) | (simm[2]<<6) | (simm[1]<<3) | simm[0];
+    rtc_ram[10] = (SIMMconfig>>8)&0xFF;
+    rtc_ram[11] = SIMMconfig&0xFF;
     
     /* Build POT byte[0] */
     rtc_ram[14] = 0x00;
@@ -334,50 +410,162 @@ void SID_Read(void) {
 }
 
 /* System Control Register 1
-
- bits 0:1 cpu speed; 0 = 40 MHz, 1 = 20 MHz, 2 = 25MHz, 3 = 33 MHz (meaningless on color Slab)
- bits 2:3 reserved: 0
- bits 4:5 mem speed; 0 = 120ns, 1 = 100ns, 2 = 80ns, 3 = 60ns (meaningless on color Slab)
- bits 6:7 video mem speed; 0 = 120ns, 1 = 100ns, 2 = 80ns, 3 = 60ns (meaningless on color Slab)
- bits 8:11 board revision; for 030 Cube: 0 = DCD input inverted, 1 = DCD polarity fixed, 2 = must disable DSP mem before reset; for all other systems: 0
- bits 12:15 cpu type; 0 = Cube 030, 1 = mono Slab, 2 = Cube 040, 3 = color Slab
- bits 16:23 dma rev: 1
- bits 24:27 reserved: 0
- bits 28:31 slot ID: 0
- 
- 
- for Cube 040:
- 0000 0000 0000 0001 0011 0000 0101 0011
- 00 01 20 52
- 
- for Cube 030:
- 0000 0000 0000 0001 0000 0001 0101 0011
- 00 01 01 52
+ *
+ * These values are valid for all non-Turbo systems:
+ * -------- -------- -------- ------xx  bits 0:1   --> cpu speed
+ * -------- -------- -------- ----xx--  bits 2:3   --> reserved
+ * -------- -------- -------- --xx----  bits 4:5   --> main memory speed
+ * -------- -------- -------- xx------  bits 6:7   --> video memory speed
+ * -------- -------- ----xxxx --------  bits 8:11  --> board revision
+ * -------- -------- xxxx---- --------  bits 12:15 --> cpu type
+ * -------- xxxxxxxx -------- --------  bits 16:23 --> dma revision
+ * ----xxxx -------- -------- --------  bits 24:27 --> reserved
+ * xxxx---- -------- -------- --------  bits 28:31 --> slot id
+ *
+ * cpu speed:       0 = 40MHz, 1 = 20MHz, 2 = 25MHz, 3 = 33MHz
+ * main mem speed:  0 = 120ns, 1 = 100ns, 2 = 80ns, 3 = 60ns
+ * video mem speed: 0 = 120ns, 1 = 100ns, 2 = 80ns, 3 = 60ns
+ * board revision:  for 030 Cube:
+ *                  0 = DCD input inverted
+ *                  1 = DCD polarity fixed
+ *                  2 = must disable DSP mem before reset
+ * cpu type:        0 = NeXT Computer (68030)
+ *                  1 = NeXTstation monochrome
+ *                  2 = NeXTcube
+ *                  3 = NeXTstation color
+ *                  4 = all Turbo systems
+ * dma revision:    1 on all systems ?
+ * slot id:         f on Turbo systems (cube too?), 0 on other systems
+ *
+ *
+ * These bits are always 0 on all Turbo systems:
+ * ----xxxx xxxxxxxx ----xxxx xxxxxxxx
  */
 
+/* for Slab 040:
+ * 0000 0000 0000 0001 0001 0000 0101 0010
+ * 00 01 10 52
+ *
+ * for Cube 030:
+ * 0000 0000 0000 0001 0000 0001 0101 0010
+ * 00 01 01 52
+ */
+#define SCR1_NEXT_COMPUTER  0x00010152
+#define SCR1_SLAB_MONO      0x00011052
+#define SCR1_SLAB_COLOR     0x00013052
+#define SCR1_CUBE           0x00012052
+#define SCR1_TURBO          0xF0004000
+
+#define SCR1_CONST_MASK     0xFFFFFF00
+
+void SCR_Reset(void) {
+    scr2_0=0x00;
+    scr2_1=0x00;
+    scr2_2=0x80;
+    scr2_3=0x00;
+    
+    intStat=0x00000000;
+    intMask=0x00000000;
+
+    if (ConfigureParams.System.bTurbo) {
+        scr1 = SCR1_TURBO;
+        TurboSCR1_Reset();
+        return;
+    } else {
+        switch (ConfigureParams.System.nMachineType) {
+            case NEXT_CUBE030:
+                scr1 = SCR1_NEXT_COMPUTER & SCR1_CONST_MASK;
+                break;
+            case NEXT_CUBE040:
+                scr1 = SCR1_CUBE & SCR1_CONST_MASK;
+                break;
+            case NEXT_STATION:
+                if (ConfigureParams.System.bColor)
+                    scr1 = SCR1_SLAB_COLOR & SCR1_CONST_MASK;
+                else
+                    scr1 = SCR1_SLAB_MONO & SCR1_CONST_MASK;
+                break;
+            default:
+                break;
+        }
+    }
+    
+    Uint8 cpu_speed = ((ConfigureParams.System.nCpuFreq/8)-1)%4;
+    Uint8 memory_speed;
+    switch (ConfigureParams.Memory.nMemorySpeed) {
+        case MEMORY_120NS: memory_speed = 0x00; break;
+        case MEMORY_100NS: memory_speed = 0x50; break;
+        case MEMORY_80NS: memory_speed = 0xA0; break;
+        case MEMORY_60NS: memory_speed = 0xF0; break;
+        default: Log_Printf(LOG_WARN, "SCR1 error: unknown memory speed\n"); break;
+    }
+    scr1 |= ((memory_speed&0xF0)|(cpu_speed&0x03));
+}
 
 void SCR1_Read0(void)
 {
 	Log_Printf(LOG_WARN,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x00; // slot ID 0
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (scr1&0xFF000000)>>24;
 }
 void SCR1_Read1(void)
 {
 	Log_Printf(LOG_WARN,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x01; // dma rev 1
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (scr1&0x00FF0000)>>16;
 }
 void SCR1_Read2(void)
 {
 	Log_Printf(LOG_WARN,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    if(ConfigureParams.System.nCpuLevel == 3)
-        IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x01; // Cube 030, board rev 1
-    else
-        IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x10; // Slab 040, board rev 0
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (scr1&0x0000FF00)>>8;
 }
 void SCR1_Read3(void)
 {
 	Log_Printf(LOG_WARN,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=0x52; // vmem speed 100ns, mem speed 100ns, cpu speed 25 MHz
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = scr1&0x000000FF;
+}
+
+
+/* Additional System Control Register for Turbo systems:
+ * -------- -------- -------- -----?xx  bits 0:2   --> cpu speed
+ * -------- -------- -------- --xx----  bits 4:5   --> main memory speed
+ * -------- -------- -------- xx------  bits 6:7   --> video memory speed
+ * -------- -------- xxxx---- --------  bits 8:11  --> cpu type
+ * xxxxxxxx xxxxxxxx ----xxxx ----?---  all other bits: 1
+ *
+ * cpu speed:       7 = 33MHz?
+ * main mem speed:  0 = 120ns?, 1 = 100ns?, 2 = 70ns, 3 = 60ns
+ * video mem speed: 3 on all Turbo systems (60ns)?
+ * cpu type:        4 = NeXTstation turbo monochrome
+ *                  5 = NeXTstation turbo color
+ */
+
+#define TURBOSCR_FMASK   0xFFFF0F08
+
+void TurboSCR1_Reset(void) {
+    Uint8 memory_speed;
+    Uint8 cpu_speed = 0x07; // 33 MHz
+    switch (ConfigureParams.Memory.nMemorySpeed) {
+        case MEMORY_120NS: memory_speed = 0xC0; break;
+        case MEMORY_100NS: memory_speed = 0xD0; break;
+        case MEMORY_80NS: memory_speed = 0xE0; break;
+        case MEMORY_60NS: memory_speed = 0xF0; break;
+        default: Log_Printf(LOG_WARN, "Turbo SCR1 error: unknown memory speed\n"); break;
+    }
+    turboscr1 = ((memory_speed&0xF0)|(cpu_speed&0x07));
+    if (ConfigureParams.System.bColor) {
+        turboscr1 |= 0x5000;
+    } else {
+        turboscr1 |= 0x4000;
+    }
+    turboscr1 |= TURBOSCR_FMASK;
+}
+
+void TurboSCR1_Read0(void) {
+    Log_Printf(LOG_WARN,"Turbo SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem_WriteWord(IoAccessCurrentAddress&0x1FFFF, (turboscr1&0xFFFF0000)>>16);
+}
+void TurboSCR1_Read2(void) {
+    Log_Printf(LOG_WARN,"Turbo SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem_WriteWord(IoAccessCurrentAddress&0x1FFFF, turboscr1&0x0000FFFF);
 }
 
 
@@ -701,8 +889,8 @@ void set_interrupt(Uint32 interrupt_val, Uint8 int_set_release) {
         case INT_DSP_L3:
         case INT_PHONE:
         case INT_SOUND_OVRUN:
-        case INT_ENETR:
-        case INT_ENETX:
+        case INT_EN_RX:
+        case INT_EN_TX:
         case INT_PRINTER:
         case INT_SCSI:
         case INT_DISK: interrupt_level = 3;
@@ -722,9 +910,9 @@ void set_interrupt(Uint32 interrupt_val, Uint8 int_set_release) {
         case INT_PRINTER_DMA:
         case INT_DISK_DMA:
         case INT_SCSI_DMA:
-        case INT_ENETR_DMA:
-        case INT_ENETX_DMA:
-			interrupt_level = 7;
+        case INT_EN_RX_DMA:
+        case INT_EN_TX_DMA:
+			interrupt_level = 6;
 		break;
         case INT_TIMER:
 		if (scr2_2&SCR2_TIMERIPL7)
@@ -760,7 +948,7 @@ void IntRegMaskRead(void) {
 
 void IntRegMaskWrite(void) {
 	intMask = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-        Log_Printf(LOG_WARN,"Interrupt mask: %04x", intMask);
+        Log_Printf(LOG_WARN,"Interrupt mask: %08x", intMask);
 }
 
 /*
@@ -820,6 +1008,7 @@ void HardclockWriteCSR(void) {
 	}
 	if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
 	        CycInt_AddRelativeInterrupt(latch_hardclock*33, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
+//        set_interrupt(INT_TIMER, SET_INT);
 	}
 }
 void HardclockReadCSR(void) {

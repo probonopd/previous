@@ -92,6 +92,12 @@ static void ConvertHighRes_640x8Bit(void)
 				col=(NEXTVideo[(x/4)+y*288]&0x03);
 				break;
 			}
+            /* Hack to provide video output on color systems to  *
+             * do memory configuration experiments. Remove later */
+            if (ConfigureParams.System.bColor) {
+                col = (NEXTColorVideo[(x*2)+(y*288*8)]&0x30)>>4;
+            }
+            /* --------------------------------------------------*/
 			putpixel(sdlscrn,x,y,col);
 		}
 	}
