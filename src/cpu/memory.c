@@ -74,13 +74,13 @@ uae_u8 bankshift;
 
 /* Video memory for monochrome systems */
 #define NEXT_SCREEN			0x0B000000
-#define NEXT_SCREEN_TURBO			0x0C000000
 #define NEXT_SCREEN_SIZE	0x00040000
 #define NEXTvideo_size NEXT_SCREEN_SIZE
 #define NEXTvideo_mask		0x0003FFFF
 uae_u8  NEXTVideo[256*1024];
 
 /* Video memory for color systems */
+#define NEXT_TURBOSCREEN    0x0C000000
 #define NEXT_COLORSCREEN    0x2C000000
 #define NEXT_COLORSCREEN_SIZE 0x00200000
 #define NEXTcolorvideo_size NEXT_COLORSCREEN_SIZE
@@ -753,19 +753,19 @@ static uae_u32 ROMmem_bget(uaecptr addr)
 static void ROMmem_lput(uaecptr addr, uae_u32 b)
 {
     illegal_trace(write_log ("Illegal ROMmem lput at %08lx\n", (long)addr));
-//    M68000_BusError(addr, 0);
+    M68000_BusError(addr, 0);
 }
 
 static void ROMmem_wput(uaecptr addr, uae_u32 b)
 {
     illegal_trace(write_log ("Illegal ROMmem wput at %08lx\n", (long)addr));
-//    M68000_BusError(addr, 0);
+    M68000_BusError(addr, 0);
 }
 
 static void ROMmem_bput(uaecptr addr, uae_u32 b)
 {
     illegal_trace(write_log ("Illegal ROMmem bput at %08lx\n", (long)addr));
-//    M68000_BusError(addr, 0);
+    M68000_BusError(addr, 0);
 }
 
 static int ROMmem_check(uaecptr addr, uae_u32 size)
@@ -978,28 +978,20 @@ const char* memory_init(int *nNewNEXTMemSize)
 
     // map_banks(&NEXTmem_bank2, NEXT_RAM_START2>>16, NEXT_RAM_SIZE2 >> 16);
     
-    if (ConfigureParams.System.bColor) {
-        map_banks(&ColorVideo_bank, NEXT_COLORSCREEN>>16, NEXT_COLORSCREEN_SIZE >> 16);
-        map_banks(&ColorVideo_bank, NEXT_COLORSCREEN>>16, NEXT_COLORSCREEN_SIZE >> 16);
-        map_banks(&ColorVideo_bank, NEXT_COLORSCREEN>>16, NEXT_COLORSCREEN_SIZE >> 16);
+    if (ConfigureParams.System.bTurbo && ConfigureParams.System.bColor) {
+        map_banks(&ColorVideo_bank, NEXT_TURBOSCREEN>>16, NEXT_COLORSCREEN_SIZE >> 16);
+        write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_TURBOSCREEN, NEXT_COLORSCREEN_SIZE/1024);
+    } else if (ConfigureParams.System.bTurbo) {
+        map_banks(&ColorVideo_bank, NEXT_TURBOSCREEN>>16, NEXT_SCREEN_SIZE >> 16);
+        write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_TURBOSCREEN, NEXT_SCREEN_SIZE/1024);
+    } else if (ConfigureParams.System.bColor) {
         map_banks(&ColorVideo_bank, NEXT_COLORSCREEN>>16, NEXT_COLORSCREEN_SIZE >> 16);
         write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_COLORSCREEN, NEXT_COLORSCREEN_SIZE/1024);
     } else {
-    if (ConfigureParams.System.bTurbo) {
-		map_banks(&Video_bank, NEXT_SCREEN_TURBO>>16, NEXT_SCREEN_SIZE >> 16);
-		map_banks(&Video_bank, NEXT_SCREEN_TURBO>>16, NEXT_SCREEN_SIZE >> 16);
-		map_banks(&Video_bank, NEXT_SCREEN_TURBO>>16, NEXT_SCREEN_SIZE >> 16);
-		map_banks(&Video_bank, NEXT_SCREEN_TURBO>>16, NEXT_SCREEN_SIZE >> 16);
-		write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_SCREEN, NEXT_SCREEN_SIZE/1024);
-	} else {
-		map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
-		map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
-		map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
-		map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
-		write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_SCREEN, NEXT_SCREEN_SIZE/1024);
-	}
+        map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
+        write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_SCREEN, NEXT_SCREEN_SIZE/1024);
     }
-        
+    
     map_banks(&ROMmem_bank, NEXT_EPROM_START >> 16, NEXT_EPROM_SIZE>>16);
     map_banks(&ROMmem_bank, NEXT_EPROM2_START >> 16, NEXT_EPROM_SIZE>>16);
     

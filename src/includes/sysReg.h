@@ -1,6 +1,6 @@
 /* NeXT system registers emulation */
 
-
+/* Interrupts */
 #define INT_SOFT1       0x00000001  // level 1
 #define INT_SOFT2       0x00000002  // level 2
 #define INT_POWER       0x00000004  // level 3
@@ -34,10 +34,20 @@
 #define INT_PFAIL       0x40000000  // level 7
 #define INT_NMI         0x80000000
 
-#define SET_INT         0x01
-#define RELEASE_INT     0x00
+/* Interrupt Level Masks */
+#define INT_L7_MASK     0xC0000000
+#define INT_L6_MASK     0x3FFC0000
+#define INT_L5_MASK     0x00038000
+#define INT_L4_MASK     0x00004000
+#define INT_L3_MASK     0x00003FFC
+#define INT_L2_MASK     0x00000002
+#define INT_L1_MASK     0x00000001
 
-Uint8 read_rtc_ram(Uint8 position);
+#define SET_INT         1
+#define RELEASE_INT     0
+
+void set_interrupt(Uint32 intr, Uint8 state);
+int get_interrupt_level(void);
 
 void SID_Read(void);
 
@@ -74,8 +84,3 @@ void HardclockWrite1(void);
 
 void HardclockWriteCSR(void);
 void HardclockReadCSR(void);
-
-void nvram_init(void);
-void rtc_checksum(int force);
-
-void set_interrupt(Uint32, Uint8);

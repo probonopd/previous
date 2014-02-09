@@ -18,36 +18,9 @@ const char Keymap_fileid[] = "Hatari keymap.c : " __DATE__ " " __TIME__;
 #include "screen.h"
 #include "debugui.h"
 #include "log.h"
-#include "ioMem.h"
-#include "m68000.h"
-#include "dma.h"
-#include "sysReg.h"
+#include "kms.h"
 
 #include "SDL.h"
-
-
-#define IO_SEG_MASK	0x1FFFF
-
-/*
- 
- Byte at address 0x0200e00a contains modifier key values:
- 
- x--- ----  valid
- -x-- ----  alt_right
- --x- ----  alt_left
- ---x ----  command_right
- ---- x---  command_left
- ---- -x--  shift_right
- ---- --x-  shift_left
- ---- ---x  control
- 
- 
- Byte at address 0x0200e00b contains key values:
- 
- x--- ----  key up (1) or down (0)
- -xxx xxxx  key_code
- 
- */
 
 
 void Keymap_Init(void) {
@@ -57,385 +30,155 @@ void Keymap_Init(void) {
         SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
 }
 
-Uint8 nextkeycode;
-Uint8 modkeys;
-Uint8 ralt;
-Uint8 lalt;
-Uint8 rcom;
-Uint8 lcom;
-Uint8 rshift;
-Uint8 lshift;
-Uint8 ctrl;
-
-/*--------------------------- Monitor, move to different place --------------------------*/
-#define LOG_MON_LEVEL LOG_DEBUG
-
-/* Monitor Register 0 */
-#define DMAOUT_ENABLE   0x80
-#define DMAOUT_DAV      0x40
-#define DMAOUT_OVR      0x20
-#define DMAIN_ENABLE    0x08
-#define DMAIN_DAV       0x04
-#define DMAIN_OVR       0x02
-
-/* Monitor Register 1 */
-#define KM_INT          0x80
-#define KM_DAV          0x40
-#define KM_OVR          0x20
-#define KM_CLR_NMI      0x10
-#define CONTROL_INT     0x08
-#define CONTROL_DAV     0x04
-#define CONTROL_OVR     0x02
-
-/* Monitor Register 2 */
-#define DTX_PEND        0x80
-#define DTX             0x40
-#define CTX_PEND        0x20
-#define CTX             0x10
-#define RTX_PEND        0x08
-#define RTX             0x04
-#define RESET           0x02
-#define TXLOOP          0x01
-
-/* Monitor Register 3 */
-
-
-struct {
-    Uint8 status_dma;
-    Uint8 status_kbdmouse;
-    Uint8 status_x;
-    Uint8 command;
-} monitor_csr;
-
-void Monitor_CSR_Read(void) {
-    Uint8 reg = IoAccessCurrentAddress&0x3;
-    Uint8 val;
+Uint8 translate_key(SDLKey sdlkey) {
     
-    switch (reg) {
-        case 0:
-            Log_Printf(LOG_MON_LEVEL, "Monitor: DMA CSR read at $%08x PC=$%08x\n", IoAccessCurrentAddress, m68k_getpc());
-            val = monitor_csr.status_dma; //DMAOUT_ENABLE|DMAOUT_OVR; // 0xA0;
-            break;
+    switch (sdlkey) {
+        case SDLK_BACKSLASH: return 0x03;
+        case SDLK_RIGHTBRACKET: return 0x04;
+        case SDLK_LEFTBRACKET: return 0x05;
+        case SDLK_i: return 0x06;
+        case SDLK_o: return 0x07;
+        case SDLK_p: return 0x08;
+        case SDLK_LEFT: return 0x09;
+        case SDLK_KP0: return 0x0B;
+        case SDLK_KP_PERIOD: return 0x0C;
+        case SDLK_KP_ENTER: return 0x0D;
+        case SDLK_DOWN: return 0x0F;
+        case SDLK_RIGHT: return 0x10;
+        case SDLK_KP1: return 0x11;
+        case SDLK_KP4: return 0x12;
+        case SDLK_KP6: return 0x13;
+        case SDLK_KP3: return 0x14;
+        case SDLK_KP_PLUS: return 0x15;
+        case SDLK_UP: return 0x16;
+        case SDLK_KP2: return 0x17;
+        case SDLK_KP5: return 0x18;
+        case SDLK_BACKSPACE: return 0x1B;
+        case SDLK_EQUALS: return 0x1C;
+        case SDLK_MINUS: return 0x1D;
+        case SDLK_8: return 0x1E;
+        case SDLK_9: return 0x1F;
+        case SDLK_0: return 0x20;
+        case SDLK_KP7: return 0x21;
+        case SDLK_KP8: return 0x22;
+        case SDLK_KP9: return 0x23;
+        case SDLK_KP_MINUS: return 0x24;
+        case SDLK_KP_MULTIPLY: return 0x25;
+        case SDLK_BACKQUOTE: return 0x26;
+        case SDLK_KP_EQUALS: return 0x27;
+        case SDLK_KP_DIVIDE: return 0x28;
+        case SDLK_RETURN: return 0x2A;
+        case SDLK_QUOTE: return 0x2B;
+        case SDLK_SEMICOLON: return 0x2C;
+        case SDLK_l: return 0x2D;
+        case SDLK_COMMA: return 0x2E;
+        case SDLK_PERIOD: return 0x2F;
+        case SDLK_SLASH: return 0x30;
+        case SDLK_z: return 0x31;
+        case SDLK_x: return 0x32;
+        case SDLK_c: return 0x33;
+        case SDLK_v: return 0x34;
+        case SDLK_b: return 0x35;
+        case SDLK_m: return 0x36;
+        case SDLK_n: return 0x37;
+        case SDLK_SPACE: return 0x38;
+        case SDLK_a: return 0x39;
+        case SDLK_s: return 0x3A;
+        case SDLK_d: return 0x3B;
+        case SDLK_f: return 0x3C;
+        case SDLK_g: return 0x3D;
+        case SDLK_k: return 0x3E;
+        case SDLK_j: return 0x3F;
+        case SDLK_h: return 0x40;
+        case SDLK_TAB: return 0x41;
+        case SDLK_q: return 0x42;
+        case SDLK_w: return 0x43;
+        case SDLK_e: return 0x44;
+        case SDLK_r: return 0x45;
+        case SDLK_u: return 0x46;
+        case SDLK_y: return 0x47;
+        case SDLK_t: return 0x48;
+        case SDLK_ESCAPE: return 0x49;
+        case SDLK_1: return 0x4A;
+        case SDLK_2: return 0x4B;
+        case SDLK_3: return 0x4C;
+        case SDLK_4: return 0x4D;
+        case SDLK_7: return 0x4E;
+        case SDLK_6: return 0x4F;
+        case SDLK_5: return 0x50;
+                        
+            /* Special Keys */
+        case SDLK_F10: return 0x58;
             
-        case 1:
-            //Log_Printf(LOG_MON_LEVEL, "Monitor: Keyboard status read at $%08x PC=$%08x\n", IoAccessCurrentAddress, m68k_getpc());
-            val = monitor_csr.status_kbdmouse|0xF0; //KM_INT|KM_DAV|KM_OVR|KM_CLR_NMI; // 0xF0;
-            break;
             
-        case 2:
-            Log_Printf(LOG_MON_LEVEL, "Monitor: X status read at $%08x PC=$%08x\n", IoAccessCurrentAddress, m68k_getpc());
-            val = monitor_csr.status_x; //CTX|RESET|TXLOOP // 0x13;
-            break;
+            /* Special keys not yet emulated:
+             SOUND_UP_KEY           0x1A
+             SOUND_DOWN_KEY         0x02
+             BRIGHTNESS_UP_KEY      0x19
+             BRIGHTNESS_DOWN_KEY	0x01
+             POWER_KEY              0x58
+             */
             
-        case 3:
-            Log_Printf(LOG_MON_LEVEL, "Monitor: Command read at $%08x PC=$%08x\n", IoAccessCurrentAddress, m68k_getpc());
-            val = monitor_csr.command;
+        default: return 0x00;
             break;
     }
-    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = val;
 }
 
-void Monitor_CSR_Write(void) {
-    Uint8 reg = IoAccessCurrentAddress&0x3;
-    Uint8 val = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
-    Uint8 sound[32768];
-    Uint32 length;
+Uint8 translate_modifiers(SDLMod modifiers) {
+
+    Uint8 mod = 0x00;
     
-    switch (reg) {
-        case 0:
-            Log_Printf(LOG_MON_LEVEL, "Monitor: DMA CSR write at $%08x, val = %02x, PC=$%08x\n",
-                       IoAccessCurrentAddress, val, m68k_getpc());
-            monitor_csr.status_dma = val;
-            if (monitor_csr.status_dma&DMAOUT_ENABLE) {
-                dma_memory_read(sound, &length, CHANNEL_SOUNDOUT);
-                monitor_csr.status_dma |= DMAOUT_ENABLE;
-            }
-            break;
-            
-        case 1:
-            Log_Printf(LOG_MON_LEVEL, "Monitor: Keyboard status write at $%08x, val = %02x, PC=$%08x\n",
-                       IoAccessCurrentAddress, val, m68k_getpc());
-            monitor_csr.status_kbdmouse = val;
-            break;
-            
-        case 2:
-            Log_Printf(LOG_MON_LEVEL, "Monitor: X status write at $%08x, val = %02x, PC=$%08x\n",
-                       IoAccessCurrentAddress, val, m68k_getpc());
-            monitor_csr.status_x = val;
-            break;
-            
-        case 3:
-            Log_Printf(LOG_MON_LEVEL, "Monitor: Command write at $%08x, val = %02x, PC=$%08x\n",
-                       IoAccessCurrentAddress, val, m68k_getpc());
-            monitor_csr.command = val;
-            switch (monitor_csr.command) {
-                case 0xc4:
-                    set_interrupt(INT_SND_OUT_DMA, SET_INT);
-                    monitor_csr.status_dma = 0x00;
-                    break;
-                    
-                default:
-                    break;
-            }
-            break;
+    if (modifiers&KMOD_RMETA) {
+        mod |= 0x01;
     }
-}
-
-/*------------------------------ End of monitor code -------------------------------*/
-
-void Keycode_Read(void) {
-    //Log_Printf(LOG_WARN, "Keycode read at $%08x PC=$%08x\n", IoAccessCurrentAddress, m68k_getpc());
-    //IoMem[0xe002]=0x93;
-    monitor_csr.status_kbdmouse = DTX_PEND | CTX | RESET | TXLOOP;
-    IoMem[0xe008]=0x10;
-    
-    IoMem[0xe00a]=modkeys; // Set modifier Keys
-    IoMem[0xe00b]=nextkeycode; // Press virtual Key
-    nextkeycode=nextkeycode | 0x80; // Automatically release virtual Key
-}
-
-
-void KeyTranslator(SDL_keysym *sdlkey) { // Translate SDL Keys to NeXT Keycodes
-    Log_Printf(LOG_WARN, "Key pressed: %s\n", SDL_GetKeyName(sdlkey->sym));
-
-    int symkey = sdlkey->sym;
-	int modkey = sdlkey->mod;
-    if (ShortCut_CheckKeys(modkey, symkey, 1)) // Check if we pressed a shortcut
-        ShortCut_ActKey();
-    else
-
-    switch (sdlkey->sym) {
-        
-        case SDLK_RIGHTBRACKET: nextkeycode = 0x04;
-            break;
-        case SDLK_LEFTBRACKET: nextkeycode = 0x05;
-            break;
-        case SDLK_i: nextkeycode = 0x06;
-            break;
-        case SDLK_o: nextkeycode = 0x07;
-            break;
-        case SDLK_p: nextkeycode = 0x08;
-            break;
-        case SDLK_LEFT: nextkeycode = 0x09;
-            break;
-        case SDLK_KP0: nextkeycode = 0x0B;
-            break;
-        case SDLK_KP_PERIOD: nextkeycode = 0x0C;
-            break;
-        case SDLK_KP_ENTER: nextkeycode = 0x0D;
-            break;
-        case SDLK_DOWN: nextkeycode = 0x0F;
-            break;
-        case SDLK_RIGHT: nextkeycode = 0x10;
-            break;
-        case SDLK_KP1: nextkeycode = 0x11;
-            break;
-        case SDLK_KP4: nextkeycode = 0x12;
-            break;
-        case SDLK_KP6: nextkeycode = 0x13;
-            break;
-        case SDLK_KP3: nextkeycode = 0x14;
-            break;
-        case SDLK_KP_PLUS: nextkeycode = 0x15;
-            break;
-        case SDLK_UP: nextkeycode = 0x16;
-            break;
-        case SDLK_KP2: nextkeycode = 0x17;
-            break;
-        case SDLK_KP5: nextkeycode = 0x18;
-            break;
-        case SDLK_BACKSPACE: nextkeycode = 0x1B;
-            break;
-        case SDLK_EQUALS: nextkeycode = 0x1C;
-            break;
-        case SDLK_MINUS: nextkeycode = 0x1D;
-            break;
-        case SDLK_8: nextkeycode = 0x1E;
-            break;
-        case SDLK_9: nextkeycode = 0x1F;
-            break;
-        case SDLK_0: nextkeycode = 0x20;
-            break;
-        case SDLK_KP7: nextkeycode = 0x21;
-            break;
-        case SDLK_KP8: nextkeycode = 0x22;
-            break;
-        case SDLK_KP9: nextkeycode = 0x23;
-            break;
-        case SDLK_KP_MINUS: nextkeycode = 0x24;
-            break;
-        case SDLK_KP_MULTIPLY: nextkeycode = 0x25;
-            break;
-        case SDLK_BACKQUOTE: nextkeycode = 0x26;
-            break;
-        case SDLK_KP_EQUALS: nextkeycode = 0x27;
-            break;
-        case SDLK_KP_DIVIDE: nextkeycode = 0x28;
-            break;            
-        case SDLK_RETURN: nextkeycode = 0x2A;
-            break;
-        case SDLK_BACKSLASH: nextkeycode = 0x2B;
-            break;
-        case SDLK_SEMICOLON: nextkeycode = 0x2C;
-            break;
-        case SDLK_l: nextkeycode = 0x2D;
-            break;
-        case SDLK_COMMA: nextkeycode = 0x2E;
-            break;
-        case SDLK_PERIOD: nextkeycode = 0x2F;
-            break;
-        case SDLK_SLASH: nextkeycode = 0x30;
-            break;
-        case SDLK_z: nextkeycode = 0x31;
-            break;
-        case SDLK_x: nextkeycode = 0x32;
-            break;
-        case SDLK_c: nextkeycode = 0x33;
-            break;
-        case SDLK_v: nextkeycode = 0x34;
-            break;
-        case SDLK_b: nextkeycode = 0x35;
-            break;
-        case SDLK_m: nextkeycode = 0x36;
-            break;
-        case SDLK_n: nextkeycode = 0x37;
-            break;
-        case SDLK_SPACE: nextkeycode = 0x38;
-            break;
-        case SDLK_a: nextkeycode = 0x39;
-            break;
-        case SDLK_s: nextkeycode = 0x3A;
-            break;
-        case SDLK_d: nextkeycode = 0x3B;
-            break;
-        case SDLK_f: nextkeycode = 0x3C;
-            break;            
-        case SDLK_g: nextkeycode = 0x3D;
-            break;
-        case SDLK_k: nextkeycode = 0x3E;
-            break;
-        case SDLK_j: nextkeycode = 0x3F;
-            break;
-        case SDLK_h: nextkeycode = 0x40;
-            break;
-        case SDLK_TAB: nextkeycode = 0x41;
-            break;
-        case SDLK_q: nextkeycode = 0x42;
-            break;
-        case SDLK_w: nextkeycode = 0x43;
-            break;
-        case SDLK_e: nextkeycode = 0x44;
-            break;
-        case SDLK_r: nextkeycode = 0x45;
-            break;
-        case SDLK_u: nextkeycode = 0x46;
-            break;
-        case SDLK_y: nextkeycode = 0x47;
-            break;
-        case SDLK_t: nextkeycode = 0x48;
-            break;
-        case SDLK_ESCAPE: nextkeycode = 0x49;
-            break;
-        case SDLK_1: nextkeycode = 0x4A;
-            break;
-        case SDLK_2: nextkeycode = 0x4B;
-            break;
-        case SDLK_3: nextkeycode = 0x4C;
-            break;
-        case SDLK_4: nextkeycode = 0x4D;
-            break;
-        case SDLK_7: nextkeycode = 0x4E;
-            break;
-        case SDLK_6: nextkeycode = 0x4F;
-            break;
-        case SDLK_5: nextkeycode = 0x50;
-            break;
-            
-        /* Modifier Keys */
-        case SDLK_RMETA: ctrl = 0x01;
-            break;
-        case SDLK_LMETA: ctrl = 0x01;
-            break;
-        case SDLK_LSHIFT: lshift = 0x02;
-            break;
-        case SDLK_RSHIFT: rshift = 0x04;
-            break;
-        case SDLK_LCTRL: lcom = 0x08;
-            break;
-        case SDLK_RCTRL: rcom = 0x10;
-            break;
-        case SDLK_LALT: lalt = 0x20;
-            break;
-        case SDLK_RALT: ralt = 0x40;
-            break;
-        case SDLK_CAPSLOCK: lshift = 0x02, rshift = 0x04;
-            break;
-            
-        /* Special keys not yet emulated:
-         SOUND_UP_KEY           0x1A
-         SOUND_DOWN_KEY         0x02
-         BRIGHTNESS_UP_KEY      0x19
-         BRIGHTNESS_DOWN_KEY	0x01
-         POWER_KEY              0x58
-         */
-
-        default: break;
+    if (modifiers&KMOD_LMETA) {
+        mod |= 0x01;
     }
-    modkeys = 0x80 | ralt | lalt | rcom | lcom | rshift | lshift | ctrl;
-    Log_Printf(LOG_WARN, "Modkeys: $%02x\n", modkeys);
-}
-
-
-void KeyRelease(SDL_keysym *sdlkey) { //release modifier Keys
-    int symkey = sdlkey->sym;
-	int modkey = sdlkey->mod;
-    if (ShortCut_CheckKeys(modkey, symkey, 0))
-		return;
-
-    switch (sdlkey->sym) {
-            
-        case SDLK_RMETA: ctrl = 0x00;
-            break;
-        case SDLK_LMETA: ctrl = 0x00;
-            break;
-        case SDLK_LSHIFT: lshift = 0x00;
-            break;
-        case SDLK_RSHIFT: rshift = 0x00;
-            break;
-        case SDLK_LCTRL: lcom = 0x00;
-            break;
-        case SDLK_RCTRL: rcom = 0x00;
-            break;
-        case SDLK_LALT: lalt = 0x00;
-            break;
-        case SDLK_RALT: ralt = 0x00;
-            break;
-        case SDLK_CAPSLOCK: lshift = 0x00, rshift = 0x00;
-            break;
-        default: break;
+    if (modifiers&KMOD_LSHIFT) {
+        mod |= 0x02;
     }
-    modkeys = 0x80 | ralt | lalt | rcom | lcom | rshift | lshift | ctrl;
-    Log_Printf(LOG_WARN, "Modkeys: $%02x\n", modkeys);
-}
+    if (modifiers&KMOD_RSHIFT) {
+        mod |= 0x04;
+    }
+    if (modifiers&KMOD_LCTRL) {
+        mod |= 0x08;
+    }
+    if (modifiers&KMOD_RCTRL) {
+        mod |= 0x10;
+    }
+    if (modifiers&KMOD_LALT) {
+        mod |= 0x20;
+    }
+    if (modifiers&KMOD_RALT) {
+        mod |= 0x40;
+    }
+    if (modifiers&KMOD_CAPS) {
+        mod |= (0x02|0x04);
+    }
 
+    return mod;
+}
 
 
 /*-----------------------------------------------------------------------*/
 /**
- * User press key down
+ * User pressed key down
  */
 void Keymap_KeyDown(SDL_keysym *sdlkey)
 {
-	bool bPreviousKeyState;
-	char STScanCode;
-	int symkey = sdlkey->sym;
+    Log_Printf(LOG_WARN, "Key pressed: %s\n", SDL_GetKeyName(sdlkey->sym));
+    
+    int symkey = sdlkey->sym;
 	int modkey = sdlkey->mod;
-
-	/*fprintf(stderr, "keydown: sym=%i scan=%i mod=$%x\n",symkey, sdlkey->scancode, modkey);*/
-
-	if (ShortCut_CheckKeys(modkey, symkey, 1))
-		return;
-
+    if (ShortCut_CheckKeys(modkey, symkey, 1)) // Check if we pressed a shortcut
+        ShortCut_ActKey();
+    
+    Uint8 keycode = translate_key(symkey);
+    Uint8 modifiers = translate_modifiers(modkey);
+    
+    Log_Printf(LOG_WARN, "Keycode: $%02x, Modifiers: $%02x\n", keycode, modifiers);
+    
+    kms_keydown(modifiers, keycode);
 }
 
 
@@ -445,18 +188,19 @@ void Keymap_KeyDown(SDL_keysym *sdlkey)
  */
 void Keymap_KeyUp(SDL_keysym *sdlkey)
 {
-	char STScanCode;
-	int symkey = sdlkey->sym;
+    Log_Printf(LOG_WARN, "Key released: %s\n", SDL_GetKeyName(sdlkey->sym));
+    
+    int symkey = sdlkey->sym;
 	int modkey = sdlkey->mod;
-
-	/*fprintf(stderr, "keyup: sym=%i scan=%i mod=$%x\n",symkey, sdlkey->scancode, modkey);*/
-
-	/* Ignore short-cut keys here */
-
-	if (ShortCut_CheckKeys(modkey, symkey, 0))
+    if (ShortCut_CheckKeys(modkey, symkey, 0))
 		return;
-
-
+    
+    Uint8 keycode = translate_key(symkey);
+    Uint8 modifiers = translate_modifiers(modkey);
+    
+    Log_Printf(LOG_WARN, "Keycode: $%02x, Modkeys: $%02x\n", keycode, modifiers);
+    
+    kms_keyup(modifiers, keycode);
 }
 
 /*-----------------------------------------------------------------------*/

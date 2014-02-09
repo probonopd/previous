@@ -20,14 +20,16 @@ const char DlgSystem_fileid[] = "Hatari dlgSystem.c : " __DATE__ " " __TIME__;
 
 
 #define DLGSYS_CUBE030    4
-#define DLGSYS_SLAB       5
-#define DLGSYS_COLOR      6
-#define DLGSYS_TURBO      7
+#define DLGSYS_CUBE       5
+#define DLGSYS_CUBETURBO  6
+#define DLGSYS_SLAB       7
+#define DLGSYS_SLABTURBO  8
+#define DLGSYS_SLABCOLOR  9
 
-#define DLGSYS_CUSTOMIZE  8
-#define DLGSYS_RESET      9
+#define DLGSYS_CUSTOMIZE  10
+#define DLGSYS_RESET      11
 
-#define DLGSYS_EXIT       25
+#define DLGSYS_EXIT       27
 
 /* Variable strings */
 char cpu_type[16] = "68030";
@@ -40,6 +42,7 @@ char emulate_adb[16] = " ";
 
 /* Additional functions */
 void print_system_overview(void);
+void update_system_selection(void);
 void get_default_values(void);
 
 
@@ -47,18 +50,20 @@ void get_default_values(void);
 
 static SGOBJ systemdlg[] =
 {
- 	{ SGBOX, 0, 0, 0,0, 60,24, NULL },
+ 	{ SGBOX, 0, 0, 0,0, 60,27, NULL },
  	{ SGTEXT, 0, 0, 23,1, 14,1, "System options" },
   
- 	{ SGBOX, 0, 0, 2,3, 26,14, NULL },
+ 	{ SGBOX, 0, 0, 2,3, 26,17, NULL },
  	{ SGTEXT, 0, 0, 3,4, 14,1, "Machine type" },
  	{ SGRADIOBUT, 0, 0, 5,6, 15,1, "NeXT Computer" },
- 	{ SGRADIOBUT, 0, 0, 5,8, 13,1, "NeXTstation" },
-    { SGCHECKBOX, 0, 0, 7,9, 7,1, "Color" },
-    { SGCHECKBOX, 0, 0, 7,10, 7,1, "Turbo" },
+    { SGRADIOBUT, 0, 0, 5,8, 13,1, "NeXTcube" },
+    { SGCHECKBOX, 0, 0, 7,9, 7,1, "Turbo" },
+ 	{ SGRADIOBUT, 0, 0, 5,11, 13,1, "NeXTstation" },
+    { SGCHECKBOX, 0, 0, 7,12, 7,1, "Turbo" },
+    { SGCHECKBOX, 0, 0, 7,13, 7,1, "Color" },
     
-    { SGBUTTON, SG_DEFAULT, 0, 5,13, 20,1, "Customize" },
-    { SGBUTTON, SG_DEFAULT, 0, 5,15, 20,1, "System defaults" },
+    { SGBUTTON, SG_DEFAULT, 0, 5,16, 20,1, "Customize" },
+    { SGBUTTON, SG_DEFAULT, 0, 5,18, 20,1, "System defaults" },
         
  	{ SGTEXT, 0, 0, 30,4, 13,1, "System overview:" },
     { SGTEXT, 0, 0, 30,6, 13,1, "CPU type:" },
@@ -75,9 +80,9 @@ static SGOBJ systemdlg[] =
     { SGTEXT, 0, 0, 44,11, 13,1, rtc_chip },
     { SGTEXT, 0, 0, 30,13, 13,1, emulate_adb },
     
-    { SGTEXT, 0, 0, 4,18, 13,1, "Changing machine type resets all advanced options." },
+    { SGTEXT, 0, 0, 4,21, 13,1, "Changing machine type resets all advanced options." },
     
- 	{ SGBUTTON, SG_DEFAULT, 0, 21,21, 20,1, "Back to main menu" },
+ 	{ SGBUTTON, SG_DEFAULT, 0, 21,24, 20,1, "Back to main menu" },
  	{ -1, 0, 0, 0,0, 0,0, NULL }
  };
 
@@ -128,8 +133,8 @@ void print_system_overview(void) {
     switch (ConfigureParams.System.nRTC) {
         case MC68HC68T1:
             sprintf(rtc_chip, "MC68HC68T1"); break;
-        case MCS1850:
-            sprintf(rtc_chip, "MCS1850"); break;
+        case MCCS1850:
+            sprintf(rtc_chip, "MCCS1850"); break;
         default: break;
     }
     
@@ -137,36 +142,60 @@ void print_system_overview(void) {
         sprintf(emulate_adb, "ADB emulated");
     else
         sprintf(emulate_adb, " ");
+    
+    update_system_selection();
+}
+
+
+/* Function to select and unselect system options */
+void update_system_selection(void) {
+    switch (ConfigureParams.System.nMachineType) {
+        case NEXT_CUBE030:
+            systemdlg[DLGSYS_CUBE030].state |= SG_SELECTED;
+            systemdlg[DLGSYS_CUBE].state &= ~SG_SELECTED;
+            systemdlg[DLGSYS_CUBETURBO].state &= ~SG_SELECTED;
+            systemdlg[DLGSYS_SLAB].state &= ~SG_SELECTED;
+            systemdlg[DLGSYS_SLABCOLOR].state &= ~SG_SELECTED;
+            systemdlg[DLGSYS_SLABTURBO].state &= ~SG_SELECTED;
+            break;
+        case NEXT_CUBE040:
+            systemdlg[DLGSYS_CUBE030].state &= ~SG_SELECTED;
+            systemdlg[DLGSYS_CUBE].state |= SG_SELECTED;
+            if (ConfigureParams.System.bTurbo) {
+                systemdlg[DLGSYS_CUBETURBO].state |= SG_SELECTED;
+            } else {
+                systemdlg[DLGSYS_CUBETURBO].state &= ~SG_SELECTED;
+            }
+            systemdlg[DLGSYS_SLAB].state &= ~SG_SELECTED;
+            systemdlg[DLGSYS_SLABCOLOR].state &= ~SG_SELECTED;
+            systemdlg[DLGSYS_SLABTURBO].state &= ~SG_SELECTED;
+            break;
+        case NEXT_STATION:
+            systemdlg[DLGSYS_CUBE030].state &= ~SG_SELECTED;
+            systemdlg[DLGSYS_CUBE].state &= ~SG_SELECTED;
+            systemdlg[DLGSYS_CUBETURBO].state &= ~SG_SELECTED;
+            systemdlg[DLGSYS_SLAB].state |= SG_SELECTED;
+            if (ConfigureParams.System.bTurbo) {
+                systemdlg[DLGSYS_SLABTURBO].state |= SG_SELECTED;
+            } else {
+                systemdlg[DLGSYS_SLABTURBO].state &= ~SG_SELECTED;
+            }
+            if (ConfigureParams.System.bColor) {
+                systemdlg[DLGSYS_SLABCOLOR].state |= SG_SELECTED;
+            } else {
+                systemdlg[DLGSYS_SLABCOLOR].state &= ~SG_SELECTED;
+            }
+            break;
+            
+        default:
+            break;
+    }
 }
 
 
 /* Function to get default values for each system */
 void get_default_values(void) {
-    switch (ConfigureParams.System.nMachineType) {
-        case NEXT_CUBE030:
-            ConfigureParams.System.nCpuLevel = 3;
-            ConfigureParams.System.nCpuFreq = 25;
-            ConfigureParams.System.n_FPUType = FPU_68882;
-            ConfigureParams.System.nSCSI = NCR53C90;
-            ConfigureParams.System.nRTC = MC68HC68T1;
-            ConfigureParams.System.bADB = false;
-            break;
-            
-        case NEXT_STATION:
-            ConfigureParams.System.nMachineType = NEXT_STATION;
-            ConfigureParams.System.nCpuLevel = 4;
-            if (ConfigureParams.System.bTurbo)
-                ConfigureParams.System.nCpuFreq = 33;
-            else
-                ConfigureParams.System.nCpuFreq = 25;
-            ConfigureParams.System.n_FPUType = FPU_CPU;
-            ConfigureParams.System.nSCSI = NCR53C90A;
-            ConfigureParams.System.nRTC = MCS1850;
-            ConfigureParams.System.bADB = false;
-            break;
-        default:
-            break;
-    }
+    Configuration_SetSystemDefaults();
 }
 
 
@@ -206,10 +235,23 @@ void Dialog_SystemDlg(void)
         switch (but) {
             case DLGSYS_CUBE030:
                 ConfigureParams.System.nMachineType = NEXT_CUBE030;
-                systemdlg[DLGSYS_COLOR].state &= ~SG_SELECTED;
-                ConfigureParams.System.bColor = false;
-                systemdlg[DLGSYS_TURBO].state &= ~SG_SELECTED;
-                ConfigureParams.System.bTurbo = false;
+                get_default_values();
+                print_system_overview();
+                break;
+                
+            case DLGSYS_CUBE:
+                ConfigureParams.System.nMachineType = NEXT_CUBE040;
+                get_default_values();
+                print_system_overview();
+                break;
+                
+            case DLGSYS_CUBETURBO:
+                ConfigureParams.System.nMachineType = NEXT_CUBE040;
+                if (ConfigureParams.System.bTurbo) {
+                    ConfigureParams.System.bTurbo = false;
+                } else {
+                    ConfigureParams.System.bTurbo = true;
+                }
                 get_default_values();
                 print_system_overview();
                 break;
@@ -220,27 +262,23 @@ void Dialog_SystemDlg(void)
                 print_system_overview();
                 break;
                 
-            case DLGSYS_COLOR:
+            case DLGSYS_SLABCOLOR:
                 ConfigureParams.System.nMachineType = NEXT_STATION;
-                if (systemdlg[DLGSYS_COLOR].state & SG_SELECTED) {
-                    systemdlg[DLGSYS_CUBE030].state &= ~SG_SELECTED;
-                    systemdlg[DLGSYS_SLAB].state |= SG_SELECTED;
-                    ConfigureParams.System.bColor = true;
-                } else {
+                if (ConfigureParams.System.bColor) {
                     ConfigureParams.System.bColor = false;
+                } else {
+                    ConfigureParams.System.bColor = true;
                 }
                 get_default_values();
                 print_system_overview();
                 break;
                 
-            case DLGSYS_TURBO:
+            case DLGSYS_SLABTURBO:
                 ConfigureParams.System.nMachineType = NEXT_STATION;
-                if (systemdlg[DLGSYS_TURBO].state & SG_SELECTED) {
-                    systemdlg[DLGSYS_CUBE030].state &= ~SG_SELECTED;
-                    systemdlg[DLGSYS_SLAB].state |= SG_SELECTED;
-                    ConfigureParams.System.bTurbo = true;
-                } else {
+                if (ConfigureParams.System.bTurbo) {
                     ConfigureParams.System.bTurbo = false;
+                } else {
+                    ConfigureParams.System.bTurbo = true;
                 }
                 get_default_values();
                 print_system_overview();

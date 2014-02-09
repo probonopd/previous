@@ -1580,11 +1580,16 @@ static void Exception_mmu030 (int nr, uaecptr oldpc) {
     }
     
     if (regs.m && nr >= 24 && nr < 32) { /* M + Interrupt */
+        Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x0);
+        MakeSR(); /* this sets supervisor bit in status reg */
+        regs.m = 0; /* clear the M bit (but frame 0x1 uses sr with M bit set) */
+        regs.msp = m68k_areg (regs, 7);
+        m68k_areg (regs, 7) = regs.isp;
         Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x1);
     } else if (nr ==5 || nr == 6 || nr == 7 || nr == 9 || nr == 56) {
         Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x2);
     } else if (nr == 2 || nr == 3) {
-        Exception_build_stack_frame(oldpc, currpc, 0x0145, nr, 0xA); // ssw hacked for NeXT
+        Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0xA);
     } else {
         Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x0);
     }
@@ -1638,6 +1643,11 @@ static void Exception_mmu (int nr, uaecptr oldpc)
 	} else if (nr ==5 || nr == 6 || nr == 7 || nr == 9) {
         Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x2);
 	} else if (regs.m && nr >= 24 && nr < 32) { /* M + Interrupt */
+        Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x0);
+        MakeSR(); /* this sets supervisor bit in status reg for next frame */
+        regs.m = 0; /* clear the M bit (but frame 0x1 uses sr with M bit set) */
+        regs.msp = m68k_areg (regs, 7);
+        m68k_areg (regs, 7) = regs.isp;
         Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x1);
 	} else {
         Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x0);
@@ -2718,12 +2728,14 @@ STATIC_INLINE int do_specialties (int cycles)
 			do_interrupt (regs.ipl, true);
 		}
 	} else {
+#if 0
 		if (regs.spcflags & SPCFLAG_INT) {
 			int intr = intlev ();
 			unset_special (SPCFLAG_INT | SPCFLAG_DOINT);
 			if (intr > 0 && (intr > regs.intmask || intr == 7))
 				do_interrupt (intr, false);		/* call do_interrupt() with Pending=false, not necessarily true but harmless */
 		}
+#endif
 	}
 
 	if (regs.spcflags & SPCFLAG_DOINT) {
@@ -2988,6 +3000,8 @@ static void m68k_run_mmu040 (void)
 	uae_u32 opcode=0;
 	uaecptr pc=0;uaecptr fault=0;
 	m68k_exception save_except;
+    int intr = 0;
+    int lastintr = 0;
 	
 	for (;;) {
 	TRY (prb) {
@@ -3020,7 +3034,18 @@ static void m68k_run_mmu040 (void)
 				CALL_VAR(PendingInterruptFunction);		/* call the interrupt handler */
 				do_specialties_interrupt(false);		/* test if there's an mfp/video interrupt and add non pending jitter */
 			}
-		
+
+            /* Previous: for now we poll the interrupt pins with every instruction.
+             * TODO: only do this when an actual interrupt is active to not
+             * unneccessarily slow down emulation.
+             */
+            intr = intlev ();
+            if (intr>regs.intmask || (intr==7 && intr>lastintr)) {
+                do_interrupt (intr, false);
+            }
+            lastintr = intr;
+            
+            
 			if (regs.spcflags) {
 				if (do_specialties (cpu_cycles* 2 / CYCLE_UNIT))
 					return;

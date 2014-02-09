@@ -179,6 +179,16 @@ void M68000_Reset(bool bCold)
 
 /*-----------------------------------------------------------------------*/
 /**
+ * Stop 680x0 emulation
+ */
+void M68000_Stop(void)
+{
+    M68000_SetSpecial(SPCFLAG_BRK);
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
  * Start 680x0 emulation
  */
 void M68000_Start(void)
@@ -360,6 +370,20 @@ void M68000_BusError(Uint32 addr, bool bRead)
 		bBusErrorReadWrite = bRead;
 #if ENABLE_WINUAE_CPU
         if (currprefs.mmu_model) {
+            /* This is a hack for the special status word, this needs to be corrected later */
+            if (ConfigureParams.System.nCpuLevel==3) { /* CPU 68030 */
+                int fc = 5; /* hack */
+                regs.mmu_ssw = (fc&1) ? MMU030_SSW_DF : (MMU030_SSW_FB|MMU030_SSW_RB);
+                regs.mmu_ssw |= bRead ? MMU030_SSW_RW : 0;
+                regs.mmu_ssw |= fc&MMU030_SSW_FC_MASK;
+                /*switch (size) {
+                 case 4: regs.mmu_ssw |= MMU030_SSW_SIZE_L; break;
+                 case 2: regs.mmu_ssw |= MMU030_SSW_SIZE_W; break;
+                 case 1: regs.mmu_ssw |= MMU030_SSW_SIZE_B; break;
+                 default: break;
+                 }*/
+                printf("Bus Error: Warning! Using hacked SSW (%04X)!\n", regs.mmu_ssw);
+            }
             THROW(2);
             return;
         }

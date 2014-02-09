@@ -203,6 +203,21 @@ typedef struct
   bool bBootFromHardDisk;
 } CNF_SCSI;
 
+
+/* Magneto-optical drives configuration */
+#define MO_MAX_DRIVES   2
+typedef struct {
+    char szImageName[FILENAME_MAX];
+    bool bDriveConnected;
+    bool bDiskInserted;
+    bool bWriteProtected;
+} MODISK;
+
+typedef struct {
+    MODISK drive[MO_MAX_DRIVES];
+} CNF_MO;
+
+
 /* Falcon register $FFFF8006 bits 6 & 7 (mirrored in $FFFF82C0 bits 0 & 1):
  * 00 Monochrome
  * 01 RGB - Colormonitor
@@ -280,7 +295,7 @@ typedef enum
 typedef enum
 {
   MC68HC68T1,
-  MCS1850
+  MCCS1850
 } RTCCHIP;
 
 typedef enum
@@ -352,6 +367,7 @@ typedef struct
   CNF_DISKIMAGE DiskImage;
   CNF_BOOT Boot;
   CNF_SCSI SCSI;
+  CNF_MO MO;
   CNF_ROM Rom;
   CNF_RS232 RS232;
   CNF_PRINTER Printer;
@@ -365,6 +381,7 @@ extern CNF_PARAMS ConfigureParams;
 extern char sConfigFileName[FILENAME_MAX];
 
 extern void Configuration_SetDefault(void);
+extern void Configuration_SetSystemDefaults(void);
 extern void Configuration_Apply(bool bReset);
 extern int Configuration_CheckMemory(int *banksize);
 extern void Configuration_Load(const char *psFileName);

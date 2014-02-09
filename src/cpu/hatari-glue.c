@@ -14,11 +14,8 @@ const char HatariGlue_fileid[] = "Hatari hatari-glue.c : " __DATE__ " " __TIME__
 
 #include "main.h"
 #include "configuration.h"
-#include "cycInt.h"
-#include "cart.h"
-#include "nextMemory.h"
-#include "screen.h"
 #include "video.h"
+#include "sysReg.h"
 
 #include "sysdeps.h"
 #include "maccess.h"
@@ -49,59 +46,16 @@ void customreset(void)
 
 
 /**
- * Return interrupt number (1 - 7), -1 means no interrupt.
+ * Return interrupt number (1 - 7), 0 means no interrupt.
  * Note that the interrupt stays pending if it can't be executed yet
  * due to the interrupt level field in the SR.
  */
 int intlev(void)
 {
-	/* There are only VBL and HBL autovector interrupts in the ST... */
-//	assert((pendingInterrupts & ~((1<<4)|(1<<2))) == 0);
-
-	if (pendingInterrupts & (1 << 7))
-	{
-		if (regs.intmask < 7)
-			pendingInterrupts &= ~(1 << 7);
-		return 7;
-	}
-    else if (pendingInterrupts & (1 << 6))
-	{
-		if (regs.intmask < 6)
-			pendingInterrupts &= ~(1 << 6);
-		return 6;
-	}
-	else if (pendingInterrupts & (1 << 5))
-	{
-		if (regs.intmask < 5)
-			pendingInterrupts &= ~(1 << 5);
-		return 5;
-	}
-	else if (pendingInterrupts & (1 << 4))
-	{
-		if (regs.intmask < 4)
-			pendingInterrupts &= ~(1 << 4);
-		return 4;
-	}
-	else if (pendingInterrupts & (1 << 3))
-	{
-		if (regs.intmask < 3)
-			pendingInterrupts &= ~(1 << 3);
-		return 3;
-	}
-	else if (pendingInterrupts & (1 << 2))
-	{
-		if (regs.intmask < 2)
-			pendingInterrupts &= ~(1 << 2);
-		return 2;
-	}
-    else if (pendingInterrupts & (1 << 1))
-	{
-		if (regs.intmask < 1)
-			pendingInterrupts &= ~(1 << 1);
-		return 1;
-	}
-
-	return -1;
+    /* Poll interrupt level from interrupt status and mask registers
+     * --> see sysReg.c
+     */
+    return get_interrupt_level();
 }
 
 /**

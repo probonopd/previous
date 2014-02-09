@@ -19,7 +19,9 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
 #include "video.h"
 #include "debugcpu.h"
 #include "scsi.h"
+#include "mo.h"
 #include "sysReg.h"
+#include "rtcnvram.h"
 #include "scc.h"
 #include "ethernet.h"
 
@@ -44,6 +46,7 @@ static const char* Reset_ST(bool bCold)
     SCR_Reset();                  /* Reset System Control Registers */
     nvram_init();                 /* Reset NVRAM */
     SCSI_Reset();                 /* Reset SCSI disks */
+    MO_Reset();                   /* Reset MO disks */
     SCC_Reset();                  /* Reset SCC */
     Ethernet_Reset();             /* Reset Ethernet */
 	Screen_Reset();               /* Reset screen */

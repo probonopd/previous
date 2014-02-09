@@ -18,6 +18,7 @@ extern int DlgAlert_Query(const char *text);
 extern void Dialog_DeviceDlg(void);
 extern void DlgFloppy_Main(void);
 extern void DlgHardDisk_Main(void);
+extern void DlgOptical_Main(void);
 extern void Dialog_JoyDlg(void);
 extern void Dialog_KeyboardDlg(void);
 extern bool Dialog_MemDlg(void);
@@ -32,6 +33,7 @@ extern void DlgRom_Main(void);
 extern void DlgBoot_Main(void);
 extern void DlgMissing_Rom(void);
 extern void DlgMissing_SCSIdisk(int target);
+extern void DlgMissing_MOdisk(int drive);
 /* and dialog.c */
 extern bool Dialog_DoProperty(void);
 extern void Dialog_CheckFiles(void);

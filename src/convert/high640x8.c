@@ -71,34 +71,34 @@ static void ConvertHighRes_640x8Bit(void)
 		for (x=0;x<4;x++)
 			colors[x] = SDL_MapRGB(sdlscrn->format, sdlColors[x].r, sdlColors[x].g, sdlColors[x].b);
 	}
-
+    
 	if (ConfigureParams.System.bTurbo) {
-		for (y = 0; y < 832; y++)
+		for (y = 0; y < 624; y++)
 		{
-
-			for (x = 0; x < 1120; x++)
+            
+			for (x = 0; x < 832; x++)
 			{
 				switch (x&0x3)
 				{
-				case 0x0:
-					col=(NEXTVideo[(x/4)+y*280]&0xC0)>>6;
-					break;
-				case 0x1:
-					col=(NEXTVideo[(x/4)+y*280]&0x30)>>4;
-					break;
-				case 0x2:
-					col=(NEXTVideo[(x/4)+y*280]&0x0C)>>2;
-					break;
-				case 0x3:
-					col=(NEXTVideo[(x/4)+y*280]&0x03);
-					break;
+                    case 0x0:
+                        col=(NEXTVideo[(x/4)+y*280]&0xC0)>>6;
+                        break;
+                    case 0x1:
+                        col=(NEXTVideo[(x/4)+y*280]&0x30)>>4;
+                        break;
+                    case 0x2:
+                        col=(NEXTVideo[(x/4)+y*280]&0x0C)>>2;
+                        break;
+                    case 0x3:
+                        col=(NEXTVideo[(x/4)+y*280]&0x03);
+                        break;
 				}
-		    /* Hack to provide video output on color systems to  *
-		     * do memory configuration experiments. Remove later */
-		    if (ConfigureParams.System.bColor) {
-		        col = (NEXTColorVideo[(x*2)+(y*280*8)]&0x30)>>4;
-		    }
-		    /* --------------------------------------------------*/
+                /* Hack to provide video output on color systems to  *
+                 * do memory configuration experiments. Remove later */
+                if (ConfigureParams.System.bColor) {
+                    col = (NEXTColorVideo[(x*2)+(y*208*8)]&0x30)>>4;
+                }
+                /* --------------------------------------------------*/
 				putpixel(sdlscrn,x,y,col);
 			}
 		}
@@ -106,30 +106,30 @@ static void ConvertHighRes_640x8Bit(void)
 	else {
 		for (y = 0; y < 832; y++)
 		{
-
+            
 			for (x = 0; x < 1120; x++)
 			{
 				switch (x&0x3)
 				{
-				case 0x0:
-					col=(NEXTVideo[(x/4)+y*288]&0xC0)>>6;
-					break;
-				case 0x1:
-					col=(NEXTVideo[(x/4)+y*288]&0x30)>>4;
-					break;
-				case 0x2:
-					col=(NEXTVideo[(x/4)+y*288]&0x0C)>>2;
-					break;
-				case 0x3:
-					col=(NEXTVideo[(x/4)+y*288]&0x03);
-					break;
+                    case 0x0:
+                        col=(NEXTVideo[(x/4)+y*288]&0xC0)>>6;
+                        break;
+                    case 0x1:
+                        col=(NEXTVideo[(x/4)+y*288]&0x30)>>4;
+                        break;
+                    case 0x2:
+                        col=(NEXTVideo[(x/4)+y*288]&0x0C)>>2;
+                        break;
+                    case 0x3:
+                        col=(NEXTVideo[(x/4)+y*288]&0x03);
+                        break;
 				}
-		    /* Hack to provide video output on color systems to  *
-		     * do memory configuration experiments. Remove later */
-		    if (ConfigureParams.System.bColor) {
-		        col = (NEXTColorVideo[(x*2)+(y*288*8)]&0x30)>>4;
-		    }
-		    /* --------------------------------------------------*/
+                /* Hack to provide video output on color systems to  *
+                 * do memory configuration experiments. Remove later */
+                if (ConfigureParams.System.bColor) {
+                    col = (NEXTColorVideo[(x*2)+(y*288*8)]&0x30)>>4;
+                }
+                /* --------------------------------------------------*/
 				putpixel(sdlscrn,x,y,col);
 			}
 		}

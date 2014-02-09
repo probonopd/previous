@@ -230,6 +230,22 @@ static const struct Config_Tag configs_SCSI[] =
 	{ NULL , Error_Tag, NULL }
 };
 
+/* Used to load/save MO options */
+static const struct Config_Tag configs_MO[] =
+{
+    { "szImageName0", String_Tag, ConfigureParams.MO.drive[0].szImageName },
+    { "bDriveConnected0", Bool_Tag, &ConfigureParams.MO.drive[0].bDriveConnected },
+    { "bDiskInserted0", Bool_Tag, &ConfigureParams.MO.drive[0].bDiskInserted },
+    { "bWriteProtected0", Bool_Tag, &ConfigureParams.MO.drive[0].bWriteProtected },
+    
+    { "szImageName1", String_Tag, ConfigureParams.MO.drive[1].szImageName },
+    { "bDriveConnected1", Bool_Tag, &ConfigureParams.MO.drive[1].bDriveConnected },
+    { "bDiskInserted1", Bool_Tag, &ConfigureParams.MO.drive[1].bDiskInserted },
+    { "bWriteProtected1", Bool_Tag, &ConfigureParams.MO.drive[1].bWriteProtected },
+
+	{ NULL , Error_Tag, NULL }
+};
+
 /* Used to load/save ROM options */
 static const struct Config_Tag configs_Rom[] =
 {
@@ -365,6 +381,15 @@ void Configuration_SetDefault(void)
         strcpy(ConfigureParams.SCSI.target[target].szImageName, psWorkingDir);
         ConfigureParams.SCSI.target[target].bAttached = false;
         ConfigureParams.SCSI.target[target].bCDROM = false;
+    }
+    
+    /* Set defaults for MO drives */
+    int drive;
+    for (drive = 0; drive < MO_MAX_DRIVES; drive++) {
+        strcpy(ConfigureParams.MO.drive[drive].szImageName, psWorkingDir);
+        ConfigureParams.MO.drive[drive].bDriveConnected = false;
+        ConfigureParams.MO.drive[drive].bDiskInserted = false;
+        ConfigureParams.MO.drive[drive].bWriteProtected = false;
     }
     
 	/* Set defaults for Keyboard */
@@ -585,6 +610,60 @@ void Configuration_Apply(bool bReset)
 
 /*-----------------------------------------------------------------------*/
 /**
+ * Set defaults depending on selected machine type.
+ */
+void Configuration_SetSystemDefaults(void) {
+    switch (ConfigureParams.System.nMachineType) {
+        case NEXT_CUBE030:
+            ConfigureParams.System.bTurbo = false;
+            ConfigureParams.System.bColor = false;
+            ConfigureParams.System.nCpuLevel = 3;
+            ConfigureParams.System.nCpuFreq = 25;
+            ConfigureParams.System.n_FPUType = FPU_68882;
+            ConfigureParams.System.nSCSI = NCR53C90;
+            ConfigureParams.System.nRTC = MC68HC68T1;
+            ConfigureParams.System.bADB = false;
+            break;
+            
+        case NEXT_CUBE040:
+            ConfigureParams.System.bColor = false;
+            ConfigureParams.System.nCpuLevel = 4;
+            if (ConfigureParams.System.bTurbo) {
+                ConfigureParams.System.nCpuFreq = 33;
+                ConfigureParams.System.nRTC = MCCS1850;
+            } else {
+                ConfigureParams.System.nCpuFreq = 25;
+                ConfigureParams.System.nRTC = MC68HC68T1;
+            }
+            ConfigureParams.System.n_FPUType = FPU_CPU;
+            ConfigureParams.System.nSCSI = NCR53C90A;
+            ConfigureParams.System.bADB = false;
+            break;
+            
+        case NEXT_STATION:
+            ConfigureParams.System.nCpuLevel = 4;
+            if (ConfigureParams.System.bTurbo) {
+                ConfigureParams.System.nCpuFreq = 33;
+                ConfigureParams.System.nRTC = MCCS1850;
+            } else if (ConfigureParams.System.bColor) {
+                ConfigureParams.System.nCpuFreq = 25;
+                ConfigureParams.System.nRTC = MCCS1850;
+            } else {
+                ConfigureParams.System.nCpuFreq = 25;
+                ConfigureParams.System.nRTC = MC68HC68T1;
+            }
+            ConfigureParams.System.n_FPUType = FPU_CPU;
+            ConfigureParams.System.nSCSI = NCR53C90A;
+            ConfigureParams.System.bADB = false;
+            break;
+        default:
+            break;
+    }
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
  * Check memory bank sizes for compatibility with the selected system.
  */
 int Configuration_CheckMemory(int *banksize) {
@@ -694,6 +773,7 @@ void Configuration_Load(const char *psFileName)
 	Configuration_LoadSection(psFileName, configs_Floppy, "[Floppy]");
     Configuration_LoadSection(psFileName, configs_Boot, "[Boot]");
 	Configuration_LoadSection(psFileName, configs_SCSI, "[HardDisk]");
+    Configuration_LoadSection(psFileName, configs_MO, "[MagnetoOptical]");
 	Configuration_LoadSection(psFileName, configs_Rom, "[ROM]");
 	Configuration_LoadSection(psFileName, configs_Rs232, "[RS232]");
 	Configuration_LoadSection(psFileName, configs_Printer, "[Printer]");
@@ -742,6 +822,7 @@ void Configuration_Save(void)
 	Configuration_SaveSection(sConfigFileName, configs_Floppy, "[Floppy]");
     Configuration_SaveSection(sConfigFileName, configs_Boot, "[Boot]");
 	Configuration_SaveSection(sConfigFileName, configs_SCSI, "[HardDisk]");
+    Configuration_SaveSection(sConfigFileName, configs_MO, "[MagnetoOptical]");
 	Configuration_SaveSection(sConfigFileName, configs_Rom, "[ROM]");
 	Configuration_SaveSection(sConfigFileName, configs_Rs232, "[RS232]");
 	Configuration_SaveSection(sConfigFileName, configs_Printer, "[Printer]");
@@ -773,6 +854,15 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
         MemorySnapShot_Store(ConfigureParams.SCSI.target[target].szImageName, sizeof(ConfigureParams.SCSI.target[target].szImageName));
         MemorySnapShot_Store(&ConfigureParams.SCSI.target[target].bAttached, sizeof(ConfigureParams.SCSI.target[target].bAttached));
         MemorySnapShot_Store(&ConfigureParams.SCSI.target[target].bCDROM, sizeof(ConfigureParams.SCSI.target[target].bCDROM));
+    }
+    
+    /* MO drives */
+    int drive;
+    for (drive = 0; drive < MO_MAX_DRIVES; drive++) {
+        MemorySnapShot_Store(ConfigureParams.MO.drive[drive].szImageName, sizeof(ConfigureParams.MO.drive[drive].szImageName));
+        MemorySnapShot_Store(&ConfigureParams.MO.drive[drive].bDriveConnected, sizeof(ConfigureParams.MO.drive[drive].bDriveConnected));
+        MemorySnapShot_Store(&ConfigureParams.MO.drive[drive].bDiskInserted, sizeof(ConfigureParams.MO.drive[drive].bDiskInserted));
+        MemorySnapShot_Store(&ConfigureParams.MO.drive[drive].bWriteProtected, sizeof(ConfigureParams.MO.drive[drive].bWriteProtected));
     }
 
     /* Monitor options */
