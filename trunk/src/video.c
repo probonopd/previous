@@ -22,6 +22,7 @@ const char Video_fileid[] = "Hatari video.c : " __DATE__ " " __TIME__;
 #include "nextMemory.h"
 #include "video.h"
 #include "avi_record.h"
+#include "dma.h"
 
 
 /*--------------------------------------------------------------*/
@@ -122,8 +123,9 @@ void Video_InterruptHandler_VBL ( void )
 {
 	CycInt_AcknowledgeInterrupt();
 	Video_DrawScreen();
-        Main_EventHandler();
-        CycInt_AddRelativeInterrupt(CYCLES_PER_FRAME, INT_CPU_CYCLE, INTERRUPT_VIDEO_VBL);
+    Main_EventHandler();
+    Video_InterruptHandler(); /* see dma.c */
+    CycInt_AddRelativeInterrupt(CYCLES_PER_FRAME, INT_CPU_CYCLE, INTERRUPT_VIDEO_VBL);
 }
 
 

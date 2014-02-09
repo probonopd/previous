@@ -19,6 +19,9 @@
 #include "sysReg.h"
 #include "dma.h"
 
+
+#define SCC_ENABLE_INTERRUPT 1
+
 #define LOG_SCC_LEVEL LOG_WARN
 #define IO_SEG_MASK	0x1FFFF
 
@@ -38,7 +41,7 @@ typedef enum {
 
 IRQ_TYPES IRQType;
 
-typedef struct {
+struct {
     Uint8 rreg[16];
     Uint8 wreg[16];
     bool txIRQEnable;
@@ -56,9 +59,7 @@ typedef struct {
     Uint8 tx_buf[SCC_BUFSIZE];
     Uint32 rx_buf_size;
     Uint32 tx_buf_size;
-} SCC_CHANNEL;
-
-SCC_CHANNEL channel[2];
+} channel[2];
 
 int IRQV;
 
@@ -82,8 +83,8 @@ void SCC_Read(void) {
         data = false;
     
     if (data) {
-        IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = channel[ch].rx_buf[0];
-        Log_Printf(LOG_SCC_LEVEL, "SCC %c, Data read: %02x\n", ch == 1?'A':'B', channel[ch].rx_buf[0]);
+        IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = scc_buf[0];//channel[ch].rx_buf[0];
+        Log_Printf(LOG_SCC_LEVEL, "SCC %c, Data read: %02x\n", ch == 1?'A':'B', /*channel[ch].rx_buf[0]*/scc_buf[0]);
     } else {
         reg = regnumber;
         IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = channel[ch].rreg[reg];
@@ -110,8 +111,8 @@ void SCC_Write(void) {
         data = false;
     
     if (data) {
-        channel[ch].rx_buf[0] = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
-        Log_Printf(LOG_SCC_LEVEL, "SCC %c, Data write: %02x\n", ch == 1?'A':'B', channel[ch].rx_buf[0]);
+        /*channel[ch].rx_buf[0]*/scc_buf[0] = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
+        Log_Printf(LOG_SCC_LEVEL, "SCC %c, Data write: %02x\n", ch == 1?'A':'B', /*channel[ch].rx_buf[0]*/scc_buf[0]);
         channel[ch].rreg[R_STATUS] = RR0_TXEMPTY|RR0_RXAVAIL; // Tx buffer empty | Rx Character Available
         return;
     }
@@ -147,7 +148,7 @@ void SCC_Write(void) {
                 SCC_Interrupt();
                 
                 if (val&0x40 && val&0x80) {
-                    dma_memory_read(channel[ch].rx_buf, &channel[ch].rx_buf_size, CHANNEL_SCC);
+                    dma_scc_read_memory();
                     channel[ch].rreg[R_STATUS] = RR0_RXAVAIL; // Rx Character Available
                 }
                 break;
@@ -258,8 +259,12 @@ void SCC_Interrupt(void)
 		Log_Printf(LOG_SCC_LEVEL, "SCC8530 IRQ status => %d\n", irqstat);
 
         if (irqstat) {
+#if SCC_ENABLE_INTERRUPT
             set_interrupt(INT_SCC, SET_INT);
             Log_Printf(LOG_SCC_LEVEL, "SCC: Raise IRQ");
+#else
+            Log_Printf(LOG_SCC_LEVEL, "SCC: Interrupt disabled (hack)!");
+#endif
         }else{
             set_interrupt(INT_SCC, RELEASE_INT);
             Log_Printf(LOG_SCC_LEVEL, "SCC: Lower IRQ");
@@ -274,9 +279,9 @@ void SCC_Interrupt(void)
 void SCC_ResetChannel(int ch)
 {
 //	emu_timer *timersave = channel[ch].baudtimer;
-    
-	memset(&channel[ch], 0, sizeof(SCC_CHANNEL));
-    
+#if 0 // find a better way to reset!
+	memset(&channel[ch], 0, sizeof(channel[ch]));
+#endif
 	channel[ch].txUnderrun = 1;
 //	channel[ch].baudtimer = timersave;
     
@@ -289,7 +294,7 @@ void SCC_InitChannel(int ch)
 }
 
 void SCC_Reset(void) {
-    Log_Printf(LOG_WARN, "SCC: Device Reset (Hacked!)");
+    Log_Printf(LOG_WARN, "SCC: Device Reset");
     IRQType = IRQ_NONE;
     MasterIRQEnable = false;
     IRQV = 0;

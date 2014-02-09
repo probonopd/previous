@@ -76,6 +76,38 @@ static SGOBJ missingscsidlg[] =
 };
 
 
+/* Missing MO dialog */
+#define DLGMISSINGMO_ALERT      1
+#define DLGMISSINGMO_DRIVE      3
+
+#define DLGMISSINGMO_BROWSE     5
+#define DLGMISSINGMO_PROTECT    6
+#define DLGMISSINGMO_NAME       7
+
+#define DLGMISSINGMO_SELECT     8
+#define DLGMISSINGMO_EJECT      9
+#define DLGMISSINGMO_DISCONNECT 10
+#define DLGMISSINGMO_QUIT       11
+
+
+static SGOBJ missingmodlg[] =
+{
+    { SGBOX, 0, 0, 0,0, 52,15, NULL },
+    { SGTEXT, 0, 0, 9,1, 9,1, NULL },
+    { SGTEXT, 0, 0, 2,4, 9,1, "Please eject or select a valid disk image for" },
+    { SGTEXT, 0, 0, 2,5, 9,1, NULL },
+    
+    { SGBOX, 0, 0, 1,7, 50,4, NULL },
+    { SGBUTTON, 0, 0, 2,8, 10,1, "Browse" },
+    { SGCHECKBOX, 0, 0, 15,8, 17,1, "Write protected" },
+    { SGTEXT, 0, 0, 2,9, 46,1, NULL },
+    
+    { SGBUTTON, SG_DEFAULT, 0, 4,13, 10,1, "Select" },
+    { SGBUTTON, 0, 0, 16,13, 9,1, "Eject" },
+    { SGBUTTON, 0, 0, 27,13, 9,1, "Discon." },
+    { SGBUTTON, 0, 0, 38,13, 10,1, "Quit" },
+    { -1, 0, 0, 0,0, 0,0, NULL }
+};
 
 
 
@@ -247,4 +279,71 @@ void DlgMissing_SCSIdisk(int target)
     
     /* Read values from dialog: */
     ConfigureParams.SCSI.target[target].bCDROM = (missingscsidlg[DLGMISSINGSCSI_CDROM].state & SG_SELECTED);
+}
+
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Show and process the Missing MO disk dialog.
+ */
+void DlgMissing_MOdisk(int drive)
+{
+    int but;
+    
+    char dlgname_missingmo[47];
+    char missingmo_alert[64];
+    char missingmo_disk[64];
+    
+	SDLGui_CenterDlg(missingmodlg);
+    
+	/* Set up dialog to actual values: */
+    sprintf(missingmo_alert, "MO drive %i: disk image not found!", drive);
+    missingmodlg[DLGMISSINGMO_ALERT].txt = missingmo_alert;
+    
+    sprintf(missingmo_disk, "MO disk %i:", drive);
+    missingmodlg[DLGMISSINGMO_DRIVE].txt = missingmo_disk;
+    
+    File_ShrinkName(dlgname_missingmo, ConfigureParams.MO.drive[drive].szImageName, missingmodlg[DLGMISSINGMO_NAME].w);
+    if (ConfigureParams.MO.drive[drive].bWriteProtected)
+        missingmodlg[DLGMISSINGMO_PROTECT].state |= SG_SELECTED;
+    else
+        missingmodlg[DLGMISSINGMO_PROTECT].state &= ~SG_SELECTED;
+    
+	missingmodlg[DLGMISSINGMO_NAME].txt = dlgname_missingmo;
+    
+    
+	/* Draw and process the dialog */
+	do
+	{
+		but = SDLGui_DoDialog(missingmodlg, NULL);
+		switch (but)
+		{
+                
+            case DLGMISSINGMO_BROWSE:
+                if (SDLGui_FileConfSelect(dlgname_missingmo, ConfigureParams.MO.drive[drive].szImageName, missingmodlg[DLGMISSINGMO_NAME].w, false)) {
+                        ConfigureParams.MO.drive[drive].bDiskInserted = true;
+                    }
+                break;
+            case DLGMISSINGMO_DISCONNECT:
+                ConfigureParams.MO.drive[drive].bDriveConnected = false;
+                missingmodlg[DLGMISSINGMO_PROTECT].state &= ~SG_SELECTED;
+            case DLGMISSINGMO_EJECT:
+                ConfigureParams.MO.drive[drive].bDiskInserted = false;
+                ConfigureParams.MO.drive[drive].szImageName[0] = '\0';
+                dlgname_missingmo[0] = '\0';
+                break;
+            case DLGMISSINGMO_QUIT:
+                bQuitProgram = true;
+                break;
+                
+            default:
+                break;
+		}
+	}
+	while (but != DLGMISSINGMO_SELECT && but != DLGMISSINGMO_EJECT && but != DLGMISSINGMO_DISCONNECT
+           && but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
+    
+    /* Read values from dialog: */
+    ConfigureParams.MO.drive[drive].bWriteProtected = (missingmodlg[DLGMISSINGMO_PROTECT].state & SG_SELECTED);
 }

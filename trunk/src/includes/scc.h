@@ -229,3 +229,5 @@ void SCC_Reset(void);
 void SCC_Interrupt(void);
 void SCC_ResetChannel(int ch);
 void SCC_InitChannel(int ch);
+
+Uint8 scc_buf[1];

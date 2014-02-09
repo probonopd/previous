@@ -94,7 +94,7 @@ void Dialog_CheckFiles(void) {
                 if (bQuitProgram) {
                     Main_RequestQuit();
                     if (bQuitProgram)
-                        break;
+                        return;
                 }
             }
             break;
@@ -106,7 +106,7 @@ void Dialog_CheckFiles(void) {
                     if (bQuitProgram) {
                         Main_RequestQuit();
                         if (bQuitProgram)
-                            break;
+                            return;
                     }
                 }
             } else {
@@ -115,7 +115,7 @@ void Dialog_CheckFiles(void) {
                     if (bQuitProgram) {
                         Main_RequestQuit();
                         if (bQuitProgram)
-                            break;
+                            return;
                     }
                 }
             }
@@ -124,8 +124,6 @@ void Dialog_CheckFiles(void) {
         default:
             break;
     }
-    if (bQuitProgram)
-        return;
     
     /* Check if SCSI disk images exist. Present a dialog to select missing files. */
     int target;
@@ -135,14 +133,25 @@ void Dialog_CheckFiles(void) {
             if (bQuitProgram) {
                 Main_RequestQuit();
                 if (bQuitProgram)
-                    break;
+                    return;
             }
         }
-        if (bQuitProgram)
-            break;
     }
-    if (bQuitProgram)
-        return;
+    
+    /* Check if MO disk images exist. Present a dialog to select missing files. */
+    int drive;
+    for (drive = 0; drive < MO_MAX_DRIVES; drive++) {
+        while (ConfigureParams.MO.drive[drive].bDiskInserted &&
+               ConfigureParams.MO.drive[drive].bDriveConnected &&
+               !File_Exists(ConfigureParams.MO.drive[drive].szImageName)) {
+            DlgMissing_MOdisk(drive);
+            if (bQuitProgram) {
+                Main_RequestQuit();
+                if (bQuitProgram)
+                    return;
+            }
+        }
+    }
     
     SDL_ShowCursor(bOldMouseVisibility);
 }

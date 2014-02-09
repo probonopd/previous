@@ -26,6 +26,7 @@ const char Change_fileid[] = "Hatari change.c : " __DATE__ " " __TIME__;
 #include "video.h"
 #include "hatari-glue.h"
 #include "scsi.h"
+#include "mo.h"
 
 #define DEBUG 1
 #if DEBUG
@@ -146,20 +147,24 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
     
     /* Did we change SCSI disk? */
     int target;
-    bool bSCSIdisk_change = false;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
         if (!current->SCSI.target[target].bCDROM || !(current->SCSI.target[target].bCDROM == changed->SCSI.target[target].bCDROM)) {
             if ((current->SCSI.target[target].bAttached || current->SCSI.target[target].bAttached != changed->SCSI.target[target].bAttached)) {
                 if (strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName)) {
-                    bSCSIdisk_change = true;
-                    break;
+                    printf("scsi disk reset\n");
+                    return true;
                 }
             }
         }
     }
-    if (bSCSIdisk_change) {
-        printf("scsi disk reset\n");
-        return true;
+    
+    /* Did we change MO drive? */
+    int drive;
+    for (drive = 0; drive < MO_MAX_DRIVES; drive++) {
+        if (current->MO.drive[drive].bDriveConnected != changed->MO.drive[drive].bDriveConnected) {
+            printf("mo drive reset\n");
+            return true;
+        }
     }
     
     /* Else no reset is required */
@@ -177,6 +182,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	bool NeedReset;
 	bool bReInitGemdosDrive = false;
 	bool bReInitSCSIEmu = false;
+    bool bReInitMOEmu = false;
 	bool bReInitIDEEmu = false;
 	bool bReInitIoMem = false;
 	bool bScreenModeChange = false;
@@ -196,6 +202,18 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
     for (target = 0; target < ESP_MAX_DEVS; target++) {
         if (!NeedReset && (current->SCSI.target[target].bAttached != changed->SCSI.target[target].bAttached || strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName))) {
             bReInitSCSIEmu = true;
+            break;
+        }
+    }
+    
+    /* Do we need to change MO disks? */
+    int drive;
+    for (drive = 0; drive < MO_MAX_DRIVES; drive++) {
+        if (!NeedReset &&
+            (current->MO.drive[drive].bDiskInserted != changed->MO.drive[drive].bDiskInserted ||
+             current->MO.drive[drive].bWriteProtected != changed->MO.drive[drive].bWriteProtected ||
+             strcmp(current->MO.drive[drive].szImageName, changed->MO.drive[drive].szImageName))) {
+            bReInitMOEmu = true;
             break;
         }
     }
@@ -230,6 +248,12 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
     if (bReInitSCSIEmu) {
         Dprintf("- SCSI disks<\n");
         SCSI_Reset();
+    }
+    
+    /* Re-init SCSI disks? */
+    if (bReInitMOEmu) {
+        Dprintf("- MO drives<\n");
+        MO_Reset();
     }
 
 	/* Force things associated with screen change */

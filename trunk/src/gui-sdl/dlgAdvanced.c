@@ -77,7 +77,7 @@ static SGOBJ advanceddlg[] =
     { SGBOX, 0, 0, 21,17, 16,7, NULL },
     { SGTEXT, 0, 0, 22,18, 14,1, "RTC chip" },
     { SGRADIOBUT, 0, 0, 23,20, 12,1, "MC68HC68T1" },
-    { SGRADIOBUT, 0, 0, 23,22, 9,1, "MCS1850" },
+    { SGRADIOBUT, 0, 0, 23,22, 10,1, "MCCS1850" },
     
     { SGBOX, 0, 0, 38,17, 17,7, NULL },
     { SGTEXT, 0, 0, 39,18, 14,1, "ADB" },
@@ -190,7 +190,7 @@ void Dialog_AdvancedDlg(void) {
         case MC68HC68T1:
             advanceddlg[DLGADV_RTC_OLD].state |= SG_SELECTED;
             break;
-        case MCS1850:
+        case MCCS1850:
             advanceddlg[DLGADV_RTC_NEW].state |= SG_SELECTED;
             break;
         default:
@@ -255,7 +255,7 @@ void Dialog_AdvancedDlg(void) {
     if (advanceddlg[DLGADV_RTC_OLD].state & SG_SELECTED)
         ConfigureParams.System.nRTC = MC68HC68T1;
     else
-        ConfigureParams.System.nRTC = MCS1850;
+        ConfigureParams.System.nRTC = MCCS1850;
     
     if (advanceddlg[DLGADV_ADB].state & SG_SELECTED)
         ConfigureParams.System.bADB = true;

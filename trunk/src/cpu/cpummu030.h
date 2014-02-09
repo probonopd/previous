@@ -26,15 +26,15 @@ TT_info mmu030_decode_tt(uae_u32 TT);
 void mmu030_decode_tc(uae_u32 TC);
 void mmu030_decode_rp(uae_u64 RP);
 
-int mmu030_logical_is_in_atc(uaecptr addr, uae_u32 fc, bool write);
+int mmu030_atc_search(uaecptr addr, uae_u32 fc, bool write);
 void mmu030_atc_handle_history_bit(int entry_num);
 
-void mmu030_put_long_atc(uaecptr addr, uae_u32 val, int l);
-void mmu030_put_word_atc(uaecptr addr, uae_u16 val, int l);
-void mmu030_put_byte_atc(uaecptr addr, uae_u8 val, int l);
-uae_u32 mmu030_get_long_atc(uaecptr addr, int l);
-uae_u16 mmu030_get_word_atc(uaecptr addr, int l);
-uae_u8 mmu030_get_byte_atc(uaecptr addr, int l);
+void mmu030_put_long_atc(uaecptr addr, uae_u32 val, uae_u32 fc, bool rmw, int size, int l);
+void mmu030_put_word_atc(uaecptr addr, uae_u16 val, uae_u32 fc, bool rmw, int size, int l);
+void mmu030_put_byte_atc(uaecptr addr, uae_u8 val, uae_u32 fc, bool rmw, int size, int l);
+uae_u32 mmu030_get_long_atc(uaecptr addr, uae_u32 fc, bool rmw, int size, int l);
+uae_u16 mmu030_get_word_atc(uaecptr addr, uae_u32 fc, bool rmw, int size, int l);
+uae_u8 mmu030_get_byte_atc(uaecptr addr, uae_u32 fc, bool rmw, int size, int l);
 
 void mmu030_flush_atc_fc(uae_u32 fc_base, uae_u32 fc_mask);
 void mmu030_flush_atc_page(uaecptr logical_addr);
@@ -42,99 +42,147 @@ void mmu030_flush_atc_page_fc(uaecptr logical_addr, uae_u32 fc_base, uae_u32 fc_
 void mmu030_flush_atc_all(void);
 void mmu030_reset(int hardreset);
 
-int mmu030_match_ttr(uaecptr addr, uae_u32 fc, bool write);
-int mmu030_do_match_ttr(uae_u32 tt, TT_info masks, uaecptr addr, uae_u32 fc, bool write);
+int mmu030_match_ttr(uaecptr addr, uae_u32 fc, bool rmw, bool write);
+int mmu030_do_match_ttr(uae_u32 tt, TT_info masks, uaecptr addr, uae_u32 fc, bool rmw, bool write);
 
-void mmu030_put_long(uaecptr addr, uae_u32 val, uae_u32 fc, int size);
-void mmu030_put_word(uaecptr addr, uae_u16 val, uae_u32 fc, int size);
-void mmu030_put_byte(uaecptr addr, uae_u8  val, uae_u32 fc, int size);
-uae_u32 mmu030_get_long(uaecptr addr, uae_u32 fc, int size);
-uae_u16 mmu030_get_word(uaecptr addr, uae_u32 fc, int size);
-uae_u8  mmu030_get_byte(uaecptr addr, uae_u32 fc, int size);
+void mmu030_put_long(uaecptr addr, uae_u32 val, uae_u32 fc, bool rmw, int size);
+void mmu030_put_word(uaecptr addr, uae_u16 val, uae_u32 fc, bool rmw, int size);
+void mmu030_put_byte(uaecptr addr, uae_u8  val, uae_u32 fc, bool rmw, int size);
+uae_u32 mmu030_get_long(uaecptr addr, uae_u32 fc, bool rmw, int size);
+uae_u16 mmu030_get_word(uaecptr addr, uae_u32 fc, bool rmw, int size);
+uae_u8  mmu030_get_byte(uaecptr addr, uae_u32 fc, bool rmw, int size);
 
-void mmu030_page_fault(uaecptr addr, bool read);
+void mmu030_page_fault(uaecptr addr, uae_u32 fc, bool rmw, bool read, int size);
 
-extern uae_u16 REGPARAM3 mmu030_get_word_unaligned(uaecptr addr, uae_u32 fc) REGPARAM;
-extern uae_u32 REGPARAM3 mmu030_get_long_unaligned(uaecptr addr, uae_u32 fc) REGPARAM;
-extern void REGPARAM3 mmu030_put_word_unaligned(uaecptr addr, uae_u16 val, uae_u32 fc) REGPARAM;
-extern void REGPARAM3 mmu030_put_long_unaligned(uaecptr addr, uae_u32 val, uae_u32 fc) REGPARAM;
+extern uae_u16 REGPARAM3 mmu030_get_word_unaligned(uaecptr addr, uae_u32 fc, bool rmw) REGPARAM;
+extern uae_u32 REGPARAM3 mmu030_get_long_unaligned(uaecptr addr, uae_u32 fc, bool rmw) REGPARAM;
+extern void REGPARAM3 mmu030_put_word_unaligned(uaecptr addr, uae_u16 val, uae_u32 fc, bool rmw) REGPARAM;
+extern void REGPARAM3 mmu030_put_long_unaligned(uaecptr addr, uae_u32 val, uae_u32 fc, bool rmw) REGPARAM;
 
 static ALWAYS_INLINE uae_u32 uae_mmu030_get_ilong(uaecptr addr)
 {
     uae_u32 fc = (regs.s ? 4 : 0) | 2;
 
 	if (unlikely(is_unaligned(addr, 4)))
-		return mmu030_get_long_unaligned(addr, fc);
-	return mmu030_get_long(addr, fc, sz_long);
+		return mmu030_get_long_unaligned(addr, fc, false);
+	return mmu030_get_long(addr, fc, false, sz_long);
 }
 static ALWAYS_INLINE uae_u16 uae_mmu030_get_iword(uaecptr addr)
 {
     uae_u32 fc = (regs.s ? 4 : 0) | 2;
 
 	if (unlikely(is_unaligned(addr, 2)))
-		return mmu030_get_word_unaligned(addr, fc);
-	return mmu030_get_word(addr, fc, sz_word);
+		return mmu030_get_word_unaligned(addr, fc, false);
+	return mmu030_get_word(addr, fc, false, sz_word);
 }
 static ALWAYS_INLINE uae_u16 uae_mmu030_get_ibyte(uaecptr addr)
 {
     uae_u32 fc = (regs.s ? 4 : 0) | 2;
 
-	return mmu030_get_byte(addr, fc, sz_byte);
+	return mmu030_get_byte(addr, fc, false, sz_byte);
 }
 static ALWAYS_INLINE uae_u32 uae_mmu030_get_long(uaecptr addr)
 {
     uae_u32 fc = (regs.s ? 4 : 0) | 1;
 
 	if (unlikely(is_unaligned(addr, 4)))
-		return mmu030_get_long_unaligned(addr, fc);
-	return mmu030_get_long(addr, fc, sz_long);
+		return mmu030_get_long_unaligned(addr, fc, false);
+	return mmu030_get_long(addr, fc, false, sz_long);
 }
 static ALWAYS_INLINE uae_u16 uae_mmu030_get_word(uaecptr addr)
 {
     uae_u32 fc = (regs.s ? 4 : 0) | 1;
 
 	if (unlikely(is_unaligned(addr, 2)))
-		return mmu030_get_word_unaligned(addr, fc);
-	return mmu030_get_word(addr, fc, sz_word);
+		return mmu030_get_word_unaligned(addr, fc, false);
+	return mmu030_get_word(addr, fc, false, sz_word);
 }
 static ALWAYS_INLINE uae_u8 uae_mmu030_get_byte(uaecptr addr)
 {
     uae_u32 fc = (regs.s ? 4 : 0) | 1;
 
-	return mmu030_get_byte(addr, fc, sz_byte);
+	return mmu030_get_byte(addr, fc, false, sz_byte);
 }
 static ALWAYS_INLINE void uae_mmu030_put_long(uaecptr addr, uae_u32 val)
 {
     uae_u32 fc = (regs.s ? 4 : 0) | 1;
     
 	if (unlikely(is_unaligned(addr, 4)))
-		mmu030_put_long_unaligned(addr, val, fc);
+		mmu030_put_long_unaligned(addr, val, fc, false);
 	else
-		mmu030_put_long(addr, val, fc, sz_long);
+		mmu030_put_long(addr, val, fc, false, sz_long);
 }
 static ALWAYS_INLINE void uae_mmu030_put_word(uaecptr addr, uae_u16 val)
 {
     uae_u32 fc = (regs.s ? 4 : 0) | 1;
 
 	if (unlikely(is_unaligned(addr, 2)))
-		mmu030_put_word_unaligned(addr, val, fc);
+		mmu030_put_word_unaligned(addr, val, fc, false);
 	else
-		mmu030_put_word(addr, val, fc, sz_word);
+		mmu030_put_word(addr, val, fc, false, sz_word);
 }
 static ALWAYS_INLINE void uae_mmu030_put_byte(uaecptr addr, uae_u8 val)
 {
     uae_u32 fc = (regs.s ? 4 : 0) | 1;
 
-	mmu030_put_byte(addr, val, fc, sz_byte);
+	mmu030_put_byte(addr, val, fc, false, sz_byte);
 }
+
+static ALWAYS_INLINE uae_u32 rmw030_get_long(uaecptr addr)
+{
+    uae_u32 fc = (regs.s ? 4 : 0) | 1;
+    
+	if (unlikely(is_unaligned(addr, 4)))
+		return mmu030_get_long_unaligned(addr, fc, true);
+	return mmu030_get_long(addr, fc, true, sz_long);
+}
+static ALWAYS_INLINE uae_u16 rmw030_get_word(uaecptr addr)
+{
+    uae_u32 fc = (regs.s ? 4 : 0) | 1;
+    
+	if (unlikely(is_unaligned(addr, 2)))
+		return mmu030_get_word_unaligned(addr, fc, true);
+	return mmu030_get_word(addr, fc, true, sz_word);
+}
+static ALWAYS_INLINE uae_u8 rmw030_get_byte(uaecptr addr)
+{
+    uae_u32 fc = (regs.s ? 4 : 0) | 1;
+    
+	return mmu030_get_byte(addr, fc, true, sz_byte);
+}
+static ALWAYS_INLINE void rmw030_put_long(uaecptr addr, uae_u32 val)
+{
+    uae_u32 fc = (regs.s ? 4 : 0) | 1;
+    
+	if (unlikely(is_unaligned(addr, 4)))
+		mmu030_put_long_unaligned(addr, val, fc, true);
+	else
+		mmu030_put_long(addr, val, fc, true, sz_long);
+}
+static ALWAYS_INLINE void rmw030_put_word(uaecptr addr, uae_u16 val)
+{
+    uae_u32 fc = (regs.s ? 4 : 0) | 1;
+    
+	if (unlikely(is_unaligned(addr, 2)))
+		mmu030_put_word_unaligned(addr, val, fc, true);
+	else
+		mmu030_put_word(addr, val, fc, true, sz_word);
+}
+static ALWAYS_INLINE void rmw030_put_byte(uaecptr addr, uae_u8 val)
+{
+    uae_u32 fc = (regs.s ? 4 : 0) | 1;
+    
+	mmu030_put_byte(addr, val, fc, true, sz_byte);
+}
+
 
 static ALWAYS_INLINE uae_u32 sfc030_get_long(uaecptr addr)
 {
     uae_u32 fc = regs.sfc&7;
 	printf("sfc030_get_long: FC = %i\n",fc);
     if (unlikely(is_unaligned(addr, 4)))
-		return mmu030_get_long_unaligned(addr, fc);
-	return mmu030_get_long(addr, fc, sz_long);
+		return mmu030_get_long_unaligned(addr, fc, false);
+	return mmu030_get_long(addr, fc, false, sz_long);
 }
 
 static ALWAYS_INLINE uae_u16 sfc030_get_word(uaecptr addr)
@@ -142,15 +190,15 @@ static ALWAYS_INLINE uae_u16 sfc030_get_word(uaecptr addr)
     uae_u32 fc = regs.sfc&7;
 	printf("sfc030_get_word: FC = %i\n",fc);
     if (unlikely(is_unaligned(addr, 2)))
-		return mmu030_get_word_unaligned(addr, fc);
-	return mmu030_get_word(addr, fc, sz_word);
+		return mmu030_get_word_unaligned(addr, fc, false);
+	return mmu030_get_word(addr, fc, false, sz_word);
 }
 
 static ALWAYS_INLINE uae_u8 sfc030_get_byte(uaecptr addr)
 {
     uae_u32 fc = regs.sfc&7;
 	printf("sfc030_get_byte: FC = %i\n",fc);
-	return mmu030_get_byte(addr, fc, sz_byte);
+	return mmu030_get_byte(addr, fc, false, sz_byte);
 }
 
 static ALWAYS_INLINE void dfc030_put_long(uaecptr addr, uae_u32 val)
@@ -158,9 +206,9 @@ static ALWAYS_INLINE void dfc030_put_long(uaecptr addr, uae_u32 val)
     uae_u32 fc = regs.dfc&7;
 	printf("dfc030_put_long: FC = %i\n",fc);
     if (unlikely(is_unaligned(addr, 4)))
-		mmu030_put_long_unaligned(addr, val, fc);
+		mmu030_put_long_unaligned(addr, val, fc, false);
 	else
-		mmu030_put_long(addr, val, fc, sz_long);
+		mmu030_put_long(addr, val, fc, false, sz_long);
 }
 
 static ALWAYS_INLINE void dfc030_put_word(uaecptr addr, uae_u16 val)
@@ -168,16 +216,16 @@ static ALWAYS_INLINE void dfc030_put_word(uaecptr addr, uae_u16 val)
     uae_u32 fc = regs.dfc&7;
 	printf("dfc030_put_word: FC = %i\n",fc);
     if (unlikely(is_unaligned(addr, 2)))
-		mmu030_put_word_unaligned(addr, val, fc);
+		mmu030_put_word_unaligned(addr, val, fc, false);
 	else
-		mmu030_put_word(addr, val, fc, sz_word);
+		mmu030_put_word(addr, val, fc, false, sz_word);
 }
 
 static ALWAYS_INLINE void dfc030_put_byte(uaecptr addr, uae_u8 val)
 {
     uae_u32 fc = regs.dfc&7;
 	printf("dfc030_put_byte: FC = %i\n",fc);
-    mmu030_put_byte(addr, val, fc, sz_byte);
+    mmu030_put_byte(addr, val, fc, false, sz_byte);
 }
 
 STATIC_INLINE void put_byte_mmu030 (uaecptr addr, uae_u32 v)
