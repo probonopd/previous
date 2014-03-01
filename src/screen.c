@@ -72,6 +72,8 @@ static void Screen_SetupRGBTable(void)
 SDL_Color sdlColors[16];
 Uint32 colors[32];
 
+Uint32 hicolors[4096];
+
 /*-----------------------------------------------------------------------*/
 /**
  * Create new palette for display.

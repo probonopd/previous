@@ -49,15 +49,13 @@ const char Statusbar_fileid[] = "Hatari statusbar.c : " __DATE__ " " __TIME__;
 #define DEBUGPRINT(x)
 #endif
 
-#define MAX_DRIVE_LEDS (DRIVE_LED_HD + 1)
-
 /* whether drive leds should be ON and their previous shown state */
 static struct {
 	bool state;
 	bool oldstate;
 	Uint32 expire;	/* when to disable led, valid only if >0 && state=TRUE */
 	int offset;	/* led x-pos on screen */
-} Led[MAX_DRIVE_LEDS];
+} Led[NUM_DEVICE_LEDS];
 
 /* drive leds size & y-pos */
 static SDL_Rect LedRect;
@@ -74,15 +72,15 @@ static enum {
 	OVERLAY_RESTORED
 } bOverlayState;
 
-static SDL_Rect RecLedRect;
-static bool bOldRecording;
+static SDL_Rect SystemLedRect;
+static bool bOldSystemLed;
 
 /* led colors */
-static Uint32 LedColorOn, LedColorOff, RecColorOn, RecColorOff;
+static Uint32 LedColorOn, LedColorOff, SysColorOn, SysColorOff;
 static Uint32 GrayBg, LedColorBg;
 
 
-#define MAX_MESSAGE_LEN 50
+#define MAX_MESSAGE_LEN 76 /* changed for Previous, was 50 */
 typedef struct msg_item {
 	struct msg_item *next;
 	char msg[MAX_MESSAGE_LEN+1];
@@ -94,12 +92,12 @@ typedef struct msg_item {
 static msg_item_t DefaultMessage;
 static msg_item_t *MessageList = &DefaultMessage;
 static SDL_Rect MessageRect;
-
+#if 0
 /* rect for both frame skip value and fast forward indicator */
 static SDL_Rect FrameSkipsRect;
 static int nOldFrameSkips;
 static int bOldFastForward;
-
+#endif
 
 /* screen height above statusbar and height of statusbar below screen */
 static int ScreenHeight;
@@ -152,34 +150,24 @@ int Statusbar_GetHeight(void)
 
 /*-----------------------------------------------------------------------*/
 /**
- * Enable HD drive led, it will be automatically disabled after a while.
+ * Enable device led, it will be automatically disabled after a while.
  */
-void Statusbar_EnableHDLed(void)
+void Statusbar_BlinkLed(drive_index_t drive)
 {
 	/* leds are shown for 1/2 sec after enabling */
-	Led[DRIVE_LED_HD].expire = SDL_GetTicks() + 1000/2;
-	Led[DRIVE_LED_HD].state = true;
+	Led[drive].expire = SDL_GetTicks() + 1000/2;
+	Led[drive].state = true;
 }
+
 
 /*-----------------------------------------------------------------------*/
 /**
- * Set given floppy drive led state, anything enabling led with this
+ * Set system led state, anything enabling led with this
  * needs also to take care of disabling it.
  */
-void Statusbar_SetFloppyLed(drive_index_t drive, bool state)
+void Statusbar_SetSystemLed(bool state)
 {
-	assert(drive == DRIVE_LED_A || drive == DRIVE_LED_B);
-	Led[drive].state = state;
-}
-
-/*-----------------------------------------------------------------------*/
-/**
- * Set scr2 led state, anything enabling led with this
- * needs also to take care of disabling it.
- */
-void Statusbar_SetSCR2Led(bool state)
-{
-        bOldRecording = state;
+        bOldSystemLed = state;
 }
 
 
@@ -219,7 +207,7 @@ void Statusbar_Init(SDL_Surface *surf)
 	msg_item_t *item;
 	SDL_Rect ledbox, sbarbox;
 	int i, fontw, fonth, offset;
-	const char *text[MAX_DRIVE_LEDS] = { "A:", "B:", "HD:" };
+	const char *text[NUM_DEVICE_LEDS] = { "EN:", "MO:", "HD:" };
 
 	assert(surf);
 
@@ -227,12 +215,12 @@ void Statusbar_Init(SDL_Surface *surf)
 	LedColorOff = SDL_MapRGB(surf->format, 0x00, 0x40, 0x00);
 	LedColorOn  = SDL_MapRGB(surf->format, 0x00, 0xe0, 0x00);
 	LedColorBg  = SDL_MapRGB(surf->format, 0x00, 0x00, 0x00);
-	RecColorOff = SDL_MapRGB(surf->format, 0x40, 0x00, 0x00);
-	RecColorOn  = SDL_MapRGB(surf->format, 0xe0, 0x00, 0x00);
+	SysColorOff = SDL_MapRGB(surf->format, 0x40, 0x00, 0x00);
+	SysColorOn  = SDL_MapRGB(surf->format, 0xe0, 0x00, 0x00);
 	GrayBg      = SDL_MapRGB(surf->format, 0xc0, 0xc0, 0xc0);
 
 	/* disable leds */
-	for (i = 0; i < MAX_DRIVE_LEDS; i++) {
+	for (i = 0; i < NUM_DEVICE_LEDS; i++) {
 		Led[i].state = Led[i].oldstate = false;
 		Led[i].expire = 0;
 	}
@@ -281,7 +269,7 @@ void Statusbar_Init(SDL_Surface *surf)
 	offset = fontw;
 	MessageRect.y = LedRect.y - 2;
 	/* draw led texts and boxes + calculate box offsets */
-	for (i = 0; i < MAX_DRIVE_LEDS; i++) {
+	for (i = 0; i < NUM_DEVICE_LEDS; i++) {
 		SDLGui_Text(offset, MessageRect.y, text[i]);
 		offset += strlen(text[i]) * fontw;
 		offset += fontw/2;
@@ -295,7 +283,7 @@ void Statusbar_Init(SDL_Surface *surf)
 		Led[i].offset = offset;
 		offset += LedRect.w + fontw;
 	}
-
+#if 0
 	/* draw frameskip */
 	FrameSkipsRect.x = offset;
 	FrameSkipsRect.y = MessageRect.y;
@@ -314,6 +302,9 @@ void Statusbar_Init(SDL_Surface *surf)
 
 	/* intialize messages */
 	MessageRect.x = FrameSkipsRect.x + FrameSkipsRect.w + fontw;
+#else
+    MessageRect.x = offset + fontw;
+#endif
 	MessageRect.w = MAX_MESSAGE_LEN * fontw;
 	MessageRect.h = fonth;
 	for (item = MessageList; item; item = item->next) {
@@ -321,13 +312,13 @@ void Statusbar_Init(SDL_Surface *surf)
 	}
 
 	/* draw recording led box */
-	RecLedRect = LedRect;
-	RecLedRect.x = surf->w - fontw - RecLedRect.w;
-	ledbox.x = RecLedRect.x - 1;
+	SystemLedRect = LedRect;
+	SystemLedRect.x = surf->w - fontw - SystemLedRect.w;
+	ledbox.x = SystemLedRect.x - 1;
 	SDLGui_Text(ledbox.x - 4*fontw - fontw/2, MessageRect.y, "LED:");
 	SDL_FillRect(surf, &ledbox, LedColorBg);
-	SDL_FillRect(surf, &RecLedRect, RecColorOff);
-	bOldRecording = false;
+	SDL_FillRect(surf, &SystemLedRect, SysColorOff);
+	bOldSystemLed = false;
 
 	/* and blit statusbar on screen */
 	SDL_UpdateRects(surf, 1, &sbarbox);
@@ -576,7 +567,7 @@ static void Statusbar_OverlayDraw(SDL_Surface *surf)
 	int i;
 
 	assert(surf);
-	for (i = 0; i < MAX_DRIVE_LEDS; i++) {
+	for (i = 0; i < NUM_DEVICE_LEDS; i++) {
 		if (Led[i].state) {
 			if (Led[i].expire && Led[i].expire < currentticks) {
 				Led[i].state = false;
@@ -628,7 +619,7 @@ void Statusbar_Update(SDL_Surface *surf)
 
 	rect = LedRect;
 	currentticks = SDL_GetTicks();
-	for (i = 0; i < MAX_DRIVE_LEDS; i++) {
+	for (i = 0; i < NUM_DEVICE_LEDS; i++) {
 		if (Led[i].expire && Led[i].expire < currentticks) {
 			Led[i].state = false;
 		}
@@ -650,12 +641,12 @@ void Statusbar_Update(SDL_Surface *surf)
 	Statusbar_ShowMessage(surf, currentticks);
 
     /* Draw scr2 LED */
-    if (bOldRecording) {
-        color = RecColorOn;
+    if (bOldSystemLed) {
+        color = SysColorOn;
     } else {
-        color = RecColorOff;
+        color = SysColorOff;
     }
-    SDL_FillRect(surf, &RecLedRect, color);
-    SDL_UpdateRects(surf, 1, &RecLedRect);
+    SDL_FillRect(surf, &SystemLedRect, color);
+    SDL_UpdateRects(surf, 1, &SystemLedRect);
     DEBUGPRINT(("SCR2 LED = ON\n"));
 }

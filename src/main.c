@@ -26,7 +26,6 @@ const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 #include "reset.h"
 #include "resolution.h"
 #include "screen.h"
-#include "scsi.h"
 #include "sdlgui.h"
 #include "shortcut.h"
 #include "statusbar.h"
@@ -417,6 +416,8 @@ static void Main_HandleMouseMotion(SDL_Event *pEvent)
 		ay = dy % nScreenZoomY;
 		dy /= nScreenZoomY;
 	}
+    
+    Keymap_MouseMove(dx,dy);
 
 //	KeyboardProcessor.Mouse.dx += dx;
 //	KeyboardProcessor.Mouse.dy += dy;
@@ -477,11 +478,13 @@ void Main_EventHandler(void)
 		 case SDL_MOUSEBUTTONDOWN:
 			if (event.button.button == SDL_BUTTON_LEFT)
 			{
+                Keymap_MouseDown(true);
 //				if (Keyboard.LButtonDblClk == 0)
 //					Keyboard.bLButtonDown |= BUTTON_MOUSE;  /* Set button down flag */
 			}
 			else if (event.button.button == SDL_BUTTON_RIGHT)
 			{
+                Keymap_MouseDown(false);
 //				Keyboard.bRButtonDown |= BUTTON_MOUSE;
 			}
 			else if (event.button.button == SDL_BUTTON_MIDDLE)
@@ -504,10 +507,12 @@ void Main_EventHandler(void)
 		 case SDL_MOUSEBUTTONUP:
 			if (event.button.button == SDL_BUTTON_LEFT)
 			{
+                Keymap_MouseUp(true);
 //				Keyboard.bLButtonDown &= ~BUTTON_MOUSE;
 			}
 			else if (event.button.button == SDL_BUTTON_RIGHT)
 			{
+                Keymap_MouseUp(false);
 //				Keyboard.bRButtonDown &= ~BUTTON_MOUSE;
 			}
 			else if (event.button.button == SDL_BUTTON_WHEELDOWN)
@@ -523,7 +528,6 @@ void Main_EventHandler(void)
 			break;
 
 		 case SDL_KEYDOWN:
-//          fprintf(stderr, "keydwn\n");
 			Keymap_KeyDown(&event.key.keysym);
 			break;
 
@@ -631,7 +635,6 @@ static void Main_Init(void)
 static void Main_UnInit(void)
 {
 	Screen_ReturnFromFullScreen();
-    	SCSI_Uninit();
 	IoMem_UnInit();
 	SDLGui_UnInit();
 	Screen_UnInit();

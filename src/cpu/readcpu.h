@@ -1,7 +1,3 @@
-
-#ifndef UAE_READCPU_H
-#define UAE_READCPU_H
-
 ENUMDECL {
   Dreg, Areg, Aind, Aipi, Apdi, Ad16, Ad8r,
   absw, absl, PC16, PC8r, imm, imm0, imm1, imm2, immi, am_unknown, am_illg
@@ -70,6 +66,7 @@ struct instr_def {
     uae_u8 bitpos[16];
     unsigned int mask;
     int cpulevel;
+	int unimpcpulevel;
     int plevel;
     struct {
 	unsigned int flaguse:3;
@@ -77,6 +74,8 @@ struct instr_def {
     } flaginfo[5];
     uae_u8 sduse;
     const TCHAR *opcstr;
+	// 68020/030 timing
+	int head, tail, clocks, fetchmode;
 };
 
 extern struct instr_def defs68k[];
@@ -100,9 +99,10 @@ extern struct instr {
     unsigned int suse:1;
     unsigned int duse:1;
     unsigned int unused1:1;
-    unsigned int clev:3;
+    unsigned int clev:3, unimpclev:3;
     unsigned int isjmp:1;
-    unsigned int unused2:4;
+    unsigned int unused2:1;
+	char head, tail, clocks, fetchmode;
 } *table68k;
 
 extern void read_table68k (void);
@@ -110,5 +110,4 @@ extern void do_merges (void);
 extern int get_no_mismatches (void);
 extern int nr_cpuop_funcs;
 
-#endif
-
+#define _T

@@ -212,6 +212,7 @@ void KMS_command(Uint8 command, Uint32 data) {
 
                 if (command&SIO_ENABLE) {
                     Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out enable.");
+                    dma_sndout_read_memory(); /* TODO: Add real periodic IO loop here */
                 } else {
                     Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out disable.");
                 }
@@ -371,6 +372,7 @@ void kms_keydown(Uint8 modkeys, Uint8 keycode) {
     if ((keycode==0x26)&&(modkeys&0x18)) { /* backquote and one or both command keys */
         Log_Printf(LOG_WARN, "Keyboard initiated NMI!");
         set_interrupt(INT_NMI, SET_INT);
+        return;
     }
     
     if ((keycode==0x25)&&((modkeys&0x28)==0x28)) { /* asterisk and left alt and left command key */
@@ -381,6 +383,7 @@ void kms_keydown(Uint8 modkeys, Uint8 keycode) {
     
     if (keycode==0x58) { /* Power key */
         rtc_request_power_down();
+        return;
     }
     
     kms.km_data = (km_address<<25)&DEVICE_ADDR_MSK;
@@ -397,8 +400,69 @@ void kms_keydown(Uint8 modkeys, Uint8 keycode) {
 void kms_keyup(Uint8 modkeys, Uint8 keycode) {
     if (keycode==0x58) {
         rtc_stop_pdown_request();
+        return;
     }
     kms.km_data = (km_address<<25)&DEVICE_ADDR_MSK;
     kms.km_data |= USER_POLL; /* TODO: check this */
     kms.km_data |= (modkeys<<8)|keycode|KBD_KEY_VALID|KBD_KEY_UP;
+
+    if (kms.status.km &KBD_RECEIVED) {
+        kms.status.km |= KBD_OVERRUN;
+    }
+    kms.status.km |= (KBD_RECEIVED|KBD_INT);
+    set_interrupt(INT_KEYMOUSE, SET_INT);
+}
+
+bool m_right = false;
+bool m_left = false;
+
+void kms_mouse_button(bool left, bool down) {
+    if (left) {
+        m_left = down;
+    } else {
+        m_right = down;
+    }
+    
+    kms.km_data = (km_address<<25)&DEVICE_ADDR_MSK;
+    kms.km_data |= DEVICE_MOUSE;
+    
+    kms.km_data |= m_left?0:MOUSE_LEFT_UP;
+    kms.km_data |= m_right?0:MOUSE_RIGHT_UP;
+    
+    if (kms.status.km &KBD_RECEIVED) {
+        kms.status.km |= KBD_OVERRUN;
+    }
+    kms.status.km |= (KBD_RECEIVED|KBD_INT);
+    set_interrupt(INT_KEYMOUSE, SET_INT);
+}
+
+void kms_mouse_move(int x, bool left, int y, bool up) {
+    
+    if (x<0 || y<0) {
+        abort();
+    }
+    
+    if (x>0x3F)
+        x=0x3F;
+    if (y>0x3F)
+        y=0x3F;
+
+    if (!left)  /* right */
+        x=(0x3F-x)|0x40;
+    if (!up)    /* down */
+        y=(0x3F-y)|0x40;
+
+    kms.km_data = (km_address<<25)&DEVICE_ADDR_MSK;
+    kms.km_data |= DEVICE_MOUSE;
+    kms.km_data |= (x<<1)&MOUSE_X;
+    kms.km_data |= (y<<9)&MOUSE_Y;
+    
+    kms.km_data |= m_left?0:MOUSE_LEFT_UP;
+    kms.km_data |= m_right?0:MOUSE_RIGHT_UP;
+    
+    if (kms.status.km &KBD_RECEIVED) {
+        kms.status.km |= KBD_OVERRUN;
+    }
+    kms.status.km |= (KBD_RECEIVED|KBD_INT);
+    set_interrupt(INT_KEYMOUSE, SET_INT);
 }

@@ -12,7 +12,7 @@
 #include "scsi.h"
 
 #define LOG_ESPDMA_LEVEL    LOG_DEBUG   /* Print debugging messages for ESP DMA registers */
-#define LOG_ESPCMD_LEVEL    LOG_WARN    /* Print debugging messages for ESP commands */
+#define LOG_ESPCMD_LEVEL    LOG_DEBUG    /* Print debugging messages for ESP commands */
 #define LOG_ESPREG_LEVEL    LOG_DEBUG   /* Print debugging messages for ESP registers */
 #define LOG_ESPFIFO_LEVEL   LOG_DEBUG   /* Print debugging messages for ESP FIFO */
 
@@ -175,11 +175,17 @@ void ESP_DMA_CTRL_Write(void) {
     }
     if (esp_dma.control&ESPCTRL_MODE_DMA) {
         Log_Printf(LOG_ESPDMA_LEVEL, "mode DMA\n");
-    }else{
+    } else {
         Log_Printf(LOG_ESPDMA_LEVEL, "mode PIO\n");
     }
     if (esp_dma.control&ESPCTRL_ENABLE_INT) {
-        Log_Printf(LOG_ESPDMA_LEVEL, "enable ESP interrupt");
+        Log_Printf(LOG_ESPDMA_LEVEL, "Enable ESP interrupt");
+        if (status&STAT_INT) {
+            set_interrupt(INT_SCSI, SET_INT);
+        }
+    } else {
+        Log_Printf(LOG_ESPDMA_LEVEL, "Block ESP interrupt");
+        set_interrupt(INT_SCSI, RELEASE_INT);
     }
     switch (esp_dma.control&ESPCTRL_CLKMASK) {
         case ESPCTRL_CLK10MHz:

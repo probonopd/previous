@@ -22,7 +22,7 @@
 
 
 
-#define LOG_DMA_LEVEL LOG_WARN
+#define LOG_DMA_LEVEL LOG_DEBUG
 
 #define IO_SEG_MASK	0x1FFFF
 
@@ -560,7 +560,7 @@ void dma_esp_read_memory(void) {
         if (espdma_buf_size>0) {
             Log_Printf(LOG_WARN, "[DMA] Channel SCSI: %i residual bytes in DMA buffer.", espdma_buf_size);
             while (espdma_buf_size>0) {
-                SCSIdisk_Receive_Data(modma_buf[espdma_buf_limit-espdma_buf_size]);
+                SCSIdisk_Receive_Data(espdma_buf[espdma_buf_limit-espdma_buf_size]);
                 esp_counter--;
                 espdma_buf_size--;
             }
@@ -577,7 +577,7 @@ void dma_esp_read_memory(void) {
             }
             espdma_buf_limit=espdma_buf_size;
             while (espdma_buf_size>0 && esp_counter>0 && SCSIbus.phase==PHASE_DO) {
-                SCSIdisk_Receive_Data(modma_buf[espdma_buf_limit-espdma_buf_size]);
+                SCSIdisk_Receive_Data(espdma_buf[espdma_buf_limit-espdma_buf_size]);
                 esp_counter--;
                 espdma_buf_size--;
             }
@@ -592,7 +592,7 @@ void dma_esp_read_memory(void) {
             }
             /* Empty DMA internal buffer */
             while (espdma_buf_size>0 && esp_counter>0 && SCSIbus.phase==PHASE_DO) {
-                SCSIdisk_Receive_Data(modma_buf[DMA_BURST_SIZE-espdma_buf_size]);
+                SCSIdisk_Receive_Data(espdma_buf[DMA_BURST_SIZE-espdma_buf_size]);
                 esp_counter--;
                 espdma_buf_size--;
             }
@@ -609,8 +609,10 @@ void dma_esp_read_memory(void) {
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Residual bytes in DMA buffer: %i bytes",espdma_buf_size);
     }
     if (SCSIbus.phase==PHASE_DO) {
-        Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Warning! Data not yet written to disk.");
-        abort(); /* This should not happen */
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Warning! Data not yet written to disk.");
+        if (espdma_buf_size!=0) {
+            Log_Printf(LOG_WARN, "[DMA] Channel SCSI: WARNING: Loss of data in DMA buffer possible!");
+        }
     }
     
     dma_interrupt(CHANNEL_SCSI);
@@ -926,8 +928,8 @@ void dma_m2m_write_memory(void) {
  */
 
 
-/* Interrupt Handler (called from Video_InterruptHandler_VBL in video.c) */
-void Video_InterruptHandler(void) {
+/* Interrupt Handler (called from Video_InterruptHandler in video.c) */
+void dma_video_interrupt(void) {
     if (dma[CHANNEL_VIDEO].limit==0xEA) {
         set_interrupt(INT_VIDEO, SET_INT); /* interrupt is released by writing to CSR */
     } else if (dma[CHANNEL_VIDEO].limit && dma[CHANNEL_VIDEO].limit!=0xEA) {
@@ -936,7 +938,7 @@ void Video_InterruptHandler(void) {
 }
 
 
-/* FIXME: This is just for passing power-on test. Add real SCC channel later. */
+/* FIXME: This is just for passing power-on test. Add real SCC and Sound channels later. */
 
 void dma_scc_read_memory(void) {
     Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCC: Read from memory at $%08x, %i bytes",
@@ -947,4 +949,15 @@ void dma_scc_read_memory(void) {
     }
     
     dma_interrupt(CHANNEL_SCC);
+}
+
+void dma_sndout_read_memory(void) {
+    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Sound out: Read from memory at $%08x, %i bytes",
+               dma[CHANNEL_SOUNDOUT].next,dma[CHANNEL_SOUNDOUT].limit-dma[CHANNEL_SOUNDOUT].next);
+    while (dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit) {
+        NEXTMemory_ReadByte(dma[CHANNEL_SOUNDOUT].next); /* for now just discard data */
+        dma[CHANNEL_SOUNDOUT].next++;
+    }
+    
+    dma_interrupt(CHANNEL_SOUNDOUT);
 }

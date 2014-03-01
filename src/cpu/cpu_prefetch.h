@@ -26,24 +26,24 @@ STATIC_INLINE uae_u32 mem_access_delay_long_read_ce020 (uaecptr addr)
 	checkcycles_ce020 ();
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		if ((addr & 3) != 0) {
-			uae_u32 v;
-			v  = wait_cpu_cycle_read_ce020 (addr + 0, 1) << 16;
-			v |= wait_cpu_cycle_read_ce020 (addr + 2, 1) <<  0;
-			return v;
-		} else {
-			return wait_cpu_cycle_read_ce020 (addr, -1);
-		}
-	case CE_MEMBANK_FAST:
-		if ((addr & 3) != 0)
-			do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
-		else
-			do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
-		break;
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
-		break;
+        case CE_MEMBANK_CHIP:
+            if ((addr & 3) != 0) {
+                uae_u32 v;
+                v  = wait_cpu_cycle_read_ce020 (addr + 0, 1) << 16;
+                v |= wait_cpu_cycle_read_ce020 (addr + 2, 1) <<  0;
+                return v;
+            } else {
+                return wait_cpu_cycle_read_ce020 (addr, -1);
+            }
+        case CE_MEMBANK_FAST:
+            if ((addr & 3) != 0)
+                do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
+            else
+                do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
+            break;
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
+            break;
 	}
 	return get_long (addr);
 }
@@ -53,24 +53,24 @@ STATIC_INLINE uae_u32 mem_access_delay_longi_read_ce020 (uaecptr addr)
 	checkcycles_ce020 ();
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		if ((addr & 3) != 0) {
-			uae_u32 v;
-			v  = wait_cpu_cycle_read_ce020 (addr + 0, 1) << 16;
-			v |= wait_cpu_cycle_read_ce020 (addr + 2, 1) <<  0;
-			return v;
-		} else {
-			return wait_cpu_cycle_read_ce020 (addr, -1);
-		}
-	case CE_MEMBANK_FAST:
-		if ((addr & 3) != 0)
-			do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
-		else
-			do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
-		break;
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
-		break;
+        case CE_MEMBANK_CHIP:
+            if ((addr & 3) != 0) {
+                uae_u32 v;
+                v  = wait_cpu_cycle_read_ce020 (addr + 0, 1) << 16;
+                v |= wait_cpu_cycle_read_ce020 (addr + 2, 1) <<  0;
+                return v;
+            } else {
+                return wait_cpu_cycle_read_ce020 (addr, -1);
+            }
+        case CE_MEMBANK_FAST:
+            if ((addr & 3) != 0)
+                do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
+            else
+                do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
+            break;
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
+            break;
 	}
 	return get_longi (addr);
 }
@@ -80,22 +80,22 @@ STATIC_INLINE uae_u32 mem_access_delay_word_read_ce020 (uaecptr addr)
 	checkcycles_ce020 ();
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		if ((addr & 3) == 3) {
-			uae_u16 v;
-			v  = wait_cpu_cycle_read_ce020 (addr + 0, 0) << 8;
-			v |= wait_cpu_cycle_read_ce020 (addr + 1, 0) << 0;
-			return v;
-		} else {
-			return wait_cpu_cycle_read_ce020 (addr, 1);
-		}
-	case CE_MEMBANK_FAST:
-	case CE_MEMBANK_FAST16BIT:
-		if ((addr & 3) == 3)
-			do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
-		else
-			do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
-		break;
+        case CE_MEMBANK_CHIP:
+            if ((addr & 3) == 3) {
+                uae_u16 v;
+                v  = wait_cpu_cycle_read_ce020 (addr + 0, 0) << 8;
+                v |= wait_cpu_cycle_read_ce020 (addr + 1, 0) << 0;
+                return v;
+            } else {
+                return wait_cpu_cycle_read_ce020 (addr, 1);
+            }
+        case CE_MEMBANK_FAST:
+        case CE_MEMBANK_FAST16BIT:
+            if ((addr & 3) == 3)
+                do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
+            else
+                do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
+            break;
 	}
 	return get_word (addr);
 }
@@ -105,12 +105,12 @@ STATIC_INLINE uae_u32 mem_access_delay_wordi_read_ce020 (uaecptr addr)
 	checkcycles_ce020 ();
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		return wait_cpu_cycle_read_ce020 (addr, 1);
-	case CE_MEMBANK_FAST:
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
-		break;
+        case CE_MEMBANK_CHIP:
+            return wait_cpu_cycle_read_ce020 (addr, 1);
+        case CE_MEMBANK_FAST:
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
+            break;
 	}
 	return get_wordi (addr);
 }
@@ -120,13 +120,13 @@ STATIC_INLINE uae_u32 mem_access_delay_byte_read_ce020 (uaecptr addr)
 	checkcycles_ce020 ();
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		return wait_cpu_cycle_read_ce020 (addr, 0);
-	case CE_MEMBANK_FAST:
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
-		break;
-
+        case CE_MEMBANK_CHIP:
+            return wait_cpu_cycle_read_ce020 (addr, 0);
+        case CE_MEMBANK_FAST:
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
+            break;
+            
 	}
 	return get_byte (addr);
 }
@@ -136,13 +136,13 @@ STATIC_INLINE void mem_access_delay_byte_write_ce020 (uaecptr addr, uae_u32 v)
 	checkcycles_ce020 ();
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		wait_cpu_cycle_write_ce020 (addr, 0, v);
-		return;
-	case CE_MEMBANK_FAST:
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
-		break;
+        case CE_MEMBANK_CHIP:
+            wait_cpu_cycle_write_ce020 (addr, 0, v);
+            return;
+        case CE_MEMBANK_FAST:
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
+            break;
 	}
 	put_byte (addr, v);
 }
@@ -152,22 +152,22 @@ STATIC_INLINE void mem_access_delay_word_write_ce020 (uaecptr addr, uae_u32 v)
 	checkcycles_ce020 ();
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		if ((addr & 3) == 3) {
-			wait_cpu_cycle_write_ce020 (addr + 0, 0, (v >> 8) & 0xff);
-			wait_cpu_cycle_write_ce020 (addr + 1, 0, (v >> 0) & 0xff);
-		} else {
-			wait_cpu_cycle_write_ce020 (addr + 0, 1, v);
-		}
-		return;
-		break;
-	case CE_MEMBANK_FAST:
-	case CE_MEMBANK_FAST16BIT:
-		if ((addr & 3) == 3)
-			do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
-		else
-			do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
-		break;
+        case CE_MEMBANK_CHIP:
+            if ((addr & 3) == 3) {
+                wait_cpu_cycle_write_ce020 (addr + 0, 0, (v >> 8) & 0xff);
+                wait_cpu_cycle_write_ce020 (addr + 1, 0, (v >> 0) & 0xff);
+            } else {
+                wait_cpu_cycle_write_ce020 (addr + 0, 1, v);
+            }
+            return;
+            break;
+        case CE_MEMBANK_FAST:
+        case CE_MEMBANK_FAST16BIT:
+            if ((addr & 3) == 3)
+                do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
+            else
+                do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
+            break;
 	}
 	put_word (addr, v);
 }
@@ -177,24 +177,24 @@ STATIC_INLINE void mem_access_delay_long_write_ce020 (uaecptr addr, uae_u32 v)
 	checkcycles_ce020 ();
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		if ((addr & 3) == 3) {
-			wait_cpu_cycle_write_ce020 (addr + 0, 1, (v >> 16) & 0xffff);
-			wait_cpu_cycle_write_ce020 (addr + 2, 1, (v >>  0) & 0xffff);
-		} else {
-			wait_cpu_cycle_write_ce020 (addr + 0, -1, v);
-		}
-		return;
-		break;
-	case CE_MEMBANK_FAST:
-		if ((addr & 3) != 0)
-			do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
-		else
-			do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
-		break;
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
-		break;
+        case CE_MEMBANK_CHIP:
+            if ((addr & 3) == 3) {
+                wait_cpu_cycle_write_ce020 (addr + 0, 1, (v >> 16) & 0xffff);
+                wait_cpu_cycle_write_ce020 (addr + 2, 1, (v >>  0) & 0xffff);
+            } else {
+                wait_cpu_cycle_write_ce020 (addr + 0, -1, v);
+            }
+            return;
+            break;
+        case CE_MEMBANK_FAST:
+            if ((addr & 3) != 0)
+                do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
+            else
+                do_cycles_ce020_mem (1 * CPU020_MEM_CYCLE);
+            break;
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce020_mem (2 * CPU020_MEM_CYCLE);
+            break;
 	}
 	put_long (addr, v);
 }
@@ -340,12 +340,12 @@ STATIC_INLINE uae_u32 mem_access_delay_word_read (uaecptr addr)
 {
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		return wait_cpu_cycle_read (addr, 1);
-	case CE_MEMBANK_FAST:
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce000 (4);
-		break;
+        case CE_MEMBANK_CHIP:
+            return wait_cpu_cycle_read (addr, 1);
+        case CE_MEMBANK_FAST:
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce000 (4);
+            break;
 	}
 	return get_word (addr);
 }
@@ -353,12 +353,12 @@ STATIC_INLINE uae_u32 mem_access_delay_wordi_read (uaecptr addr)
 {
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		return wait_cpu_cycle_read (addr, 1);
-	case CE_MEMBANK_FAST:
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce000 (4);
-		break;
+        case CE_MEMBANK_CHIP:
+            return wait_cpu_cycle_read (addr, 1);
+        case CE_MEMBANK_FAST:
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce000 (4);
+            break;
 	}
 	return get_wordi (addr);
 }
@@ -367,13 +367,13 @@ STATIC_INLINE uae_u32 mem_access_delay_byte_read (uaecptr addr)
 {
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		return wait_cpu_cycle_read (addr, 0);
-	case CE_MEMBANK_FAST:
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce000 (4);
-		break;
-
+        case CE_MEMBANK_CHIP:
+            return wait_cpu_cycle_read (addr, 0);
+        case CE_MEMBANK_FAST:
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce000 (4);
+            break;
+            
 	}
 	return get_byte (addr);
 }
@@ -381,13 +381,13 @@ STATIC_INLINE void mem_access_delay_byte_write (uaecptr addr, uae_u32 v)
 {
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		wait_cpu_cycle_write (addr, 0, v);
-		return;
-	case CE_MEMBANK_FAST:
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce000 (4);
-		break;
+        case CE_MEMBANK_CHIP:
+            wait_cpu_cycle_write (addr, 0, v);
+            return;
+        case CE_MEMBANK_FAST:
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce000 (4);
+            break;
 	}
 	put_byte (addr, v);
 }
@@ -395,14 +395,14 @@ STATIC_INLINE void mem_access_delay_word_write (uaecptr addr, uae_u32 v)
 {
 	switch (ce_banktype[addr >> 16])
 	{
-	case CE_MEMBANK_CHIP:
-		wait_cpu_cycle_write (addr, 1, v);
-		return;
-		break;
-	case CE_MEMBANK_FAST:
-	case CE_MEMBANK_FAST16BIT:
-		do_cycles_ce000 (4);
-		break;
+        case CE_MEMBANK_CHIP:
+            wait_cpu_cycle_write (addr, 1, v);
+            return;
+            break;
+        case CE_MEMBANK_FAST:
+        case CE_MEMBANK_FAST16BIT:
+            do_cycles_ce000 (4);
+            break;
 	}
 	put_word (addr, v);
 }
@@ -453,7 +453,7 @@ STATIC_INLINE void m68k_do_rts_ce (void)
 	pc |= get_word_ce (m68k_areg (regs, 7) + 2);
 	m68k_areg (regs, 7) += 4;
 	if (pc & 1)
-		exception3 (0x4e75, m68k_getpc (), pc);
+		exception3 (0x4e75, m68k_getpc ());
 	else
 		m68k_setpc (pc);
 }

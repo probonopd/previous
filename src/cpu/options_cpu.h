@@ -82,6 +82,7 @@ struct uae_prefs {
 	struct wh gfx_size_win_xtra[4];
 	struct wh gfx_size_fs_xtra[4];
 	*/
+    bool int_no_unimplemented;
 	bool gfx_autoresolution;
 	bool gfx_scandoubler;
 	int gfx_refreshrate;

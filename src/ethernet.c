@@ -15,6 +15,7 @@
 #include "dma.h"
 #include "ethernet.h"
 #include "cycInt.h"
+#include "statusbar.h"
 
 #define LOG_EN_LEVEL        LOG_WARN
 #define LOG_EN_REG_LEVEL    LOG_WARN
@@ -390,6 +391,7 @@ void ENET_IO_Handler(void) {
             } else
                 break;
         case RECV_STATE_RECEIVING:
+            Statusbar_BlinkLed(DEVICE_LED_ENET);
             enet.rx_status&=~RXSTAT_PKT_OK;
             if (enet_rx_buffer.size>=ENET_FRAMESIZE_MIN || enet.rx_mode&RXMODE_ENA_SHORT) {
                 dma_enet_write_memory();
@@ -419,6 +421,7 @@ void ENET_IO_Handler(void) {
     if (enet.tx_status&TXSTAT_READY) {
         dma_enet_read_memory();
         if (enet_tx_buffer.size>15) {
+            Statusbar_BlinkLed(DEVICE_LED_ENET);
             enet_tx_buffer.size-=15;
             Log_Printf(LOG_EN_LEVEL, "[EN] Sending packet to %02X:%02X:%02X:%02X:%02X:%02X",
                        enet_tx_buffer.data[0], enet_tx_buffer.data[1], enet_tx_buffer.data[2],
