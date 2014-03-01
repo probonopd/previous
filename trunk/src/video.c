@@ -23,6 +23,7 @@ const char Video_fileid[] = "Hatari video.c : " __DATE__ " " __TIME__;
 #include "video.h"
 #include "avi_record.h"
 #include "dma.h"
+#include "ramdac.h"
 
 
 /*--------------------------------------------------------------*/
@@ -114,6 +115,19 @@ void Video_StartInterrupts ( int PendingCyclesOver )
 }
 
 
+/**
+ * Generate vertical video retrace interrupt
+ */
+void Video_InterruptHandler(void)
+{
+    if (ConfigureParams.System.bColor) {
+        ramdac_video_interrupt();
+    } else {
+        dma_video_interrupt();
+    }
+}
+
+
 /*-----------------------------------------------------------------------*/
 /**
  * VBL interrupt : set new interrupts, draw screen, generate sound,
@@ -124,7 +138,7 @@ void Video_InterruptHandler_VBL ( void )
 	CycInt_AcknowledgeInterrupt();
 	Video_DrawScreen();
     Main_EventHandler();
-    Video_InterruptHandler(); /* see dma.c */
+    Video_InterruptHandler();
     CycInt_AddRelativeInterrupt(CYCLES_PER_FRAME, INT_CPU_CYCLE, INTERRUPT_VIDEO_VBL);
 }
 

@@ -246,7 +246,7 @@ void M68000_CheckCpuSettings(void)
 	changed_prefs.cpu_cycle_exact = ConfigureParams.System.bCycleExactCpu;
 	changed_prefs.fpu_model = ConfigureParams.System.n_FPUType;
 	changed_prefs.fpu_strict = ConfigureParams.System.bCompatibleFPU;
-	changed_prefs.mmu_model = ConfigureParams.System.bMMU;
+	changed_prefs.mmu_model = ConfigureParams.System.bMMU?changed_prefs.cpu_model:0;
 #endif
 	if (table68k)
 		check_prefs_changed_cpu();
@@ -359,6 +359,12 @@ void M68000_MemorySnapShot_Capture(bool bSave)
  */
 void M68000_BusError(Uint32 addr, bool bRead)
 {
+	exception2 (addr, bRead, 0, regs.s ? 5 : 1); /* assumes data access,
+                                                  size not set */
+}
+#if 0
+void M68000_BusError(Uint32 addr, bool bRead)
+{
 	/* FIXME: In prefetch mode, m68k_getpc() seems already to point to the next instruction */
 	// BusErrorPC = M68000_GetPC();		/* [NP] We set BusErrorPC in m68k_run_1 */
 
@@ -391,7 +397,7 @@ void M68000_BusError(Uint32 addr, bool bRead)
 		M68000_SetSpecial(SPCFLAG_BUSERROR);		/* The exception will be done in newcpu.c */
 	}
 }
-
+#endif
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -425,7 +431,7 @@ void M68000_Exception(Uint32 ExceptionVector , int ExceptionSource)
 
 		/* 68k exceptions are handled by Exception() of the UAE CPU core */
 #if ENABLE_WINUAE_CPU
-		Exception(exceptionNr, m68k_getpc(), ExceptionSource);
+		Exception(exceptionNr/*, m68k_getpc(), ExceptionSource*/);
 #else
 #ifdef UAE_NEWCPU_H
 		Exception(exceptionNr, m68k_getpc(), ExceptionSource);

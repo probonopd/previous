@@ -24,6 +24,7 @@ const char IoMemTabST_fileid[] = "Previous ioMemTabST.c : " __DATE__ " " __TIME_
 #include "scc.h"
 #include "mo.h"
 #include "kms.h"
+#include "ramdac.h"
 
 
 
@@ -177,7 +178,14 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x0200e008, SIZE_LONG, KMS_KM_Data_Read, IoMem_WriteWithoutInterceptionButTrace },
 
     /* Printer Register */
-    { 0x0200f000, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x0200f000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x0200f001, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x0200f002, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x0200f003, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x0200f004, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x0200f005, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x0200f006, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x0200f007, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     
     /* Event counter */
     { 0x0201a000, SIZE_BYTE, System_Timer_Read, IoMem_WriteWithoutInterceptionButTrace },
@@ -267,6 +275,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x02004044, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
     { 0x02004048, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
     { 0x0200404c, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
+    { 0x02004240, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
 
     /* Channel MO Drive */
     { 0x02004050, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
@@ -361,7 +370,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x02018101, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     { 0x02018102, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     { 0x02018103, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-    { 0x02018180, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x02018180, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, RAMDAC_CMD_Write },
     { 0x02018190, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     /* RAMDAC device registers (turbo color) */
     { 0x0201c000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },

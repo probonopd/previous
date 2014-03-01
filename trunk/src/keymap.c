@@ -233,3 +233,51 @@ void Keymap_SimulateCharacter(char asckey, bool press)
 		}
 	}
 }
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * User moved mouse
+ */
+#define MOUSE_MOVE_SCALE    1
+void Keymap_MouseMove(int dx, int dy)
+{
+    bool left=false;
+    bool up=false;
+    
+    if (dx<0) {
+        dx=-dx;
+        left=true;
+    }
+    if (dy<0) {
+        dy=-dy;
+        up=true;
+    }
+    
+    if (dx>1) {
+        dx/=MOUSE_MOVE_SCALE;
+    }
+    if (dy>1) {
+        dy/=MOUSE_MOVE_SCALE;
+    }
+    
+    kms_mouse_move(dx, left, dy, up);
+}
+
+/*-----------------------------------------------------------------------*/
+/**
+ * User pressed mouse button
+ */
+void Keymap_MouseDown(bool left)
+{
+    kms_mouse_button(left,true);
+}
+
+/*-----------------------------------------------------------------------*/
+/**
+ * User released mouse button
+ */
+void Keymap_MouseUp(bool left)
+{
+    kms_mouse_button(left,false);
+}

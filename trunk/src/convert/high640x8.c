@@ -7,7 +7,7 @@
   NeXT mono, memory to SDL_Surface
 */
 
-static inline void putpixel(SDL_Surface * surface, Uint16 x, Uint16 y, Uint32 col)
+static inline void putpixelbw(SDL_Surface * surface, Uint16 x, Uint16 y, Uint32 col)
 
 {
 
@@ -60,6 +60,57 @@ static inline void putpixel(SDL_Surface * surface, Uint16 x, Uint16 y, Uint32 co
 }
 
 
+static inline void putpixel(SDL_Surface * surface, Uint16 x, Uint16 y, Uint32 color)
+
+{
+
+    /* Nombre de bits par pixels de la surface d'écran */
+    Uint8 bpp = surface->format->BytesPerPixel;
+    /* Pointeur vers le pixel à remplacer (pitch correspond à la taille
+       d'une ligne d'écran, c'est à dire (longueur * bitsParPixel)
+       pour la plupart des cas) */
+
+    Uint8 * p1 = ((Uint8 *)surface->pixels) + y * surface->pitch + x * bpp;
+
+
+	switch(bpp) {
+		case 1:
+
+			*p1 = color;
+
+			break;
+
+		case 2:
+
+			*(Uint16 *)p1 = color;
+
+			break;
+
+		case 3:
+			if(SDL_BYTEORDER == SDL_BIG_ENDIAN) {
+
+				p1[0] = (color >> 16) & 0xff;
+				p1[1] = (color >> 8) & 0xff;
+				p1[2] = color & 0xff;
+
+			} else {
+
+				p1[0] = color & 0xff;
+				p1[1] = (color >> 8) & 0xff;
+				p1[2] = (color >> 16) & 0xff;
+
+			}
+			break;
+
+		case 4:
+
+			*(Uint32 *)p1 = color;
+			break;
+		}
+
+}
+
+
 static void ConvertHighRes_640x8Bit(void)
 {
 	int y, x;
@@ -70,6 +121,8 @@ static void ConvertHighRes_640x8Bit(void)
 		first=0;
 		for (x=0;x<4;x++)
 			colors[x] = SDL_MapRGB(sdlscrn->format, sdlColors[x].r, sdlColors[x].g, sdlColors[x].b);
+		for (x=0;x<4096;x++)
+			hicolors[x]=SDL_MapRGB(sdlscrn->format, (x&0xF00)>>4, x&0xF0, (x&0x0F)<<4);
 	}
     
 	if (ConfigureParams.System.bTurbo) {
@@ -99,7 +152,7 @@ static void ConvertHighRes_640x8Bit(void)
                     col = (NEXTColorVideo[(x*2)+(y*208*8)]&0x30)>>4;
                 }
                 /* --------------------------------------------------*/
-				putpixel(sdlscrn,x,y,col);
+				putpixelbw(sdlscrn,x,y,col);
 			}
 		}
 	}
@@ -127,10 +180,12 @@ static void ConvertHighRes_640x8Bit(void)
                 /* Hack to provide video output on color systems to  *
                  * do memory configuration experiments. Remove later */
                 if (ConfigureParams.System.bColor) {
-                    col = (NEXTColorVideo[(x*2)+(y*288*8)]&0x30)>>4;
+		    col=(  (NEXTColorVideo[(x*2)+(y*288*8)]<<8) |  (NEXTColorVideo[1+(x*2)+(y*288*8)])  )>>4;
+		    putpixel(sdlscrn,x,y,hicolors[col]);
                 }
                 /* --------------------------------------------------*/
-				putpixel(sdlscrn,x,y,col);
+		else
+				putpixelbw(sdlscrn,x,y,col);
 			}
 		}
 	}

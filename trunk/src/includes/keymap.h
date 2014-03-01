@@ -19,8 +19,9 @@ extern void Keymap_KeyDown(SDL_keysym *sdlkey);
 extern void Keymap_KeyUp(SDL_keysym *sdlkey);
 extern void Keymap_SimulateCharacter(char asckey, bool press);
 
-//void KeyTranslator(SDL_keysym *sdlkey);
-//void KeyRelease(SDL_keysym *sdlkey);
+extern void Keymap_MouseMove(int dx, int dy);
+extern void Keymap_MouseDown(bool left);
+extern void Keymap_MouseUp(bool left);
 
 /* Definitions for NeXT scancodes */
 

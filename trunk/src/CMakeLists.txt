@@ -3,8 +3,8 @@ set(SOURCES
 	clocks_timings.c configuration.c options.c  change.c
 	control.c cycInt.c cycles.c dialog.c dma.c esp.c ethernet.c file.c
 	ioMem.c ioMemTabNEXT.c memorySnapShot.c keymap.c kms.c
-	m68000.c main.c mo.c nextMemory.c
-	paths.c resolution.c reset.c rs.c rtcnvram.c scandir.c
+	m68000.c main.c mo.c nextMemory.c paths.c 
+	ramdac.c resolution.c reset.c rs.c rtcnvram.c scandir.c
 	scc.c screen.c screenSnapShot.c scsi.c shortcut.c
 	statusbar.c str.c sysReg.c zip.c unzip.c utils.c 
 	video.c )

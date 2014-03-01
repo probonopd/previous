@@ -28,6 +28,7 @@
 #include "dma.h"
 #include "file.h"
 #include "rs.h"
+#include "statusbar.h"
 
 #define REAL_ECC    1
 
@@ -1432,6 +1433,7 @@ void mo_drive_cmd(void) {
                 break;
         }
     }
+    Statusbar_BlinkLed(DEVICE_LED_ODFD);
 }
 
 
@@ -1444,6 +1446,19 @@ bool mo_drive_empty(void) {
     } else {
         return false;
     }
+}
+
+bool mo_protected(void) {
+    if (modrv[dnum].protected) {
+        if (modrv[dnum].head==ERASE_HEAD || modrv[dnum].head==WRITE_HEAD) {
+            Log_Printf(LOG_MO_CMD_LEVEL,"[MO] Drive command: Drive %i: Disk is write protected!\n", dnum);
+            modrv[dnum].dstat|=DS_WP;
+            modrv[dnum].head=NO_HEAD;
+            mo_set_signals(true, true, CMD_DELAY);
+            return true;
+        }
+    }
+    return false;
 }
 
 void mo_seek(Uint16 command) {
@@ -1508,6 +1523,10 @@ void mo_jump_head(Uint16 command) {
                (command&0xF0)==RJ_WRITE?"write":
                (command&0xF0)==RJ_ERASE?"erase":"unknown");
     
+    if (mo_protected()) {
+        return;
+    }
+
     mo_set_signals(true, false, CMD_DELAY);
 }
 
@@ -1552,6 +1571,9 @@ void mo_select_head(int head) {
         return;
     }
     modrv[dnum].head = head;
+    if (mo_protected()) {
+        return;
+    }
     mo_set_signals(true, false, CMD_DELAY);
 }
 
