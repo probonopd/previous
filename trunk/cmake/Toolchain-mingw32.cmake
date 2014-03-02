@@ -7,12 +7,12 @@ SET(CMAKE_SYSTEM_NAME Windows)
 
 # mingw32 versions of the different tools
 # (change these depending on your system settings)
-SET(CMAKE_C_COMPILER i586-pc-mingw32-gcc)
-SET(CMAKE_CXX_COMPILER i586-pc-mingw32-g++)
-SET(CMAKE_RC_COMPILER i586-pc-mingw32-windres)
+SET(CMAKE_C_COMPILER i586-mingw32msvc-gcc)
+SET(CMAKE_CXX_COMPILER i586-mingw32msvc-g++)
+SET(CMAKE_RC_COMPILER i586-mingw32msvc-windres)
 
 # Base directory for the target environment
-SET(CMAKE_FIND_ROOT_PATH /usr/i586-pc-mingw32/sys-root/mingw )
+SET(CMAKE_FIND_ROOT_PATH /usr/i586-mingw32msvc/ )
 
 # FindSDL.cmake doesn't search correctly in CMAKE_FIND_ROOT_PATH
 # so we force SDLDIR here
