@@ -18,7 +18,7 @@
 
 #define IO_SEG_MASK 0x1FFFF
 
-#define LOG_RAMDAC_LEVEL    LOG_WARN
+#define LOG_RAMDAC_LEVEL    LOG_DEBUG
 
 
 struct {

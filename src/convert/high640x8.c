@@ -110,6 +110,7 @@ static inline void putpixel(SDL_Surface * surface, Uint16 x, Uint16 y, Uint32 co
 
 }
 
+static char buffer[832*1152*2];
 
 static void ConvertHighRes_640x8Bit(void)
 {
@@ -159,9 +160,17 @@ static void ConvertHighRes_640x8Bit(void)
 	else {
 		for (y = 0; y < 832; y++)
 		{
-            
 			for (x = 0; x < 1120; x++)
 			{
+	                if (ConfigureParams.System.bColor) {
+			   if ((buffer[(x*2)+(y*288*8)]!=NEXTColorVideo[(x*2)+(y*288*8)]) || (buffer[1+(x*2)+(y*288*8)]!=NEXTColorVideo[1+(x*2)+(y*288*8)])) {
+				col=(  (NEXTColorVideo[(x*2)+(y*288*8)]<<8) |  (NEXTColorVideo[1+(x*2)+(y*288*8)])  )>>4;
+				putpixel(sdlscrn,x,y,hicolors[col]);
+				buffer[(x*2)+(y*288*8)]=NEXTColorVideo[(x*2)+(y*288*8)];
+				buffer[(x*2)+(y*288*8)+1]=NEXTColorVideo[(x*2)+(y*288*8)+1];
+				}
+	                }
+			else {            
 				switch (x&0x3)
 				{
                     case 0x0:
@@ -177,15 +186,8 @@ static void ConvertHighRes_640x8Bit(void)
                         col=(NEXTVideo[(x/4)+y*288]&0x03);
                         break;
 				}
-                /* Hack to provide video output on color systems to  *
-                 * do memory configuration experiments. Remove later */
-                if (ConfigureParams.System.bColor) {
-		    col=(  (NEXTColorVideo[(x*2)+(y*288*8)]<<8) |  (NEXTColorVideo[1+(x*2)+(y*288*8)])  )>>4;
-		    putpixel(sdlscrn,x,y,hicolors[col]);
-                }
-                /* --------------------------------------------------*/
-		else
 				putpixelbw(sdlscrn,x,y,col);
+			}
 			}
 		}
 	}
