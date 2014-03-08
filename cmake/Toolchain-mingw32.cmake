@@ -10,6 +10,7 @@ SET(CMAKE_SYSTEM_NAME Windows)
 SET(CMAKE_C_COMPILER i586-mingw32msvc-gcc)
 SET(CMAKE_CXX_COMPILER i586-mingw32msvc-g++)
 SET(CMAKE_RC_COMPILER i586-mingw32msvc-windres)
+SET(CMAKE_ASM_COMPILER i586-mingw32msvc-as)
 
 # Base directory for the target environment
 SET(CMAKE_FIND_ROOT_PATH /usr/i586-mingw32msvc/ )
