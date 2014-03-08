@@ -114,10 +114,11 @@ static char buffer[832*1152*2];
 
 static void ConvertHighRes_640x8Bit(void)
 {
-	int y, x;
+	int y, x,xx;
 	int	col;
 	static int first=1;
-	
+	int adr;	
+
 	if (first) {
 		first=0;
 		for (x=0;x<4;x++)
@@ -125,70 +126,83 @@ static void ConvertHighRes_640x8Bit(void)
 		for (x=0;x<4096;x++)
 			hicolors[x]=SDL_MapRGB(sdlscrn->format, (x&0xF00)>>4, x&0xF0, (x&0x0F)<<4);
 	}
+
+	/* non turbo color */
+	if ((ConfigureParams.System.bColor) && (!(ConfigureParams.System.bTurbo)) ){
+		for (y = 0; y < 832; y++)
+		{
+			adr=y*288*8;
+
+			for (x = 0; x < 1120; x++)
+			{
+			   if ((buffer[adr]!=NEXTColorVideo[adr]) || (buffer[1+adr]!=NEXTColorVideo[1+adr])) {
+				col=(  (NEXTColorVideo[adr]<<8) |  (NEXTColorVideo[1+adr])  )>>4;
+				putpixel(sdlscrn,x,y,hicolors[col]);
+				buffer[adr]=NEXTColorVideo[adr];
+				buffer[adr]=NEXTColorVideo[adr+1];
+				}
+			adr+=2;
+			}
+		}
+		return;
+	}
+
+	/* turbo color */
+	if ((ConfigureParams.System.bColor) && ((ConfigureParams.System.bTurbo)) ){
+		for (y = 0; y < 624; y++)
+		{
+			adr=y*208*8;
+
+			for (x = 0; x < 832; x++)
+			{
+			   if ((buffer[adr]!=NEXTColorVideo[adr]) || (buffer[1+adr]!=NEXTColorVideo[1+adr])) {
+				col=(  (NEXTColorVideo[adr]<<8) |  (NEXTColorVideo[1+adr])  )>>4;
+				putpixel(sdlscrn,x,y,hicolors[col]);
+				buffer[adr]=NEXTColorVideo[adr];
+				buffer[adr]=NEXTColorVideo[adr+1];
+				}
+			adr+=2;
+			}
+		}
+		return;
+	}
     
 	if (ConfigureParams.System.bTurbo) {
 		for (y = 0; y < 624; y++)
 		{
-            
-			for (x = 0; x < 832; x++)
+			adr=y*280;            
+			for (x = 0; x < 832; x+=4)
 			{
-				switch (x&0x3)
-				{
-                    case 0x0:
-                        col=(NEXTVideo[(x/4)+y*280]&0xC0)>>6;
-                        break;
-                    case 0x1:
-                        col=(NEXTVideo[(x/4)+y*280]&0x30)>>4;
-                        break;
-                    case 0x2:
-                        col=(NEXTVideo[(x/4)+y*280]&0x0C)>>2;
-                        break;
-                    case 0x3:
-                        col=(NEXTVideo[(x/4)+y*280]&0x03);
-                        break;
-				}
-                /* Hack to provide video output on color systems to  *
-                 * do memory configuration experiments. Remove later */
-                if (ConfigureParams.System.bColor) {
-                    col = (NEXTColorVideo[(x*2)+(y*208*8)]&0x30)>>4;
-                }
-                /* --------------------------------------------------*/
-				putpixelbw(sdlscrn,x,y,col);
+                        col=(NEXTVideo[adr]&0xC0)>>6;
+			putpixelbw(sdlscrn,x,y,col);
+                        col=(NEXTVideo[adr]&0x30)>>4;
+			putpixelbw(sdlscrn,x+1,y,col);
+                        col=(NEXTVideo[adr]&0x0C)>>2;
+			putpixelbw(sdlscrn,x+2,y,col);
+                        col=(NEXTVideo[adr]&0x03);
+			putpixelbw(sdlscrn,x+3,y,col);
+			adr+=1;
 			}
 		}
 	}
 	else {
+
 		for (y = 0; y < 832; y++)
 		{
-			for (x = 0; x < 1120; x++)
+			adr=y*288;            
+			for (x = 0; x < 1120; x+=4)
 			{
-	                if (ConfigureParams.System.bColor) {
-			   if ((buffer[(x*2)+(y*288*8)]!=NEXTColorVideo[(x*2)+(y*288*8)]) || (buffer[1+(x*2)+(y*288*8)]!=NEXTColorVideo[1+(x*2)+(y*288*8)])) {
-				col=(  (NEXTColorVideo[(x*2)+(y*288*8)]<<8) |  (NEXTColorVideo[1+(x*2)+(y*288*8)])  )>>4;
-				putpixel(sdlscrn,x,y,hicolors[col]);
-				buffer[(x*2)+(y*288*8)]=NEXTColorVideo[(x*2)+(y*288*8)];
-				buffer[(x*2)+(y*288*8)+1]=NEXTColorVideo[(x*2)+(y*288*8)+1];
-				}
-	                }
-			else {            
-				switch (x&0x3)
-				{
-                    case 0x0:
-                        col=(NEXTVideo[(x/4)+y*288]&0xC0)>>6;
-                        break;
-                    case 0x1:
-                        col=(NEXTVideo[(x/4)+y*288]&0x30)>>4;
-                        break;
-                    case 0x2:
-                        col=(NEXTVideo[(x/4)+y*288]&0x0C)>>2;
-                        break;
-                    case 0x3:
-                        col=(NEXTVideo[(x/4)+y*288]&0x03);
-                        break;
-				}
-				putpixelbw(sdlscrn,x,y,col);
-			}
+                        col=(NEXTVideo[adr]&0xC0)>>6;
+			putpixelbw(sdlscrn,x,y,col);
+                        col=(NEXTVideo[adr]&0x30)>>4;
+			putpixelbw(sdlscrn,x+1,y,col);
+                        col=(NEXTVideo[adr]&0x0C)>>2;
+			putpixelbw(sdlscrn,x+2,y,col);
+                        col=(NEXTVideo[adr]&0x03);
+			putpixelbw(sdlscrn,x+3,y,col);
+			adr+=1;
 			}
 		}
+
 	}
 }
