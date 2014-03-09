@@ -383,44 +383,25 @@ void Main_WarpMouse(int x, int y)
 /**
  * Handle mouse motion event.
  */
+SDL_Event mymouse[100];
 static void Main_HandleMouseMotion(SDL_Event *pEvent)
 {
 	int dx, dy;
-	static int ax = 0, ay = 0;
-
-	/* Ignore motion when position has changed right after a reset or TOS
-	 * (especially version 4.04) might get confused and play key clicks */
-	if (bIgnoreNextMouseMotion )
-	{
-		bIgnoreNextMouseMotion = false;
-		return;
-	}
+	int i,nb;
 
 	dx = pEvent->motion.xrel;
 	dy = pEvent->motion.yrel;
 
-	/* In zoomed low res mode, we divide dx and dy by the zoom factor so that
-	 * the ST mouse cursor stays in sync with the host mouse. However, we have
-	 * to take care of lowest bit of dx and dy which will get lost when
-	 * dividing. So we store these bits in ax and ay and add them to dx and dy
-	 * the next time. */
-	if (nScreenZoomX != 1)
-	{
-		dx += ax;
-		ax = dx % nScreenZoomX;
-		dx /= nScreenZoomX;
-	}
-	if (nScreenZoomY != 1)
-	{
-		dy += ay;
-		ay = dy % nScreenZoomY;
-		dy /= nScreenZoomY;
-	}
-    
-    Keymap_MouseMove(dx,dy);
+	/* get all mouse event to clean the queue and sum them */
+	nb=SDL_PeepEvents(&mymouse[0], 100, SDL_GETEVENT, SDL_EVENTMASK(SDL_MOUSEMOTION));
 
-//	KeyboardProcessor.Mouse.dx += dx;
-//	KeyboardProcessor.Mouse.dy += dy;
+	for (i=0;i<nb;i++) {
+	dx += mymouse[i].motion.xrel;
+	dy += mymouse[i].motion.yrel;
+	}
+
+    	Keymap_MouseMove(dx/3,dy/3);
+
 }
 
 
@@ -472,7 +453,7 @@ void Main_EventHandler(void)
 			
 		 case SDL_MOUSEMOTION:               /* Read/Update internal mouse position */
 			Main_HandleMouseMotion(&event);
-			bContinueProcessing = true;
+			bContinueProcessing = false;
 			break;
 
 		 case SDL_MOUSEBUTTONDOWN:

@@ -1629,10 +1629,10 @@ void mo_insert_disk(int drv) {
     Log_Printf(LOG_WARN, "MO disk %i: Insert %s",dnum,ConfigureParams.MO.drive[dnum].szImageName);
     modrv[drv].inserted=true;
     if (ConfigureParams.MO.drive[drv].bWriteProtected) {
-        modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "r");
+        modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "rb");
         modrv[drv].protected=true;
     } else {
-        modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "r+");
+        modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "rb+");
         modrv[drv].protected=false;
     }
     
@@ -1797,10 +1797,10 @@ void MO_Init(void) {
                 File_Exists(ConfigureParams.MO.drive[i].szImageName)) {
                 modrv[i].inserted=true;
                 if (ConfigureParams.MO.drive[i].bWriteProtected) {
-                    modrv[i].dsk = File_Open(ConfigureParams.MO.drive[i].szImageName, "r");
+                    modrv[i].dsk = File_Open(ConfigureParams.MO.drive[i].szImageName, "rb");
                     modrv[i].protected=true;
                 } else {
-                    modrv[i].dsk = File_Open(ConfigureParams.MO.drive[i].szImageName, "r+");
+                    modrv[i].dsk = File_Open(ConfigureParams.MO.drive[i].szImageName, "rb+");
                     modrv[i].protected=false;
                 }
             } else {

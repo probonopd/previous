@@ -59,18 +59,21 @@ const char Memory_fileid[] = "Hatari memory.c : " __DATE__ " " __TIME__;
 #define	ROMmem_size			0x00020000
 #define NEXT_EPROM_SIZE		0x00020000
 
-// ram is flat?
 /* Main memory */
-/* Main memory constants */
 #define NEXT_RAM_START   	0x04000000
 #define NEXT_RAM_SPACE		0x40000000
 #define N_BANKS             4
 
-/* Main memory variables (machine dependent) */
-uae_u32 NEXT_RAM_SIZE; //		0x04000000
-uae_u32	NEXTmem_size; // unused
-uae_u32 NEXTmem_mask; //		0x03FFFFFF
+uae_u32 NEXT_RAM_SIZE;
+uae_u32	NEXTmem_size;
+uae_u32 NEXTmem_mask;
 uae_u8 bankshift;
+
+/* Memory write functions for main memory */
+#define NEXT_RAM_MWF0_START 0x10000000
+#define NEXT_RAM_MWF1_START 0x14000000
+#define NEXT_RAM_MWF2_START 0x18000000
+#define NEXT_RAM_MWF3_START 0x1C000000
 
 /* Video memory for monochrome systems */
 #define NEXT_SCREEN			0x0B000000
@@ -78,6 +81,12 @@ uae_u8 bankshift;
 #define NEXTvideo_size NEXT_SCREEN_SIZE
 #define NEXTvideo_mask		0x0003FFFF
 uae_u8  NEXTVideo[256*1024];
+
+/* Memory write functions for monochrome video memory */
+#define NEXT_SCREEN_MWF0    0x0C000000
+#define NEXT_SCREEN_MWF1    0x0D000000
+#define NEXT_SCREEN_MWF2    0x0E000000
+#define NEXT_SCREEN_MWF3    0x0F000000
 
 /* Video memory for color systems */
 #define NEXT_TURBOSCREEN    0x0C000000
@@ -101,12 +110,6 @@ uae_u8 NEXTColorVideo[2*1024*1024];
 #define	NEXTbmap_size		NEXT_BMAP_SIZE
 #define	NEXTbmap_mask		0x0000FFFF
 uae_u8  NEXTbmap[NEXT_BMAP_SIZE];
-
-#define NEXT_X06_START		0x06000000
-#define NEXT_X06_SIZE		0x10000
-#define	NEXTx06_size		NEXT_X06_SIZE
-#define	NEXTx06_mask		0x0000FFFF
-uae_u8  NEXTx06[NEXT_X06_SIZE];
 
 
 #ifdef SAVE_MEMORY_BANKS
@@ -363,8 +366,6 @@ static void NEXTempty_lput(uaecptr addr, uae_u32 l)
         addr = (((addr%MemBank_Size[bank])+(bank<<bankshift))+NEXT_RAM_START)&NEXTmem_mask;
         do_put_mem_long(NEXTRam + addr, l);
     }
-
-//    M68000_BusError(oldaddr, 0);
 }
 /*-------------------- end of experimental code ----------------------*/
 
@@ -400,57 +401,6 @@ static uae_u8 *NEXTempty_xlate (uaecptr addr)
     abort();
     M68000_BusError(addr,0);
     return NEXTmem_xlate(addr);  /* So we don't crash. */
-}
-
-
-/* bank2 */
-
-static uae_u32 NEXTmem2_lget(uaecptr addr)
-{
-    addr &= NEXTmem_mask;
-    return do_get_mem_long(NEXTRam + 0x00400000 + addr);
-}
-
-static uae_u32 NEXTmem2_wget(uaecptr addr)
-{
-    addr &= NEXTmem_mask;
-    return do_get_mem_word(NEXTRam + 0x00400000 + addr);
-}
-
-static uae_u32 NEXTmem2_bget(uaecptr addr)
-{
-    addr &= NEXTmem_mask;
-    return NEXTRam[addr+0x00400000];
-}
-
-static void NEXTmem2_lput(uaecptr addr, uae_u32 l)
-{
-    addr &= NEXTmem_mask;
-    do_put_mem_long(NEXTRam + addr + 0x00400000, l);
-}
-
-static void NEXTmem2_wput(uaecptr addr, uae_u32 w)
-{
-    addr &= NEXTmem_mask;
-    do_put_mem_word(NEXTRam + addr + 0x00400000, w);
-}
-
-static void NEXTmem2_bput(uaecptr addr, uae_u32 b)
-{
-    addr &= NEXTmem_mask;
-    NEXTRam[addr+0x00400000] = b;
-}
-
-static int NEXTmem2_check(uaecptr addr, uae_u32 size)
-{
-    addr &= NEXTmem_mask;
-    return (addr + size) <= 0x003FFFFF;
-}
-
-static uae_u8 *NEXTmem2_xlate(uaecptr addr)
-{
-    addr &= NEXTmem_mask;
-    return NEXTRam + addr + 0x00400000;
 }
 
 
@@ -502,6 +452,249 @@ static uae_u8 *NEXTvideo_xlate(uaecptr addr)
 {
     addr &= NEXTvideo_mask;
     return (uae_u8*)NEXTVideo + addr;
+}
+
+
+/* **** NEXT memory banks with write functions **** */
+
+static uae_u8 mwf0[4][4] = { /* AB */
+    { 0, 0, 0, 0 },
+    { 0, 0, 1, 1 },
+    { 0, 1, 1, 2 },
+    { 0, 1, 2, 3 }
+};
+
+static uae_u8 mwf1[4][4] = { /* clApB */
+    { 0, 1, 2, 3 },
+    { 1, 2, 3, 3 },
+    { 2, 3, 3, 3 },
+    { 3, 3, 3, 3 }
+};
+
+static uae_u8 mwf2[4][4] = { /* 1mAB */
+    { 0, 0, 0, 0 },
+    { 1, 1, 0, 0 },
+    { 2, 1, 1, 0 },
+    { 3, 2, 1, 0 }
+};
+
+static uae_u8 mwf3[4][4] = { /* ApBmAB */
+    { 0, 1, 2, 3 },
+    { 1, 2, 2, 3 },
+    { 2, 2, 3, 3 },
+    { 3, 3, 3, 3 }
+};
+
+static uae_u32 memory_write_func(uae_u32 old, uae_u32 new, int func, int size)
+{
+    int a,b,i;
+    uae_u32 v=0;
+    
+    // write_log("mem_mwf_func%i: size=%i, old=%08X, new=%08X\n",func,size,old,new);
+
+    switch (func) {
+        case 0:
+            for (i=0; i<(size*4); i++) {
+                a=old>>(i*2)&3;
+                b=new>>(i*2)&3;
+                v|=mwf0[a][b]<<(i*2);
+            }
+            return v;
+        case 1:
+            for (i=0; i<(size*4); i++) {
+                a=old>>(i*2)&3;
+                b=new>>(i*2)&3;
+                v|=mwf1[a][b]<<(i*2);
+            }
+            return v;
+        case 2:
+            for (i=0; i<(size*4); i++) {
+                a=old>>(i*2)&3;
+                b=new>>(i*2)&3;
+                v|=mwf2[a][b]<<(i*2);
+            }
+            return v;
+        case 3:
+            for (i=0; i<(size*4); i++) {
+                a=old>>(i*2)&3;
+                b=new>>(i*2)&3;
+                v|=mwf3[a][b]<<(i*2);
+            }
+            return v;
+            
+        default:
+            write_log("Unknown memory write function!\n");
+            abort();
+    }
+}
+
+static uae_u32 vid_memory_write_func(uae_u32 old, uae_u32 new, int func, int size)
+{
+    int a,b,i;
+    uae_u32 v=0;
+    
+    // write_log("vid_mwf_func%i: size=%i, old=%08X, new=%08X\n",func,size,old,new);
+    
+    switch (func) {
+        case 0:
+            for (i=0; i<(size*4); i++) {
+                a=old>>(i*2)&3;
+                b=new>>(i*2)&3;
+                v|=mwf0[a][b]<<(i*2);
+            }
+            return v;
+        case 1:
+            for (i=0; i<(size*4); i++) {
+                a=old>>(i*2)&3;
+                b=new>>(i*2)&3;
+                v|=mwf1[a][b]<<(i*2);
+            }
+            return v;
+        case 2:
+            for (i=0; i<(size*4); i++) {
+                a=old>>(i*2)&3;
+                b=new>>(i*2)&3;
+                v|=mwf2[a][b]<<(i*2);
+            }
+            return v;
+        case 3:
+            for (i=0; i<(size*4); i++) {
+                a=old>>(i*2)&3;
+                b=new>>(i*2)&3;
+                v|=mwf3[a][b]<<(i*2);
+            }
+            return v;
+            
+        default:
+            write_log("Unknown memory write function!\n");
+            abort();
+    }
+}
+
+
+static uae_u32 NEXTmem_mwf_lget(uaecptr addr)
+{
+    addr = NEXT_RAM_START|(addr&0x03FFFFFF);
+    return longget(addr);
+}
+
+static uae_u32 NEXTmem_mwf_wget(uaecptr addr)
+{
+    addr = NEXT_RAM_START|(addr&0x03FFFFFF);
+    return wordget(addr);
+}
+
+static uae_u32 NEXTmem_mwf_bget(uaecptr addr)
+{
+    addr = NEXT_RAM_START|(addr&0x03FFFFFF);
+    return byteget(addr);
+}
+
+static void NEXTmem_mwf_lput(uaecptr addr, uae_u32 l)
+{
+    int function = (addr>>26)&0x3;
+    addr = NEXT_RAM_START|(addr&0x03FFFFFF);
+    
+    uae_u32 old = longget(addr);
+    uae_u32 val = memory_write_func(old, l, function, 4);
+    
+    longput(addr, val);
+}
+
+static void NEXTmem_mwf_wput(uaecptr addr, uae_u32 w)
+{
+    int function = (addr>>26)&0x3;
+    addr = NEXT_RAM_START|(addr&0x03FFFFFF);
+    
+    uae_u32 old = wordget(addr);
+    uae_u32 val = memory_write_func(old, w, function, 2);
+    
+    wordput(addr, val);
+}
+
+static void NEXTmem_mwf_bput(uaecptr addr, uae_u32 b)
+{
+    int function = (addr>>26)&0x3;
+    addr = NEXT_RAM_START|(addr&0x03FFFFFF);
+    
+    uae_u32 old = byteget(addr);
+    uae_u32 val = memory_write_func(old, b, function, 1);
+    
+    byteput(addr, val);
+}
+
+static int NEXTmem_mwf_check(uaecptr addr, uae_u32 size)
+{
+    return (size) < NEXT_RAM_SIZE;
+}
+
+static uae_u8 *NEXTmem_mwf_xlate(uaecptr addr)
+{
+    addr = NEXT_RAM_START|(addr&0x03FFFFFF);
+    return NEXTmem_xlate(addr);
+}
+
+static uae_u32 NEXTvideo_mwf_lget(uaecptr addr)
+{
+    addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
+    return longget(addr);
+}
+
+static uae_u32 NEXTvideo_mwf_wget(uaecptr addr)
+{
+    addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
+    return wordget(addr);
+}
+
+static uae_u32 NEXTvideo_mwf_bget(uaecptr addr)
+{
+    addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
+    return byteget(addr);
+}
+
+static void NEXTvideo_mwf_lput(uaecptr addr, uae_u32 l)
+{
+    int function = (addr>>24)&0x3;
+    addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
+    
+    uae_u32 old = longget(addr);
+    uae_u32 val = vid_memory_write_func(old, l, function, 4);
+    
+    longput(addr, val);
+}
+
+static void NEXTvideo_mwf_wput(uaecptr addr, uae_u32 w)
+{
+    int function = (addr>>24)&0x3;
+    addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
+    
+    uae_u32 old = wordget(addr);
+    uae_u32 val = vid_memory_write_func(old, w, function, 2);
+    
+    wordput(addr, val);
+}
+
+static void NEXTvideo_mwf_bput(uaecptr addr, uae_u32 b)
+{
+    int function = (addr>>24)&0x3;
+    addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
+    
+    uae_u32 old = byteget(addr);
+    uae_u32 val = vid_memory_write_func(old, b, function, 1);
+    
+    byteput(addr, val);
+}
+
+static int NEXTvideo_mwf_check(uaecptr addr, uae_u32 size)
+{
+    addr &= NEXTvideo_mask;
+    return (addr + size) <= NEXTvideo_size;
+}
+
+static uae_u8 *NEXTvideo_mwf_xlate(uaecptr addr)
+{
+    addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
+    return NEXTvideo_xlate(addr);
 }
 
 
@@ -610,65 +803,6 @@ static uae_u8 *NEXTbmap_xlate(uaecptr addr)
 {
     addr &= NEXTbmap_mask;
     return (uae_u8*)NEXTbmap + addr;
-}
-
-/* **** NEXT x06 memory **** */
-
-static uae_u32 NEXTx06_lget(uaecptr addr)
-{
-	write_log ("x06 lget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
-    addr &= NEXTx06_mask;
-    //    return do_get_mem_long(NEXTx06 + addr);
-	return 0xFFFFFFFF;
-}
-
-static uae_u32 NEXTx06_wget(uaecptr addr)
-{
-	write_log ("x06 wget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
-    addr &= NEXTx06_mask;
-    //    return do_get_mem_word(NEXTx06 + addr);
-	return 0xFFFF;
-}
-
-static uae_u32 NEXTx06_bget(uaecptr addr)
-{
-	write_log ("x06 bget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
-    addr &= NEXTx06_mask;
-    //    return NEXTx06[addr];
-	return 0xFF;
-}
-
-static void NEXTx06_lput(uaecptr addr, uae_u32 l)
-{
-	write_log ("x06 lput at %08lx val=%x PC=%08x\n", (long)addr,l,m68k_getpc());
-    addr &= NEXTx06_mask;
-    do_put_mem_long(NEXTx06 + addr, l);
-}
-
-static void NEXTx06_wput(uaecptr addr, uae_u32 w)
-{
-	write_log ("x06 wput at %08lx val=%x PC=%08x\n", (long)addr,w,m68k_getpc());
-    addr &= NEXTx06_mask;
-    do_put_mem_word(NEXTx06 + addr, w);
-}
-
-static void NEXTx06_bput(uaecptr addr, uae_u32 b)
-{
-	write_log ("x06 bput at %08lx val=%x PC=%08x\n", (long)addr,b,m68k_getpc());
-    addr &= NEXTx06_mask;
-    NEXTx06[addr] = b;
-}
-
-static int NEXTx06_check(uaecptr addr, uae_u32 size)
-{
-    addr &= NEXTx06_mask;
-    return (addr + size) <= NEXTx06_size;
-}
-
-static uae_u8 *NEXTx06_xlate(uaecptr addr)
-{
-    addr &= NEXTx06_mask;
-    return (uae_u8*)NEXTx06 + addr;
 }
 
 
@@ -806,7 +940,6 @@ static addrbank dummy_bank =
     dummy_lput, dummy_wput, dummy_bput,
     dummy_xlate, dummy_check, NULL, NULL,
     dummy_lget, dummy_wget, ABFLAG_NONE
-//	dummy_lgeti, dummy_wgeti, ABFLAG_NONE
 };
 
 static addrbank BusErrMem_bank =
@@ -834,12 +967,20 @@ static addrbank NEXTempty_bank =
     NEXTempty_lget, NEXTempty_wget, ABFLAG_RAM
 };
 
-static addrbank NEXTmem_bank2 =
+static addrbank NEXTmem_mwf =
 {
-    NEXTmem2_lget, NEXTmem2_wget, NEXTmem2_bget,
-    NEXTmem2_lput, NEXTmem2_wput, NEXTmem2_bput,
-    NEXTmem2_xlate, NEXTmem2_check, NULL, (char*)"NEXT memory",
-    NEXTmem2_lget, NEXTmem2_wget, ABFLAG_RAM
+    NEXTmem_mwf_lget, NEXTmem_mwf_wget, NEXTmem_mwf_bget,
+    NEXTmem_mwf_lput, NEXTmem_mwf_wput, NEXTmem_mwf_bput,
+    NEXTmem_mwf_xlate, NEXTmem_mwf_check, NULL, (char*)"NEXT MWF memory",
+    NEXTmem_mwf_lget, NEXTmem_mwf_wget, ABFLAG_RAM
+};
+
+static addrbank Video_mwf =
+{
+    NEXTvideo_mwf_lget, NEXTvideo_mwf_wget, NEXTvideo_mwf_bget,
+    NEXTvideo_mwf_lput, NEXTvideo_mwf_wput, NEXTvideo_mwf_bput,
+    NEXTvideo_mwf_xlate, NEXTvideo_mwf_check, NULL, (char*)"Video MWF memory",
+    NEXTvideo_mwf_lget, NEXTvideo_mwf_wget, ABFLAG_RAM
 };
 
 static addrbank VoidMem_bank =
@@ -872,14 +1013,6 @@ static addrbank bmap_bank =
     NEXTbmap_lput, NEXTbmap_wput, NEXTbmap_bput,
     NEXTbmap_xlate, NEXTbmap_check, NULL, (char*)"bmap memory",
     NEXTbmap_lget, NEXTbmap_wget, ABFLAG_RAM
-};
-
-static addrbank x06_bank =
-{
-    NEXTx06_lget, NEXTx06_wget, NEXTx06_bget,
-    NEXTx06_lput, NEXTx06_wput, NEXTx06_bput,
-    NEXTx06_xlate, NEXTx06_check, NULL, (char*)"x06 memory",
-    NEXTx06_lget, NEXTx06_wget, ABFLAG_RAM
 };
 
 static addrbank ROMmem_bank =
@@ -961,23 +1094,18 @@ const char* memory_init(int *nNewNEXTMemSize)
         write_log("Mapping Bank%i at $%08x: %iMB\n", i, bankstart, MemBank_Size[i]/(1024*1024));
     }
     
-//    map_banks(&NEXTmem_bank, NEXT_RAM_START>>16, NEXT_RAM_SIZE >> 16);
-
-//    map_banks(&NEXTmem_bank, 0x04000000>>16, MemBank_Size[0] >> 16);
-//    map_banks(&NEXTmem_bank, 0x04800000>>16, MemBank_Size[1] >> 16);
-//    map_banks(&NEXTmem_bank, 0x05000000>>16, MemBank_Size[2] >> 16);
-//    map_banks(&NEXTmem_bank, 0x05800000>>16, MemBank_Size[3] >> 16);
-        
-    // also map here... need to check address for function (weird?)
-    /*
-    map_banks(&NEXTmem_bank, 0x10000000>>16, NEXT_RAM_SIZE >> 16);
-    map_banks(&NEXTmem_bank, 0x14000000>>16, NEXT_RAM_SIZE >> 16);
-    map_banks(&NEXTmem_bank, 0x18000000>>16, NEXT_RAM_SIZE >> 16);
-    map_banks(&NEXTmem_bank, 0x1C000000>>16, NEXT_RAM_SIZE >> 16);
-    */
-
-    // map_banks(&NEXTmem_bank2, NEXT_RAM_START2>>16, NEXT_RAM_SIZE2 >> 16);
+    /* Map mirrors of main memory for memory write functions (monochrome non-turbo systems) */
+    if (!ConfigureParams.System.bColor && !ConfigureParams.System.bTurbo) {
+        map_banks(&NEXTmem_mwf, NEXT_RAM_MWF0_START>>16, NEXT_RAM_SIZE >> 16);
+        map_banks(&NEXTmem_mwf, NEXT_RAM_MWF1_START>>16, NEXT_RAM_SIZE >> 16);
+        map_banks(&NEXTmem_mwf, NEXT_RAM_MWF2_START>>16, NEXT_RAM_SIZE >> 16);
+        map_banks(&NEXTmem_mwf, NEXT_RAM_MWF3_START>>16, NEXT_RAM_SIZE >> 16);
+        write_log("Mapping mirrors of main memory for memory write functions:\n");
+        for (i = 0; i<4; i++)
+            write_log("Function%i at $%08X\n",i,0x10000000+0x04000000*i);
+    }
     
+    /* Map video memory */
     if (ConfigureParams.System.bTurbo && ConfigureParams.System.bColor) {
         map_banks(&ColorVideo_bank, NEXT_TURBOSCREEN>>16, NEXT_COLORSCREEN_SIZE >> 16);
         write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_TURBOSCREEN, NEXT_COLORSCREEN_SIZE/1024);
@@ -990,6 +1118,14 @@ const char* memory_init(int *nNewNEXTMemSize)
     } else {
         map_banks(&Video_bank, NEXT_SCREEN>>16, NEXT_SCREEN_SIZE >> 16);
         write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_SCREEN, NEXT_SCREEN_SIZE/1024);
+        
+        map_banks(&Video_mwf, NEXT_SCREEN_MWF0>>16, NEXT_SCREEN_SIZE >> 16);
+        map_banks(&Video_mwf, NEXT_SCREEN_MWF1>>16, NEXT_SCREEN_SIZE >> 16);
+        map_banks(&Video_mwf, NEXT_SCREEN_MWF2>>16, NEXT_SCREEN_SIZE >> 16);
+        map_banks(&Video_mwf, NEXT_SCREEN_MWF3>>16, NEXT_SCREEN_SIZE >> 16);
+        write_log("Mapping mirrors of video memory for memory write functions:\n");
+        for (i = 0; i<4; i++)
+            write_log("Function%i at $%08X\n",i,0x0B000000+0x01000000*i);
     }
     
     map_banks(&ROMmem_bank, NEXT_EPROM_START >> 16, NEXT_EPROM_SIZE>>16);

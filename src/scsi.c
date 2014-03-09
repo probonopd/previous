@@ -575,7 +575,7 @@ void scsi_write_sector(void) {
 	if ((SCSIdisk[target].dsk==NULL) || (fseek(SCSIdisk[target].dsk, SCSIdisk[target].lba*BLOCKSIZE, SEEK_SET) != 0)) {
         n = 0;
 	} else {
-#if 0
+#if 1
         n = fwrite(scsi_buffer.data, BLOCKSIZE, 1, SCSIdisk[target].dsk);
 #else
         n=1;

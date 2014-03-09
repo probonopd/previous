@@ -16,6 +16,8 @@
 #include "sysReg.h"
 #include "rtcnvram.h"
 
+#include <time.h>
+
 
 #define LOG_RTC_LEVEL   LOG_WARN
 
@@ -248,10 +250,10 @@ int oldrtc_interface_io(Uint8 rtdatabit) {
 Uint8 rtc_get_clock(Uint8 addr) {
     Uint8 val = 0x00;
     
-    if (!freeze) {
+//    if (!freeze) {
         rtc.time = get_rtc_time();
         freeze = true;
-    }
+//    }
     
     switch (rtc_addr&RTC_ADDR_MASK) {
         case 0x20: /* seconds */
@@ -267,8 +269,7 @@ Uint8 rtc_get_clock(Uint8 addr) {
         case 0x25: /* month */
             val = rtc.time.month; break;
         case 0x26: /* year (0 - 99) */
-            val = rtc.time.year; break;
-            
+            val = rtc.time.year ; break;            
         case 0x30: /* status register */
             val = rtc.status;
             rtc.status &= RTC_INT_SENSE;
@@ -287,17 +288,30 @@ Uint8 rtc_get_clock(Uint8 addr) {
 void rtc_put_clock(Uint8 addr, Uint8 val) {
     switch (rtc_addr&RTC_ADDR_MASK) {
         case 0x20: /* seconds */
+		set_rtc_time(0,val);
+		break;
         case 0x21: /* minutes */
+		set_rtc_time(1,val);
+		break;
         case 0x22: /* hours */
+		set_rtc_time(2,val);
+		break;
         case 0x23: /* day of week (sunday = 1) */
+		break;
         case 0x24: /* day of month */
+		set_rtc_time(3,val);
+		break;
         case 0x25: /* month */
+		set_rtc_time(4,val);
+		break;
         case 0x26: /* year (0 - 99) */
-            break; /* we can't set our clock */
+		set_rtc_time(5,val);
+		break;
             
         case 0x28: /* alarm: seconds */
         case 0x29: /* alarm: minutes */
         case 0x2A: /* alarm: hours */
+		Log_Printf(LOG_WARN,"Trying to program alarm (not implemented) %x",val);
             break; /* not yet! */
             
         case 0x31: /* clock control register */
@@ -315,10 +329,12 @@ void rtc_put_clock(Uint8 addr, Uint8 val) {
     }
 }
 
+time_t time_offset=0;
+
 RTC_TIME get_rtc_time(void) {
     RTC_TIME rt;
     
-    time_t tmp = time(NULL);
+    time_t tmp = time(NULL) + time_offset;
     struct tm t =*localtime(&tmp);
     
     rt.sec = (((t.tm_sec/10)%10)<<4)|(t.tm_sec%10);
@@ -330,6 +346,50 @@ RTC_TIME get_rtc_time(void) {
     rt.year = (((t.tm_year/10)%10)<<4)|(t.tm_year%10);
     
     return rt;
+}
+
+void set_rtc_time(int which,int val) {
+    RTC_TIME rt;
+    
+    time_t tmp = time(NULL);
+    time_t tmp2;
+
+    static struct tm t;
+
+    t.tm_wday=0;
+
+    val=((val&0xF0)>>4)*10+(val&0xF);
+
+    switch (which) {
+	/* sec */
+	case 0:
+		t.tm_sec=val;
+		break;
+	case 1:
+		t.tm_min=val;
+		break;
+	case 2:
+		t.tm_hour=val;
+		break;
+	case 3:
+		t.tm_mday=val;
+		break;
+	case 4:
+		t.tm_mon=val-1;
+		break;
+	case 5:
+		t.tm_year=val;
+		break;
+	}
+	
+	Log_Printf(LOG_WARN,"setting %d to %x",which,val);
+
+	tmp2=mktime(&t);
+	
+	if (tmp2!=0) {
+		time_offset=tmp-tmp2;
+		Log_Printf(LOG_WARN,"Offset is %d",time_offset);
+	}     
 }
 
 void oldrtc_request_power_down(void) {
@@ -517,11 +577,13 @@ void newrtc_put_clock(Uint8 addr, Uint8 val) {
         case 0x21:
         case 0x22:
         case 0x23:
+		Log_Printf(LOG_WARN,"Trying to force rtc failed (not implemented) %x",val);
             break; /* not yet! */
         case 0x24:
         case 0x25:
         case 0x26:
         case 0x27:
+		Log_Printf(LOG_WARN,"Trying to force rtc failed (not implemented) %x",val);
             break; /* not yet! */
             
         case 0x31: /* control register */
