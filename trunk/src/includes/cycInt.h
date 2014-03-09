@@ -29,7 +29,7 @@ typedef enum
 #define	INT_CPU_CYCLE		1
 #define	INT_MFP_CYCLE		2
 
-#define	INT_CPU_TO_INTERNAL	9600
+#define	INT_CPU_TO_INTERNAL	1
 #define	INT_MFP_TO_INTERNAL	31333
 
 /* Convert cpu or mfp cycles to internal cycles */
