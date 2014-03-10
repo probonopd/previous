@@ -246,12 +246,13 @@ int oldrtc_interface_io(Uint8 rtdatabit) {
     return rtdatabit;
 }
 
+RTC_TIME my_get_rtc_time(void);
 
 Uint8 rtc_get_clock(Uint8 addr) {
     Uint8 val = 0x00;
     
 //    if (!freeze) {
-        rtc.time = get_rtc_time();
+        rtc.time = my_get_rtc_time();
         freeze = true;
 //    }
     
@@ -285,27 +286,29 @@ Uint8 rtc_get_clock(Uint8 addr) {
     return val;
 }
 
+void my_set_rtc_time(int which,int val);
+
 void rtc_put_clock(Uint8 addr, Uint8 val) {
     switch (rtc_addr&RTC_ADDR_MASK) {
         case 0x20: /* seconds */
-		set_rtc_time(0,val);
+		my_set_rtc_time(0,val);
 		break;
         case 0x21: /* minutes */
-		set_rtc_time(1,val);
+		my_set_rtc_time(1,val);
 		break;
         case 0x22: /* hours */
-		set_rtc_time(2,val);
+		my_set_rtc_time(2,val);
 		break;
         case 0x23: /* day of week (sunday = 1) */
 		break;
         case 0x24: /* day of month */
-		set_rtc_time(3,val);
+		my_set_rtc_time(3,val);
 		break;
         case 0x25: /* month */
-		set_rtc_time(4,val);
+		my_set_rtc_time(4,val);
 		break;
         case 0x26: /* year (0 - 99) */
-		set_rtc_time(5,val);
+		my_set_rtc_time(5,val);
 		break;
             
         case 0x28: /* alarm: seconds */
@@ -331,7 +334,7 @@ void rtc_put_clock(Uint8 addr, Uint8 val) {
 
 time_t time_offset=0;
 
-RTC_TIME get_rtc_time(void) {
+RTC_TIME my_get_rtc_time(void) {
     RTC_TIME rt;
     
     time_t tmp = time(NULL) + time_offset;
@@ -348,7 +351,7 @@ RTC_TIME get_rtc_time(void) {
     return rt;
 }
 
-void set_rtc_time(int which,int val) {
+void my_set_rtc_time(int which,int val) {
     RTC_TIME rt;
     
     time_t tmp = time(NULL);
