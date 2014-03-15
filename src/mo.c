@@ -1185,7 +1185,7 @@ void mo_write_sector(Uint32 sector_id) {
     
     if (ecc_buffer[eccout].limit==MO_SECTORSIZE_DISK) {
         /* seek to the position */
-#if 0
+#if 1
         fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK_HACK, SEEK_SET);
         fwrite(ecc_buffer[eccout].data, MO_SECTORSIZE_DISK_HACK, 1, modrv[dnum].dsk);
 #else

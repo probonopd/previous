@@ -464,35 +464,36 @@ static uae_u8 mwf0[4][4] = { /* AB */
     { 0, 1, 2, 3 }
 };
 
-static uae_u8 mwf1[4][4] = { /* clApB */
+static uae_u8 mwf1[4][4] = { /* ceil(A+B) */
     { 0, 1, 2, 3 },
     { 1, 2, 3, 3 },
     { 2, 3, 3, 3 },
     { 3, 3, 3, 3 }
 };
 
-static uae_u8 mwf2[4][4] = { /* 1mAB */
+static uae_u8 mwf2[4][4] = { /* (1-A)B */
     { 0, 0, 0, 0 },
     { 1, 1, 0, 0 },
     { 2, 1, 1, 0 },
     { 3, 2, 1, 0 }
 };
 
-static uae_u8 mwf3[4][4] = { /* ApBmAB */
+static uae_u8 mwf3[4][4] = { /* A+B-AB */
     { 0, 1, 2, 3 },
     { 1, 2, 2, 3 },
     { 2, 2, 3, 3 },
     { 3, 3, 3, 3 }
 };
 
-static uae_u32 memory_write_func(uae_u32 old, uae_u32 new, int func, int size)
+static uae_u32 memory_write_func(uae_u32 old, uae_u32 new, int function, int size)
 {
     int a,b,i;
     uae_u32 v=0;
+#if 0
+    write_log("[MWF] Function%i: size=%i, old=%08X, new=%08X\n",function,size,old,new);
+#endif
     
-    // write_log("mem_mwf_func%i: size=%i, old=%08X, new=%08X\n",func,size,old,new);
-
-    switch (func) {
+    switch (function) {
         case 0:
             for (i=0; i<(size*4); i++) {
                 a=old>>(i*2)&3;
@@ -527,67 +528,29 @@ static uae_u32 memory_write_func(uae_u32 old, uae_u32 new, int func, int size)
             abort();
     }
 }
-
-static uae_u32 vid_memory_write_func(uae_u32 old, uae_u32 new, int func, int size)
-{
-    int a,b,i;
-    uae_u32 v=0;
-    
-    // write_log("vid_mwf_func%i: size=%i, old=%08X, new=%08X\n",func,size,old,new);
-    
-    switch (func) {
-        case 0:
-            for (i=0; i<(size*4); i++) {
-                a=old>>(i*2)&3;
-                b=new>>(i*2)&3;
-                v|=mwf0[a][b]<<(i*2);
-            }
-            return v;
-        case 1:
-            for (i=0; i<(size*4); i++) {
-                a=old>>(i*2)&3;
-                b=new>>(i*2)&3;
-                v|=mwf1[a][b]<<(i*2);
-            }
-            return v;
-        case 2:
-            for (i=0; i<(size*4); i++) {
-                a=old>>(i*2)&3;
-                b=new>>(i*2)&3;
-                v|=mwf2[a][b]<<(i*2);
-            }
-            return v;
-        case 3:
-            for (i=0; i<(size*4); i++) {
-                a=old>>(i*2)&3;
-                b=new>>(i*2)&3;
-                v|=mwf3[a][b]<<(i*2);
-            }
-            return v;
-            
-        default:
-            write_log("Unknown memory write function!\n");
-            abort();
-    }
-}
-
 
 static uae_u32 NEXTmem_mwf_lget(uaecptr addr)
 {
+    int function = (addr>>26)&0x3;
     addr = NEXT_RAM_START|(addr&0x03FFFFFF);
-    return longget(addr);
+    
+    return function==0?0xFFFFFFFF:0;
 }
 
 static uae_u32 NEXTmem_mwf_wget(uaecptr addr)
 {
+    int function = (addr>>26)&0x3;
     addr = NEXT_RAM_START|(addr&0x03FFFFFF);
-    return wordget(addr);
+
+    return function==0?0xFFFF:0;
 }
 
 static uae_u32 NEXTmem_mwf_bget(uaecptr addr)
 {
+    int function = (addr>>26)&0x3;
     addr = NEXT_RAM_START|(addr&0x03FFFFFF);
-    return byteget(addr);
+
+    return function==0?0xFF:0;
 }
 
 static void NEXTmem_mwf_lput(uaecptr addr, uae_u32 l)
@@ -636,20 +599,26 @@ static uae_u8 *NEXTmem_mwf_xlate(uaecptr addr)
 
 static uae_u32 NEXTvideo_mwf_lget(uaecptr addr)
 {
+    int function = (addr>>24)&0x3;
     addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
-    return longget(addr);
+
+    return function==0?0xFFFFFFFF:0;
 }
 
 static uae_u32 NEXTvideo_mwf_wget(uaecptr addr)
 {
+    int function = (addr>>24)&0x3;
     addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
-    return wordget(addr);
+
+    return function==0?0xFFFF:0;
 }
 
 static uae_u32 NEXTvideo_mwf_bget(uaecptr addr)
 {
+    int function = (addr>>24)&0x3;
     addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
-    return byteget(addr);
+
+    return function==0?0xFF:0;
 }
 
 static void NEXTvideo_mwf_lput(uaecptr addr, uae_u32 l)
@@ -658,7 +627,7 @@ static void NEXTvideo_mwf_lput(uaecptr addr, uae_u32 l)
     addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
     
     uae_u32 old = longget(addr);
-    uae_u32 val = vid_memory_write_func(old, l, function, 4);
+    uae_u32 val = memory_write_func(old, l, function, 4);
     
     longput(addr, val);
 }
@@ -669,7 +638,7 @@ static void NEXTvideo_mwf_wput(uaecptr addr, uae_u32 w)
     addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
     
     uae_u32 old = wordget(addr);
-    uae_u32 val = vid_memory_write_func(old, w, function, 2);
+    uae_u32 val = memory_write_func(old, w, function, 2);
     
     wordput(addr, val);
 }
@@ -680,7 +649,7 @@ static void NEXTvideo_mwf_bput(uaecptr addr, uae_u32 b)
     addr = NEXT_SCREEN|(addr&NEXTvideo_mask);
     
     uae_u32 old = byteget(addr);
-    uae_u32 val = vid_memory_write_func(old, b, function, 1);
+    uae_u32 val = memory_write_func(old, b, function, 1);
     
     byteput(addr, val);
 }
@@ -1125,7 +1094,7 @@ const char* memory_init(int *nNewNEXTMemSize)
         map_banks(&Video_mwf, NEXT_SCREEN_MWF3>>16, NEXT_SCREEN_SIZE >> 16);
         write_log("Mapping mirrors of video memory for memory write functions:\n");
         for (i = 0; i<4; i++)
-            write_log("Function%i at $%08X\n",i,0x0B000000+0x01000000*i);
+            write_log("Function%i at $%08X\n",i,0x0C000000+0x01000000*i);
     }
     
     map_banks(&ROMmem_bank, NEXT_EPROM_START >> 16, NEXT_EPROM_SIZE>>16);
