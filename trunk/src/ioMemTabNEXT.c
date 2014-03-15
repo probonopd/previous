@@ -106,6 +106,8 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     
     /* DSP (Motorola XSP56001) ? ADB on Turbo Systems ? */
 	{ 0x02008000, SIZE_LONG, DSP_icr_Read, DSP_icr_Write },
+    { 0x02008004, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+
     /* ADB */
 	{ 0x02008008, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x02008018, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },

@@ -108,7 +108,12 @@ typedef uae_u8 flagtype;
 /* You can set this to long double to be more accurate. However, the
 resulting alignment issues will cost a lot of performance in some
 apps */
+#if 1   /* set to 1 if your system supports long extended precision long double */
 #define USE_LONG_DOUBLE 1
+#else
+#define USE_LONG_DOUBLE 0
+#define USE_SOFT_LONG_DOUBLE 1
+#endif
 
 #if USE_LONG_DOUBLE
 typedef long double fptype;
@@ -161,6 +166,16 @@ struct mmufixup
 };
 extern struct mmufixup mmufixup[2];
 
+typedef struct
+{
+	fptype fp;
+#ifdef USE_SOFT_LONG_DOUBLE
+	bool fpx;
+	uae_u32 fpm;
+	uae_u64 fpe;
+#endif
+} fpdata;
+
 struct regstruct
 {
 	uae_u32 regs[16];
@@ -187,11 +202,15 @@ struct regstruct
 	uae_u32 vbr, sfc, dfc;
 
 #ifdef FPUEMU
-	fptype fp[8];
-	fptype fp_result;
+	fpdata fp[8];
+	fpdata fp_result;
+      uae_u32 fp_result_status;
 	uae_u32 fpcr, fpsr, fpiar;
-	uae_u32 fpsr_highbyte;
 	uae_u32 fpu_state;
+    uae_u32 fpu_exp_state;
+    fpdata exp_src1, exp_src2;
+    uae_u32 exp_pack[3];
+    uae_u16 exp_opcode, exp_extra, exp_type;
 	bool fp_exception;
 #endif
 #ifndef CPUEMU_68000_ONLY
@@ -201,8 +220,9 @@ struct regstruct
 	uae_u32 mmu_fslw;
 	uae_u32 mmu_fault_addr, mmu_effective_addr;
 	uae_u16 mmu_ssw;
+    uae_u32 wb2_address;
 	uae_u32 wb3_data;
-	uae_u16 wb3_status;
+	uae_u16 wb3_status, wb2_status;
 	int mmu_enabled;
 	int mmu_page_size;
 #endif
