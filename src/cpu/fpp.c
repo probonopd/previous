@@ -1,10 +1,11 @@
 /*
 * UAE - The Un*x Amiga Emulator
 *
-* MC68881 emulation
+* MC68881/68882/68040/68060 FPU emulation
 *
 * Copyright 1996 Herman ten Brugge
 * Modified 2005 Peter Keunecke
+* 68040+ exceptions and more by Toni Wilen
 */
 
 #define __USE_ISOC9X  /* We might be able to pick up a NaN */
@@ -12,6 +13,7 @@
 #include <math.h>
 #include <float.h>
 #include <fenv.h>
+#include <strings.h>
 
 #include "sysconfig.h"
 #include "sysdeps.h"
@@ -337,7 +339,7 @@ static void fpu_op_unimp (uae_u16 opcode, uae_u16 extra, uae_u32 ea, uaecptr old
 	x_put_word (m68k_areg (regs, 7), regs.sr);
 	newpc = x_get_long (regs.vbr + vector * 4);
 	if (warned > 0) {
-//		write_log (_T("FPU EXCEPTION %d OP=%04X-%04X EA=%08X PC=%08X -> %08X\n"), type, opcode, extra, ea, oldpc, newpc);
+		write_log (_T("FPU EXCEPTION %d OP=%04X-%04X EA=%08X PC=%08X -> %08X\n"), type, opcode, extra, ea, oldpc, newpc);
 #if EXCEPTION_FPP == 0
 		warned--;
 #endif
@@ -601,6 +603,25 @@ STATIC_INLINE tointtype toint (fptype src, fptype minval, fptype maxval)
 #endif
 }
 
+static bool fpu_isnan (fptype fp)
+{
+#ifdef HAVE_ISNAN
+	return isnan (fp) != 0;
+#else
+	return false;
+#endif
+}
+static bool fpu_isinfinity (fptype fp)
+{
+#ifdef _MSC_VER
+	return !_finite (fp);
+#elifdef HAVE_ISINF
+	return _isinf (fp);
+#else
+	return false;
+#endif
+}
+
 uae_u32 get_fpsr (void)
 {
 	uae_u32 answer = regs.fpsr & 0x00ffffff;
@@ -621,23 +642,16 @@ uae_u32 get_fpsr (void)
 	answer |= (answer >> 6) & (0x80 | 0x40 | 0x20 | 0x10 | 0x08);
 
 	// condition code byte
-#ifdef HAVE_ISNAN
-	if (isnan (regs.fp_result.fp))
+	if (fpu_isnan (regs.fp_result.fp))
 		answer |= 1 << 24;
 	else
-#endif
 	{
 		if (regs.fp_result.fp == 0)
 			answer |= 1 << 26;
 		else if (regs.fp_result.fp < 0)
 			answer |= 1 << 27;
-#ifdef _MSC_VER
-		if (!_finite (regs.fp_result.fp))
+		if (fpu_isinfinity (regs.fp_result.fp))
 			answer |= 1 << 25;
-#elifdef HAVE_ISINF
-		if (_isinf (regs.fp_result.fp))
-			answer |= 1 << 25;
-#endif
 	}
 	return answer;
 }
@@ -721,63 +735,144 @@ static fptype to_pack (uae_u32 *wrd)
 	return d;
 }
 
-// TODO: Positive k-Factor.
-static void from_pack (fptype src, uae_u32 *wrd, int kfactor)
+void from_pack (fptype src, uae_u32 *wrd, int kfactor)
 {
-	int i, t, precision;
+	int i, j, t;
+	int exp;
+	int ndigits;
+	fptype mant;
 	char *cp;
 	char str[100];
 
-	precision = kfactor <= 0 ? -kfactor : 16;
-	if (precision > 16)
-		precision = 16;
-#if USE_LONG_DOUBLE
-	sprintf (str, "%#.*Le", precision, src);
-#else
-	sprintf (str, "%#.*e", precision, src);
-#endif
-	cp = str;
 	wrd[0] = wrd[1] = wrd[2] = 0;
+
+	if (fpu_isnan (src) || fpu_isinfinity (src)) {
+		wrd[0] |= (1 << 30) | (1 << 29) | (1 << 30); // YY=1
+		wrd[0] |= 0xfff << 16; // Exponent=FFF
+		// TODO: mantissa should be set if NAN
+		return;
+	}
+
+#if USE_LONG_DOUBLE
+	sprintf (str, "%#.17Le", src);
+#else
+	sprintf (str, "%#.17e", src);
+#endif
+	
+	// get exponent
+	cp = str;
+	while (*cp++ != 'e');
+	if (*cp == '+')
+		cp++;
+	exp = atoi (cp);
+
+	// remove trailing zeros
+	cp = str;
+	while (*cp != 'e')
+		cp++;
+	cp[0] = 0;
+	cp--;
+	while (cp > str && *cp == '0') {
+		*cp = 0;
+		cp--;
+	}
+
+	cp = str;
+	// get sign
 	if (*cp == '-') {
 		cp++;
 		wrd[0] = 0x80000000;
 	}
 	if (*cp == '+')
 		cp++;
-	wrd[0] |= (*cp++ - '0');
-	if (*cp == '.')
-		cp++;
-	for (i = 0; i < 8; i++) {
-		wrd[1] <<= 4;
-		if (*cp >= '0' && *cp <= '9')
-			wrd[1] |= *cp++ - '0';
-	}
-	for (i = 0; i < 8; i++) {
-		wrd[2] <<= 4;
-		if (*cp >= '0' && *cp <= '9')
-			wrd[2] |= *cp++ - '0';
-	}
-	if (*cp == 'e') {
-		cp++;
-		if (*cp == '-') {
-			cp++;
-			wrd[0] |= 0x40000000;
+
+	// get mantissa part
+	mant = atof (cp);
+
+	if (kfactor <= 0) {
+		ndigits = abs (exp) + (-kfactor) + 1;
+	} else {
+		if (kfactor > 17) {
+			kfactor = 17;
+			regs.fp_result_status = FE_INVALID;
+			get_fpsr ();
 		}
-		if (*cp == '+')
-			cp++;
-		t = 0;
-		while (cp[0] && cp[1])
-			cp++;
-		for (i = 0; i < 3; i++) {
-			char c = *cp;
-			t >>= 4;
-			if (*cp >= '0' && *cp <= '9') {
-				t |= (c - '0') << (2 * 4);
-				cp--;
+		ndigits = kfactor;
+	}
+
+	if (ndigits < 0)
+		ndigits = 0;
+	if (ndigits > 16)
+		ndigits = 16;
+#if USE_LONG_DOUBLE
+    sprintf (str, "%.17Lf", mant);
+#else
+	sprintf (str, "%.17f", mant);
+#endif
+	// remove decimal point
+	memmove (str + 1, str + 2, strlen (str + 2) + 1);
+	// add trailing zeros
+	i = strlen (str);
+	cp = str + i;
+	while (i < ndigits) {
+		*cp++ = '0';
+		i++;
+	}
+	i = ndigits + 1;
+	while (i < 17) {
+		str[i] = 0;
+		i++;
+	}
+	*cp = 0;
+	i = ndigits - 1;
+	// need to round?
+	if (i >= 0 && str[i + 1] >= '5') {
+		while (i >= 0) {
+			str[i]++;
+			if (str[i] <= '9')
+				break;
+			if (i == 0) {
+				str[i] = '1';
+				exp++;
+			} else {
+				str[i] = '0';
 			}
+			i--;
 		}
-		wrd[0] |= t << 16;
 	}
+	str[ndigits] = 0;
+
+	// store first digit of mantissa
+	cp = str;
+	wrd[0] |= *cp++ - '0';
+
+	// store rest of mantissa
+	for (j = 1; j < 3; j++) {
+		for (i = 0; i < 8; i++) {
+			wrd[j] <<= 4;
+			if (*cp >= '0' && *cp <= '9')
+				wrd[j] |= *cp++ - '0';
+		}
+	}
+
+	// exponent
+	if (exp < 0) {
+		wrd[0] |= 0x40000000;
+		exp = -exp;
+	}
+	if (exp > 999) // probably not right
+		exp = 999;
+	i = 100;
+	t = 0;
+	while (i >= 1) {
+		int d = exp / i;
+		t <<= 4;
+		t |= d;
+		exp -= d * i;
+		i /= 10;
+	}
+	wrd[0] |= t << 16;
+
 }
 
 static int get_fp_value (uae_u32 opcode, uae_u16 extra, fpdata *src, uaecptr oldpc, uae_u32 *adp)

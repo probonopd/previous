@@ -418,7 +418,7 @@ static void Main_HandleMouseMotion(SDL_Event *pEvent)
 	dy=fdy;
 	fdy-=dy;
 
-	printf("dx=%d dy=%d nb=%d\n",dx,dy,nb);
+	// printf("dx=%d dy=%d nb=%d\n",dx,dy,nb);
 
     	Keymap_MouseMove(dx,dy);
 

@@ -19,7 +19,7 @@
 #include "dma.h"
 #include "rtcnvram.h"
 
-#define LOG_KMS_LEVEL LOG_WARN
+#define LOG_KMS_LEVEL LOG_DEBUG
 #define IO_SEG_MASK	0x1FFFF
 
 
@@ -135,11 +135,11 @@ void access_km_reg(Uint32 data) {
     Uint8 reg_data = (data>>16)&0xFF;
     
     if (reg_addr==KM_RESET) {
-        Log_Printf(LOG_KMS_LEVEL, "Keyboard/Mouse: Reset");
+        Log_Printf(LOG_WARN, "[KMS] access Keyboard/Mouse: Reset");
         return;
     }
     if (reg_addr==KM_SET_ADDR) {
-        Log_Printf(LOG_KMS_LEVEL, "Keyboard/Mouse: Set address to %i",(reg_data&KM_ADDR_MASK)>>1);
+        Log_Printf(LOG_WARN, "[KMS] access Keyboard/Mouse: Set address to %i",(reg_data&KM_ADDR_MASK)>>1);
         km_address = (reg_data&KM_ADDR_MASK)>>1;
         return;
     }
@@ -149,31 +149,31 @@ void access_km_reg(Uint32 data) {
     int device_reg = (reg_addr&KM_REG_MASK)>>5;
     bool read_reg = (reg_addr&KM_READ) ? true : false;
     
-    Log_Printf(LOG_KMS_LEVEL, "%s %s %i, register %i",read_reg?"Reading":"Writing",
+    Log_Printf(LOG_KMS_LEVEL, "[KMS] access %s %s %i, register %i",read_reg?"Reading":"Writing",
                device_kbd?"keyboard":"mouse",device_addr,device_reg);
     
     if (reg_addr&KM_READ) {
         switch (device_reg) {
             case 0:
-                Log_Printf(LOG_KMS_LEVEL, "Poll device");
+                Log_Printf(LOG_WARN, "[KMS] access Poll device");
                 break;
             case 7:
-                Log_Printf(LOG_KMS_LEVEL, "Request device revision");
+                Log_Printf(LOG_WARN, "[KMS] access Request device revision");
                 break;
             default:
-                Log_Printf(LOG_WARN, "Unknown device register");
+                Log_Printf(LOG_WARN, "[KMS] access Unknown device register");
                 break;
         }
     } else { // device write
         switch (device_reg) {
             case 0:
                 if (device_kbd) {
-                    Log_Printf(LOG_KMS_LEVEL, "Turn %s keyboard LED1",(reg_data&1)?"on":"off");
-                    Log_Printf(LOG_KMS_LEVEL, "Turn %s keyboard LED2",(reg_data&2)?"on":"off");
+                    Log_Printf(LOG_WARN, "[KMS] access Turn %s keyboard LED1",(reg_data&1)?"on":"off");
+                    Log_Printf(LOG_WARN, "[KMS] access Turn %s keyboard LED2",(reg_data&2)?"on":"off");
                     break;
                 }                
             default:
-                Log_Printf(LOG_WARN, "Unknown device register");
+                Log_Printf(LOG_WARN, "[KMS] access Unknown device register");
                 break;
         }
     }
@@ -182,24 +182,26 @@ void access_km_reg(Uint32 data) {
 void KMS_command(Uint8 command, Uint32 data) {
     switch (command) {
         case KMSCMD_KBD_RECV: // keyboard poll
+            Log_Printf(LOG_KMS_LEVEL, "[KMS] Poll mask");
+            Log_Printf(LOG_KMS_LEVEL, "[KMS] Poll Data = %08X",data);
             return;
 
         case KMSCMD_RESET:
-            Log_Printf(LOG_KMS_LEVEL, "[KMS] Reset");
-            Log_Printf(LOG_KMS_LEVEL, "[KMS] Data = %08X",data);
+            Log_Printf(LOG_WARN, "[KMS] Reset");
+            Log_Printf(LOG_WARN, "[KMS] Data = %08X",data);
             break;
         case KMSCMD_ASNDOUT:
             Log_Printf(LOG_KMS_LEVEL, "[KMS] Analog sound out");
             Log_Printf(LOG_KMS_LEVEL, "[KMS] Data = %08X",data);
             break;
         case KMSCMD_KMREG:
-            Log_Printf(LOG_KMS_LEVEL, "[KMS] Access keyboard/mouse register");
-            Log_Printf(LOG_KMS_LEVEL, "[KMS] Data = %08X",data);
+            Log_Printf(LOG_WARN, "[KMS] Access keyboard/mouse register");
+            Log_Printf(LOG_WARN, "[KMS] Data = %08X",data);
             access_km_reg(data);
             break;
         case KMSCMD_CTRLOUT:
-            Log_Printf(LOG_KMS_LEVEL, "[KMS] Access volume control logic");
-            Log_Printf(LOG_KMS_LEVEL, "[KMS] Data = %08X",data);
+            Log_Printf(LOG_WARN, "[KMS] Access control logic");
+            Log_Printf(LOG_WARN, "[KMS] Data logic = %08X",data);
             break;
         case KMSCMD_VOLCTRL:
             Log_Printf(LOG_KMS_LEVEL, "[KMS] Access volume control (simple)");
@@ -264,9 +266,17 @@ void KMS_Stat_Snd_Read(void) {
 
 void KMS_Ctrl_KM_Write(void) {
     Uint8 val = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
-    
+
     if (val&KBD_OVERRUN) {
-        kms.status.km &= ~(KBD_RECEIVED|KBD_OVERRUN);
+        kms.status.km &= ~(KBD_OVERRUN);
+        // set_interrupt(INT_KEYMOUSE, RELEASE_INT);
+    }
+    if (val&KBD_RECEIVED) {
+        kms.status.km &= ~(KBD_RECEIVED);
+        // set_interrupt(INT_KEYMOUSE, RELEASE_INT);
+    }
+    if (val&KBD_INT) {
+        kms.status.km &= ~(KBD_INT);
         set_interrupt(INT_KEYMOUSE, RELEASE_INT);
     }
     if (val&NMI_RECEIVED) {
@@ -277,9 +287,11 @@ void KMS_Ctrl_KM_Write(void) {
         kms.status.km &= ~(KMS_RECEIVED|KMS_OVERRUN);
         set_interrupt(INT_MONITOR, RELEASE_INT);
     }
+    Log_Printf(LOG_WARN, "[KMS] KM write %x new km %x",val,kms.status.km);
 }
 
 void KMS_Stat_KM_Read(void) {
+    Log_Printf(LOG_WARN, "[KMS] KM read %x",kms.status.km);
     IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = kms.status.km;
 }
 
@@ -366,6 +378,7 @@ void KMS_KM_Data_Read(void) {
     
     kms.status.km &= ~(KBD_RECEIVED|KBD_INT);
     set_interrupt(INT_KEYMOUSE, RELEASE_INT);
+    Log_Printf(LOG_WARN, "[KMS] KM read value %x new km %x",kms.km_data,kms.status.km);
 }
 
 void kms_keydown(Uint8 modkeys, Uint8 keycode) {
@@ -459,10 +472,12 @@ void kms_mouse_move(int x, bool left, int y, bool up) {
     
     kms.km_data |= m_left?0:MOUSE_LEFT_UP;
     kms.km_data |= m_right?0:MOUSE_RIGHT_UP;
-    
+ 
+   
     if (kms.status.km &KBD_RECEIVED) {
         kms.status.km |= KBD_OVERRUN;
     }
+
     kms.status.km |= (KBD_RECEIVED|KBD_INT);
     set_interrupt(INT_KEYMOUSE, SET_INT);
 }
