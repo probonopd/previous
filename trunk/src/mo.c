@@ -1542,6 +1542,12 @@ void mo_recalibrate(void) {
 }
 
 void mo_return_drive_status(void) {
+    if (!modrv[dnum].spinning) {
+        modrv[dnum].dstat|=DS_STOPPED;
+    }
+    if (!modrv[dnum].inserted) {
+        modrv[dnum].dstat|=DS_EMPTY;
+    }
     modrv[dnum].status = modrv[dnum].dstat;
     mo_set_signals(true, false, CMD_DELAY);
 }
@@ -1580,13 +1586,6 @@ void mo_select_head(int head) {
 void mo_reset_attn_status(void) {
     modrv[dnum].dstat=modrv[dnum].estat=modrv[dnum].hstat=0;
     modrv[dnum].attn=false;
-
-    if (!modrv[dnum].inserted) {
-        modrv[dnum].dstat|=DS_EMPTY;
-    } else if (!modrv[dnum].spinning) {
-        modrv[dnum].dstat|=DS_STOPPED;
-    } /* more status messages? */
-
     mo_set_signals(true, false, CMD_DELAY);
 }
 
@@ -1626,17 +1625,11 @@ void mo_eject_disk(void) {
 }
 
 void mo_insert_disk(int drv) {
-    Log_Printf(LOG_WARN, "MO disk %i: Insert %s",dnum,ConfigureParams.MO.drive[dnum].szImageName);
-    modrv[drv].inserted=true;
-    if (ConfigureParams.MO.drive[drv].bWriteProtected) {
-        modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "rb");
-        modrv[drv].protected=true;
-    } else {
-        modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "rb+");
-        modrv[drv].protected=false;
-    }
+    Log_Printf(LOG_WARN, "MO disk %i: Insert",dnum);
     
     modrv[drv].dstat|=DS_INSERT;
+    modrv[drv].spinning=false;
+    modrv[drv].spiraling=false;
     mo_set_signals(false, true, 0);
 }
 
@@ -1789,6 +1782,8 @@ void MO_Init(void) {
     int i;
     
     for (i=0; i<2; i++) {
+        modrv[i].spinning=false;
+        modrv[i].spiraling=false;
         /* Check if files exist. */
         if (ConfigureParams.MO.drive[i].bDriveConnected) {
             modrv[i].connected=true;
@@ -1830,8 +1825,20 @@ void MO_Uninit(void) {
     modrv[0].inserted = modrv[1].inserted = false;
 }
 
-void MO_Insert(int disk) {
-    mo_insert_disk(disk);
+void MO_Insert(int drive) {
+    Log_Printf(LOG_WARN, "Loading magneto-optical disks:");
+    
+    modrv[drive].inserted=true;
+    if (ConfigureParams.MO.drive[drive].bWriteProtected) {
+        modrv[drive].dsk = File_Open(ConfigureParams.MO.drive[drive].szImageName, "rb");
+        modrv[drive].protected=true;
+    } else {
+        modrv[drive].dsk = File_Open(ConfigureParams.MO.drive[drive].szImageName, "rb+");
+        modrv[drive].protected=false;
+    }
+    Log_Printf(LOG_WARN, "MO Disk%i: %s\n",drive,ConfigureParams.MO.drive[drive].szImageName);
+
+    mo_insert_disk(drive);
 }
 
 void MO_Reset(void) {
