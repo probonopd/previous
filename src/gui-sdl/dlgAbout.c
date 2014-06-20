@@ -18,10 +18,10 @@ static SGOBJ aboutdlg[] =
 {
 	{ SGBOX, 0, 0, 0,0, 40,25, NULL },
 	{ SGTEXT, 0, 0, 13,1, 12,1, PROG_NAME },
-	{ SGTEXT, 0, 0, 13,2, 12,1, "=============" },
+	{ SGTEXT, 0, 0, 13,2, 12,1, "==============" },
 	{ SGTEXT, 0, 0, 1,4, 38,1, "Written by the Previous Team." },
-	{ SGTEXT, 0, 0, 1,5, 38,1, "Derived from hatari by Thomas Huth." },
-	{ SGTEXT, 0, 0, 2,7, 34,1, "Please see the docs for more info!" },
+	{ SGTEXT, 0, 0, 1,5, 38,1, "Derived from Hatari by Thomas Huth." },
+	{ SGTEXT, 0, 0, 1,7, 38,1, "Please see the readme for more info!" },
 	{ SGTEXT, 0, 0, 1,9, 38,1, "This program is free software; you can" },
 	{ SGTEXT, 0, 0, 1,10, 38,1, "redistribute it and/or modify it under" },
 	{ SGTEXT, 0, 0, 1,11, 38,1, "the terms of the GNU General Public" },

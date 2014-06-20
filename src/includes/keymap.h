@@ -19,7 +19,7 @@ extern void Keymap_KeyDown(SDL_keysym *sdlkey);
 extern void Keymap_KeyUp(SDL_keysym *sdlkey);
 extern void Keymap_SimulateCharacter(char asckey, bool press);
 
-extern void Keymap_MouseMove(int dx, int dy);
+extern void Keymap_MouseMove(int dx, int dy, float lin, float exp);
 extern void Keymap_MouseDown(bool left);
 extern void Keymap_MouseUp(bool left);
 

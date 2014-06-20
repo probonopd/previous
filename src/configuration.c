@@ -90,6 +90,17 @@ static const struct Config_Tag configs_Keyboard[] =
 	{ NULL , Error_Tag, NULL }
 };
 
+/* Used to load/save mouse options */
+static const struct Config_Tag configs_Mouse[] =
+{
+	{ "bEnableAutoGrab", Bool_Tag, &ConfigureParams.Mouse.bEnableAutoGrab },
+    { "fLinSpeedNormal", Float_Tag, &ConfigureParams.Mouse.fLinSpeedNormal },
+	{ "fLinSpeedLocked", Float_Tag, &ConfigureParams.Mouse.fLinSpeedLocked },
+    { "fExpSpeedNormal", Float_Tag, &ConfigureParams.Mouse.fExpSpeedNormal },
+	{ "fExpSpeedLocked", Float_Tag, &ConfigureParams.Mouse.fExpSpeedLocked },
+	{ NULL , Error_Tag, NULL }
+};
+
 /* Used to load/save shortcut key bindings with modifiers options */
 static const struct Config_Tag configs_ShortCutWithMod[] =
 {
@@ -301,13 +312,11 @@ static const struct Config_Tag configs_System[] =
 	{ "bPatchTimerD", Bool_Tag, &ConfigureParams.System.bPatchTimerD },
 	{ "bFastForward", Bool_Tag, &ConfigureParams.System.bFastForward },
     
-#if ENABLE_WINUAE_CPU
     { "bAddressSpace24", Bool_Tag, &ConfigureParams.System.bAddressSpace24 },
     { "bCycleExactCpu", Bool_Tag, &ConfigureParams.System.bCycleExactCpu },
     { "n_FPUType", Int_Tag, &ConfigureParams.System.n_FPUType },
     { "bCompatibleFPU", Bool_Tag, &ConfigureParams.System.bCompatibleFPU },
     { "bMMU", Bool_Tag, &ConfigureParams.System.bMMU },
-#endif
     { NULL , Error_Tag, NULL }
     };
 
@@ -396,7 +405,14 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Keyboard.bDisableKeyRepeat = false;
 	ConfigureParams.Keyboard.nKeymapType = KEYMAP_SYMBOLIC;
 	strcpy(ConfigureParams.Keyboard.szMappingFileName, "");
-  
+
+    /* Set defaults for Mouse */
+    ConfigureParams.Mouse.fLinSpeedNormal = 1.0;
+    ConfigureParams.Mouse.fLinSpeedLocked = 1.0;
+    ConfigureParams.Mouse.fExpSpeedNormal = 1.0;
+    ConfigureParams.Mouse.fExpSpeedLocked = 1.0;
+    ConfigureParams.Mouse.bEnableAutoGrab = true;
+
 	/* Set defaults for Shortcuts */
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS] = SDLK_F12;
 	ConfigureParams.Shortcut.withoutModifier[SHORTCUT_FULLSCREEN] = SDLK_F11;
@@ -499,13 +515,11 @@ void Configuration_SetDefault(void)
 	ConfigureParams.System.bRealTimeClock = true;
 	ConfigureParams.System.bFastForward = false;
     
-#if ENABLE_WINUAE_CPU
     ConfigureParams.System.bAddressSpace24 = false;
     ConfigureParams.System.bCycleExactCpu = false;
     ConfigureParams.System.n_FPUType = FPU_68882;
     ConfigureParams.System.bCompatibleFPU = true;
     ConfigureParams.System.bMMU = true;
-#endif
 
     /* Set defaults for Video */
 #if HAVE_LIBPNG
@@ -534,6 +548,20 @@ void Configuration_SetDefault(void)
 
 /*-----------------------------------------------------------------------*/
 /**
+ * Helper function for Configuration_Apply, check mouse speed settings
+ * to be in the valid range between minimum and maximum value.
+ */
+void Configuration_CheckFloatMinMax(float *val, float min, float max)
+{
+    if (*val<min)
+        *val=min;
+    if (*val>max)
+        *val=max;
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
  * Copy details from configuration structure into global variables for system,
  * clean file names, etc...  Called from main.c and dialog.c files.
  */
@@ -551,6 +579,11 @@ void Configuration_Apply(bool bReset)
     /* Init clocks for this machine */
     ClocksTimings_InitMachine ( ConfigureParams.System.nMachineType );
     
+    /* Mouse settings */
+    Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fLinSpeedNormal,MOUSE_LIN_MIN,MOUSE_LIN_MAX);
+    Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fLinSpeedLocked,MOUSE_LIN_MIN,MOUSE_LIN_MAX);
+    Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fExpSpeedNormal,MOUSE_EXP_MIN,MOUSE_EXP_MAX);
+    Configuration_CheckFloatMinMax(&ConfigureParams.Mouse.fExpSpeedLocked,MOUSE_EXP_MIN,MOUSE_EXP_MAX);
     
 	/* Sound settings */
 	/* SDL sound buffer in ms */
@@ -768,6 +801,7 @@ void Configuration_Load(const char *psFileName)
 	Configuration_LoadSection(psFileName, configs_Keyboard, "[Keyboard]");
 	Configuration_LoadSection(psFileName, configs_ShortCutWithMod, "[ShortcutsWithModifiers]");
 	Configuration_LoadSection(psFileName, configs_ShortCutWithoutMod, "[ShortcutsWithoutModifiers]");
+    Configuration_LoadSection(psFileName, configs_Mouse, "[Mouse]");
 	Configuration_LoadSection(psFileName, configs_Sound, "[Sound]");
 	Configuration_LoadSection(psFileName, configs_Memory, "[Memory]");
 	Configuration_LoadSection(psFileName, configs_Floppy, "[Floppy]");
@@ -817,6 +851,7 @@ void Configuration_Save(void)
 	Configuration_SaveSection(sConfigFileName, configs_Keyboard, "[Keyboard]");
 	Configuration_SaveSection(sConfigFileName, configs_ShortCutWithMod, "[ShortcutsWithModifiers]");
 	Configuration_SaveSection(sConfigFileName, configs_ShortCutWithoutMod, "[ShortcutsWithoutModifiers]");
+    Configuration_SaveSection(sConfigFileName, configs_Mouse, "[Mouse]");
 	Configuration_SaveSection(sConfigFileName, configs_Sound, "[Sound]");
 	Configuration_SaveSection(sConfigFileName, configs_Memory, "[Memory]");
 	Configuration_SaveSection(sConfigFileName, configs_Floppy, "[Floppy]");
@@ -889,13 +924,11 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
 	MemorySnapShot_Store(&ConfigureParams.System.bRealTimeClock, sizeof(ConfigureParams.System.bRealTimeClock));
 	MemorySnapShot_Store(&ConfigureParams.System.bPatchTimerD, sizeof(ConfigureParams.System.bPatchTimerD));
     
-#if ENABLE_WINUAE_CPU
     MemorySnapShot_Store(&ConfigureParams.System.bAddressSpace24, sizeof(ConfigureParams.System.bAddressSpace24));
     MemorySnapShot_Store(&ConfigureParams.System.bCycleExactCpu, sizeof(ConfigureParams.System.bCycleExactCpu));
     MemorySnapShot_Store(&ConfigureParams.System.n_FPUType, sizeof(ConfigureParams.System.n_FPUType));
     MemorySnapShot_Store(&ConfigureParams.System.bCompatibleFPU, sizeof(ConfigureParams.System.bCompatibleFPU));
     MemorySnapShot_Store(&ConfigureParams.System.bMMU, sizeof(ConfigureParams.System.bMMU));
-#endif
     
     /* Other */
 	MemorySnapShot_Store(&ConfigureParams.DiskImage.bSlowFloppy, sizeof(ConfigureParams.DiskImage.bSlowFloppy));

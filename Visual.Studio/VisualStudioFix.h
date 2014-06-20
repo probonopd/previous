@@ -24,6 +24,10 @@
 	#pragma warning (disable:4049)		// (this one is silly, its not important) compiler limit, end of line numbering
 	#pragma warning (disable:4800)		// Performance Warning on Conversion of bool to int
 	#pragma warning (disable:4805)		// warning C4805: '|=' : unsafe mix of type 'int' and type 'bool' in operation
+
+	#ifndef __STDC__
+	#define	__STDC__	TRUE
+	#endif
 #endif
 
  /*
@@ -36,7 +40,7 @@
   * some of the function names for HAtari to compile..
   *
   * 2009 Vaughan Kaufman
-  *
+  * 2013 Vaughan Kaufman (revised for PrEv, NeXt Emulator)
   */
 
 #if defined(_VCWIN_)
@@ -50,15 +54,35 @@
 
 	#include <dirent.h>
 
+	#if !defined TCHAR
+	#define TCHAR	char
+	#endif
+
+#ifndef PATH_MAX
+#define PATH_MAX MAX_PATH
+#endif
+
 	#define	stat	_stat
+	#ifdef S_IRUSR
+	#undef S_IRUSR
+	#endif
 	#define	S_IRUSR			_S_IREAD
+	#ifdef S_IWUSR
+	#undef S_IWUSR
+	#endif
 	#define	S_IWUSR			_S_IWRITE
+	#ifdef S_ISDIR
+	#undef S_ISDIR
+	#endif
 	#define S_ISDIR(val)	(_S_IFDIR & val)
+	#ifdef S_IFDIR
+	#undef S_IFDIR
+	#endif
 	#define	S_IFDIR			_S_IFDIR
 
 	#define	strncasecmp	_strnicmp
 	#ifndef strcasecmp
-	#define	strcasecmp	_stricmp
+		#define	strcasecmp	_stricmp
 	#endif
 	#define	chdrive		_chdrive
 	#define strdup		_strdup
@@ -67,10 +91,10 @@
 	#define unlink		_unlink
 	#define access		_access
 	#ifndef mkdir
-	#define mkdir(name,mode) _mkdir(name)
+//		#define mkdir(name,mode) _mkdir(name)
 	#endif
 	#define	rmdir		_rmdir
-	#define	chmod		_chmod
+//	#define	chmod		_chmod
 	#define	itoa		_itoa
 	#define	stricmp		_stricmp
 	#define snprintf	_snprintf
@@ -80,45 +104,64 @@
 
 	 // For new UI
 
-	typedef unsigned short	mode_t;
-
 	#ifndef _NEW_UI_TYPES
 	#define _NEW_UI_TYPES
+		typedef unsigned short		mode_t;
+		
+		#define	off_t	mode_t
+
 		typedef signed __int8		int8;
 		typedef unsigned __int8		uint8;
+		typedef unsigned __int8		Uint8;
 		typedef signed __int16		int16;
 		typedef unsigned __int16	uint16;
+		typedef unsigned __int16	Uint16;
 		typedef signed __int32		int32;
 		typedef unsigned __int32	uint32;
+		typedef unsigned __int32	Uint32;
 		typedef signed __int64		int64;
 		typedef unsigned __int64	uint64;
 		typedef void*				memptr;
 	#endif
 
-	typedef signed __int8		int8_t;
+	#ifndef __inline__	
+	#define __inline__	__inline
+	#endif
+
+//	#include "..\SDL\include\SDL_config_win32.h"
+
+/*	 // Found in SDL_Config_Win32.h
+	#define	int8_t	signed __int8
+	#define uint8_t	unsigned __int8		
+	#define int16_t signed __int16
+	#define uint16_t unsigned __int16
+	#define int32_t signed __int32
+	#define	uint32_t unsigned __int32
+	#define	int64_t	signed __int64
+	#define	uint64_t unsigned __int64	
+*/
+
+/*	typedef signed __int8		int8_t;
 	typedef unsigned __int8		uint8_t;
 	typedef signed __int16		int16_t;
 	typedef unsigned __int16	uint16_t;
 	typedef signed __int32		int32_t;
 	typedef unsigned __int32	uint32_t;
 	typedef signed __int64		int64_t;
-	typedef unsigned __int64	uint64_t;
-
-	#ifndef __inline__	
-	#define __inline__	__inline
-	#endif
+	typedef unsigned __int64	uint64_t;	
+*/
 
 		/* The variable-types used in the CPU core: */
-	typedef uint8_t uae_u8;
-	typedef int8_t uae_s8;
+	typedef unsigned __int8 uae_u8;
+	typedef signed __int8 uae_s8;
 
-	typedef uint16_t uae_u16;
-	typedef int16_t uae_s16;
+	typedef unsigned __int16 uae_u16;
+	typedef signed __int16 uae_s16;
 
-	typedef uint32_t uae_u32;
-	typedef int32_t uae_s32;
+//	typedef unsigned __int16 uae_u32;	// Found in SysDeps.h
+	typedef signed __int32 uae_s32;
 
-	typedef uae_u32 uaecptr;
+	typedef signed __int32 uaecptr;
 
 	extern	void LOG_TRACE(int level, ...);
 	extern	void LOG_TRACE_PRINT(char* strFirstString, ...);
@@ -133,3 +176,5 @@
 	extern	void Win_OpenCon(void);
 
 #endif
+
+#define HAVE_UNIX_DOMAIN_SOCKETS 0

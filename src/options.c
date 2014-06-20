@@ -104,13 +104,13 @@ enum {
 	OPT_CPULEVEL,		/* CPU options */
 	OPT_CPUCLOCK,
 	OPT_COMPATIBLE,
-#if ENABLE_WINUAE_CPU
+
 	OPT_CPU_CYCLE_EXACT,	/* WinUAE CPU/FPU/bus options */
 	OPT_CPU_ADDR24,
 	OPT_FPU_TYPE,
 	OPT_FPU_COMPATIBLE,
 	OPT_MMU,
-#endif
+
 	OPT_MACHINE,		/* system options */
 	OPT_BLITTER,
 	OPT_DSP,
@@ -290,7 +290,6 @@ static const opt_t HatariOptions[] = {
 	{ OPT_COMPATIBLE, NULL, "--compatible",
 	  "<bool>", "Use a more compatible (but slower) 68000 CPU mode" },
 
-#if ENABLE_WINUAE_CPU
 	{ OPT_HEADER, NULL, NULL, NULL, "WinUAE CPU/FPU/bus" },
 	{ OPT_CPU_CYCLE_EXACT, NULL, "--cpu-exact",
 	  "<bool>", "Use cycle exact CPU emulation" },
@@ -302,7 +301,6 @@ static const opt_t HatariOptions[] = {
 	  "<bool>", "Use more compatible, but slower FPU emulation" },
 	{ OPT_MMU, NULL, "--mmu",
 	  "<bool>", "Use MMU emulation" },
-#endif
 
 	{ OPT_HEADER, NULL, NULL, NULL, "Misc system" },
 	{ OPT_MACHINE,   NULL, "--machine",
@@ -1400,7 +1398,6 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 			bLoadAutoSave = false;
 			break;
 
-#if ENABLE_WINUAE_CPU
 		case OPT_CPU_ADDR24:
 			ok = Opt_Bool(argv[++i], OPT_CPU_ADDR24, &ConfigureParams.System.bAddressSpace24);
 			bLoadAutoSave = false;
@@ -1444,8 +1441,8 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 			ok = Opt_Bool(argv[++i], OPT_MMU, &ConfigureParams.System.bMMU);
 			bLoadAutoSave = false;
 			break;			
-#endif
-		case OPT_YM_MIXING:
+
+        case OPT_YM_MIXING:
 			i += 1;
 			if (strcasecmp(argv[i], "linear") == 0)
 			{

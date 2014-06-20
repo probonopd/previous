@@ -5,14 +5,14 @@ CFLAGS += -I../includes $(SDL_CFLAGS)
 
 GUIWINOBJS = opencon.o
 
-all: gui-win.a hatari-winicon.o
+all: gui-win.a previous-winicon.o
 
 gui-win.a: $(GUIWINOBJS)
 	$(AR) cru $@ $^
 	$(RANLIB) $@
 
 hatari-winicon.o:
-	$(WINDRES) -o hatari-winicon.o hatari-winicon.rc
+	$(WINDRES) -o previous-winicon.o previous-winicon.rc
 
 clean distclean:
 	$(RM) *.o

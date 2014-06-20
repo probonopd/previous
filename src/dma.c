@@ -693,6 +693,19 @@ void dma_mo_write_memory(void) {
     dma_interrupt(CHANNEL_DISK);
 }
 
+void dma_mo_flush_buffer(void) {
+    if (dma[CHANNEL_DISK].next<dma[CHANNEL_DISK].limit && modma_buf_size==DMA_BURST_SIZE) {
+        Log_Printf(LOG_WARN, "[DMA] Channel MO: Flush buffer to memory at $%08x",dma[CHANNEL_DISK].next);
+        while (modma_buf_size>0) {
+            NEXTMemory_WriteLong(dma[CHANNEL_DISK].next, dma_getlong(modma_buf, DMA_BURST_SIZE-modma_buf_size));
+            dma[CHANNEL_DISK].next+=4;
+            modma_buf_size-=4;
+        }
+    }
+
+    dma_interrupt(CHANNEL_DISK);
+}
+
 void dma_mo_read_memory(void) {
     Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: Read from memory at $%08x, %i bytes",
                dma[CHANNEL_DISK].next,dma[CHANNEL_DISK].limit-dma[CHANNEL_DISK].next);
@@ -712,7 +725,7 @@ void dma_mo_read_memory(void) {
     
     TRY(prb) {
         if (modma_buf_size>0) {
-            Log_Printf(LOG_WARN, "[DMA] Channel MO: %i residual bytes in DMA buffer.", modma_buf_size);
+            Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: %i residual bytes in DMA buffer.", modma_buf_size);
             while (modma_buf_size>0) {
                 ecc_buffer[eccin].data[ecc_buffer[eccin].size]=modma_buf[modma_buf_limit-modma_buf_size];
                 ecc_buffer[eccin].size++;

@@ -1,16 +1,11 @@
 /*
-  Hatari - dlgSystem.c
+  Previous - dlgSystem.c
 
   This file is distributed under the GNU Public License, version 2 or at
   your option any later version. Read the file gpl.txt for details.
 
- This file contains 2 system panels :
-    - 1 for the old uae CPU
-    - 1 for the new WinUae cpu
-
- The selection is made during compilation with the ENABLE_WINUAE_CPU define
-
 */
+
 const char DlgSystem_fileid[] = "Hatari dlgSystem.c : " __DATE__ " " __TIME__;
 
 #include "main.h"
@@ -301,14 +296,7 @@ void Dialog_SystemDlg(void)
     while (but != DLGSYS_EXIT && but != SDLGUI_QUIT
            && but != SDLGUI_ERROR && !bQuitProgram);
     
- 
- 	/* Read values from dialog: */
- 
-//    if (systemdlg[DLGSYS_CUBE030].state&SG_SELECTED)
-//        ConfigureParams.System.nMachineType = NEXT_CUBE030;
-//    else if (systemdlg[DLGSYS_SLAB].state&SG_SELECTED)
-//        ConfigureParams.System.nMachineType = NEXT_STATION;
-     
+  
     /* Obsolete */
  	ConfigureParams.System.bCompatibleCpu = 1;
  	ConfigureParams.System.bBlitter = 0;

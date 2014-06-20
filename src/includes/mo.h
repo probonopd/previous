@@ -1,5 +1,6 @@
 void MO_Reset(void);
 void MO_Insert(int disk);
+void MO_Eject(int disk);
 
 void MO_InterruptHandler(void);
 void MO_IO_Handler(void);

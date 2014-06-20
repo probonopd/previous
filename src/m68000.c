@@ -19,9 +19,7 @@ const char M68000_fileid[] = "Hatari m68000.c : " __DATE__ " " __TIME__;
 #include "savestate.h"
 #include "nextMemory.h"
 
-#if ENABLE_WINUAE_CPU
 #include "mmu_common.h"
-#endif
 
 Uint32 BusErrorAddress;         /* Stores the offending address for bus-/address errors */
 Uint32 BusErrorPC;              /* Value of the PC when bus error occurs */
@@ -154,7 +152,6 @@ void M68000_Init(void)
  */
 void M68000_Reset(bool bCold)
 {
-#if ENABLE_WINUAE_CPU
     if (bCold)
     {
         /* Clear registers, but we need to keep SPCFLAG_MODE_CHANGE and SPCFLAG_BRK unchanged */
@@ -164,15 +161,6 @@ void M68000_Reset(bool bCold)
     }
     /* Now reset the WINUAE CPU core */
     m68k_reset(bCold);
-#else /* UAE CPU core */
-    if (bCold)
-    {
-        /* Clear registers */
-        memset(&regs, 0, sizeof(regs));
-    }
-    /* Now reset the UAE CPU core */
-    m68k_reset();
-#endif
     BusMode = BUS_MODE_CPU;
 }
 
@@ -231,7 +219,6 @@ void M68000_CheckCpuSettings(void)
 	changed_prefs.cpu_level = ConfigureParams.System.nCpuLevel;
 	changed_prefs.cpu_compatible = ConfigureParams.System.bCompatibleCpu;
 
-#if ENABLE_WINUAE_CPU
 	switch (changed_prefs.cpu_level) {
 		case 0 : changed_prefs.cpu_model = 68000; break;
 		case 1 : changed_prefs.cpu_model = 68010; break;
@@ -242,12 +229,24 @@ void M68000_CheckCpuSettings(void)
 		default: fprintf (stderr, "Init680x0() : Error, cpu_level unknown\n");
 	}
 
+    changed_prefs.fpu_model = ConfigureParams.System.n_FPUType;
+    switch (changed_prefs.fpu_model) {
+        case 68881: changed_prefs.fpu_revision = 0x1f; break;
+        case 68882: changed_prefs.fpu_revision = 0x20; break;
+        case 68040:
+            if (ConfigureParams.System.bTurbo)
+                changed_prefs.fpu_revision = 0x41;
+            else
+                changed_prefs.fpu_revision = 0x40;
+            break;
+		default: fprintf (stderr, "Init680x0() : Error, fpu_model unknown\n");
+    }
+
 	changed_prefs.address_space_24 = ConfigureParams.System.bAddressSpace24;
 	changed_prefs.cpu_cycle_exact = ConfigureParams.System.bCycleExactCpu;
-	changed_prefs.fpu_model = ConfigureParams.System.n_FPUType;
 	changed_prefs.fpu_strict = ConfigureParams.System.bCompatibleFPU;
 	changed_prefs.mmu_model = ConfigureParams.System.bMMU?changed_prefs.cpu_model:0;
-#endif
+
 	if (table68k)
 		check_prefs_changed_cpu();
 }
@@ -260,10 +259,8 @@ void M68000_CheckCpuSettings(void)
 void M68000_MemorySnapShot_Capture(bool bSave)
 {
 	Uint32 savepc;
-#if ENABLE_WINUAE_CPU
 	int len;
 	uae_u8 *chunk = 0;
-#endif
 
 	/* For the UAE CPU core: */
 	MemorySnapShot_Store(&currprefs.address_space_24,
@@ -316,13 +313,8 @@ void M68000_MemorySnapShot_Capture(bool bSave)
 	MemorySnapShot_Store(&regs.dfc, sizeof(regs.dfc));            /* DFC */
 	MemorySnapShot_Store(&regs.sfc, sizeof(regs.sfc));            /* SFC */
 	MemorySnapShot_Store(&regs.vbr, sizeof(regs.vbr));            /* VBR */
-#if ENABLE_WINUAE_CPU
 	MemorySnapShot_Store(&regs.caar, sizeof(regs.caar));          /* CAAR */
 	MemorySnapShot_Store(&regs.cacr, sizeof(regs.cacr));          /* CACR */
-#else
-	MemorySnapShot_Store(&caar, sizeof(caar));                    /* CAAR */
-	MemorySnapShot_Store(&cacr, sizeof(cacr));                    /* CACR */
-#endif
 	MemorySnapShot_Store(&regs.msp, sizeof(regs.msp));            /* MSP */
 
 	if (!bSave)
@@ -338,17 +330,10 @@ void M68000_MemorySnapShot_Capture(bool bSave)
 			m68k_areg(regs, 7) = regs.usp;
 	}
 
-#if ENABLE_WINUAE_CPU
 	if (bSave)
 		save_fpu(&len,0);
 	else
 		restore_fpu(chunk);
-#else
-	if (bSave)
-		save_fpu();
-	else
-		restore_fpu();
-#endif
 }
 
 
@@ -374,7 +359,7 @@ void M68000_BusError(Uint32 addr, bool bRead)
         regs.mmu_fault_addr = addr;
 		BusErrorAddress = addr;				/* Store for exception frame */
 		bBusErrorReadWrite = bRead;
-#if ENABLE_WINUAE_CPU
+
         if (currprefs.mmu_model) {
             /* This is a hack for the special status word, this needs to be corrected later */
             if (ConfigureParams.System.nCpuLevel==3) { /* CPU 68030 */
@@ -393,7 +378,7 @@ void M68000_BusError(Uint32 addr, bool bRead)
             THROW(2);
             return;
         }
-#endif
+
 		M68000_SetSpecial(SPCFLAG_BUSERROR);		/* The exception will be done in newcpu.c */
 	}
 }
@@ -430,15 +415,8 @@ void M68000_Exception(Uint32 ExceptionVector , int ExceptionSource)
 		}
 
 		/* 68k exceptions are handled by Exception() of the UAE CPU core */
-#if ENABLE_WINUAE_CPU
 		Exception(exceptionNr/*, m68k_getpc(), ExceptionSource*/);
-#else
-#ifdef UAE_NEWCPU_H
-		Exception(exceptionNr, m68k_getpc(), ExceptionSource);
-#else
-		Exception(exceptionNr, &regs, m68k_getpc(&regs));
-#endif
-#endif
+
 		SR = M68000_GetSR();
 
 		/* Set Status Register so interrupt can ONLY be stopped by another interrupt

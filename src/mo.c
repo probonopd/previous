@@ -13,9 +13,7 @@
 
 /* TODO:
  * - Add support for DMA and ECC starve
- * - Add support for ECC uncorrectable sector errors
- * - Modify Reed Solomon ECC encoder to produce
- *   same parity bytes as real hardware
+ * - Check support for ECC uncorrectable sector errors
  * - Improve drive error handling (attn conditions)
  */
 
@@ -30,11 +28,11 @@
 #include "rs.h"
 #include "statusbar.h"
 
-#define REAL_ECC    1
 
 #define LOG_MO_REG_LEVEL    LOG_DEBUG
-#define LOG_MO_CMD_LEVEL    LOG_WARN
-#define LOG_MO_ECC_LEVEL    LOG_WARN
+#define LOG_MO_CMD_LEVEL    LOG_DEBUG
+#define LOG_MO_ECC_LEVEL    LOG_DEBUG
+#define LOG_MO_IO_LEVEL     LOG_DEBUG
 
 #define IO_SEG_MASK	0x1FFFF
 
@@ -169,8 +167,6 @@ int dnum;
 #define MO_SECTORSIZE_DISK  1296 /* size of encoded sector, like stored on disk */
 #define MO_SECTORSIZE_DATA  1024 /* size of decoded sector, like handled by software */
 
-#define MO_SECTORSIZE_DISK_HACK 1024 /* while ECC is not fully emulated */
-
 
 Uint32 get_logical_sector(Uint32 sector_id) {
     Sint32 tracknum = (sector_id&0xFFFF00)>>8;
@@ -200,10 +196,11 @@ void MO_Init(void);
 void MO_Uninit(void);
 
 /* Experimental */
-#define SECTOR_IO_DELAY 5000
-#define CMD_DELAY       2000
+#define SECTOR_IO_DELAY 2500
+#define CMD_DELAY       1000
 
 void mo_set_signals(bool complete, bool attn, int delay);
+void mo_push_signals(bool complete, bool attn, int drive);
 void osp_poll_mo_signals(void);
 
 void ecc_read(void);
@@ -228,7 +225,7 @@ void mo_select_head(int head);
 void mo_reset_attn_status(void);
 void mo_stop_spinning(void);
 void mo_start_spinning(void);
-void mo_eject_disk(void);
+void mo_eject_disk(int drv);
 void mo_start_spiraling(void);
 void mo_stop_spiraling(void);
 void mo_self_diagnostic(void);
@@ -299,15 +296,15 @@ void MO_IntStatus_Read(void) { // 0x02012004
 
 void MO_IntStatus_Write(void) {
     Uint8 val = IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
+    osp_poll_mo_signals();
     mo.intstatus &= ~(val&MOINT_OSP_MASK);
  	Log_Printf(LOG_MO_REG_LEVEL,"[MO] Interrupt status write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
-    /* TODO: check if correct */
-    if (((mo.intstatus&MOINT_OSP_MASK)&mo.intmask)==0) {
+
+    if ((mo.intstatus&mo.intmask)==0) {
         set_interrupt(INT_DISK, RELEASE_INT);
     }
     if (val&MOINT_GPO) {
         Log_Printf(LOG_WARN,"[OSP] General purpose output (unimplemented)\n");
-        //abort();
     }
     if (val&MOINT_RESET) {
         Log_Printf(LOG_MO_CMD_LEVEL,"[MO] Hard reset\n");
@@ -323,6 +320,13 @@ void MO_IntMask_Read(void) { // 0x02012005
 void MO_IntMask_Write(void) {
     mo.intmask=IoMem[IoAccessCurrentAddress & IO_SEG_MASK];
  	Log_Printf(LOG_MO_REG_LEVEL,"[MO] Interrupt mask write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+
+    osp_poll_mo_signals();
+    if ((mo.intstatus&mo.intmask)==0) {
+        set_interrupt(INT_DISK, RELEASE_INT);
+    } else {
+        set_interrupt(INT_DISK, SET_INT);
+    }
 }
 
 void MOctrl_CSR2_Read(void) { // 0x02012006
@@ -538,6 +542,7 @@ void mo_formatter_cmd(void) {
         fmt_mode = FMT_MODE_IDLE;
         ecc_state = ECC_STATE_DONE;
         mo.ecc_cnt=0;
+        mo.err_stat=0;
         return;
     }
     if (mo.ctrlr_csr1&FMT_ECC_READ) {
@@ -763,187 +768,6 @@ void mo_formatter_cmd2(void) {
     osp_select(mo.ctrlr_csr2&MOCSR2_DRIVE_SEL);
 }
 
-bool ecc_repeat=false; /* This is for ECC blocks */
-
-
-#if REAL_ECC
-void rs_encode(Uint8 *sector_buf) {
-    Uint8 data_buf[32];
-    Uint8 rs_buf[36];
-    
-    int r,c;
-    int i;
-    
-    /* build structure for encoded sector */
-    for (r=31; r>=0; r--) {
-        for (c=31; c>=0; c--) {
-            sector_buf[c+36*r]=sector_buf[c+32*r];
-        }
-    }
-    /* reset rs buffer */
-    for (i=0; i<36; i++) {
-        rs_buf[i]=0;
-    }
-    
-    /* encode columns */
-    for (c=0; c<32; c++) {
-        /* copy row to rs buffer */
-        for (r=0; r<32; r++) {
-            data_buf[r]=sector_buf[c+36*r];
-        }
-        /* encode */
-        encode_data(data_buf, 32, rs_buf);
-        
-        /* copy parity bytes to sector buffer */
-        for (r=32; r<36; r++) {
-            sector_buf[c+36*r]=rs_buf[r];
-        }
-    }
-    
-    /* encode rows */
-    for (r=0; r<36; r++) {
-        /* copy column to rs buffer */
-        for (c=0; c<32; c++) {
-            data_buf[c]=sector_buf[c+36*r];
-        }
-        /* encode */
-        encode_data(data_buf, 32, rs_buf);
-        
-        /* copy parity bytes to sector buffer */
-        for (c=32; c<36; c++) {
-            sector_buf[c+36*r]=rs_buf[c];
-        }
-    }
-#if 0
-    /* print the result */
-    for (r=0; r<36; r++) {
-        for (c=0; c<36; c++) {
-            printf("%02X ",sector_buf[c+r*36]);
-            if (c%8==7) {
-                printf(" ");
-            }
-        }
-        printf("\n");
-    }
-#endif
-}
-
-void rs_decode(Uint8 *sector_buf)
-{
-    int c,r;
-    int i,e;
-    int erasures[36];
-    int num_erasures=0;
-    int num_errors=0;
-    
-    Uint8 rs_buf[36];
-    Uint8 ecc_buf[1296];
-    
-    memcpy(ecc_buf, sector_buf, 1296);
-    
-#if 0
-    /* print the result */
-    for (r=0; r<36; r++) {
-        for (c=0; c<36; c++) {
-            printf("%02X ",ecc_buf[c+r*36]);
-            if (c%8==7) {
-                printf(" ");
-            }
-        }
-        printf("\n");
-    }
-#endif
-    
-    /* reset rs buffer */
-    for (i=0; i<36; i++) {
-        rs_buf[i]=0;
-    }
-    
-    /* decode rows */
-    for (r=0; r<36; r++) {
-        /* fill with encoded data */
-        for (c=0; c<36; c++) {
-            rs_buf[c]=ecc_buf[c+36*r];
-        }
-        
-        decode_data(rs_buf, 36);
-        e=0;
-        if (check_syndrome()!=0) {
-            e=correct_errors_erasures(rs_buf, 36, 0, NULL);
-        }
-        if (e==-1) {
-            erasures[num_erasures]=r; /* this row is bad */
-            num_erasures++;
-        } else {
-            num_errors+=e;
-        }
-        
-        /* copy back to ecc buffer */
-        for (c=0; c<32; c++) {
-            ecc_buf[c+36*r]=rs_buf[c];
-        }
-    }
-    
-    /* print erasures */
-    printf("Erased rows:");
-    for (i=0; i<num_erasures; i++) {
-        printf(" %i",erasures[i]);
-    }
-    printf("\n");
-    
-    num_erasures=0;
-
-    
-    /* decode columns */
-    for (c=0; c<32; c++) {
-        /* fill with encoded data */
-        for (r=0; r<36; r++) {
-            rs_buf[r]=ecc_buf[c+36*r];
-        }
-        
-        decode_data(rs_buf, 36);
-        e=0;
-        if (check_syndrome()!=0) {
-            e=correct_errors_erasures(rs_buf, 36, 0, NULL);
-        }
-        if (e==-1) {
-            erasures[num_erasures]=c; /* this column is bad */
-            num_erasures++;
-        } else {
-            num_errors+=e;
-        }
-        
-        /* copy back to sector buffer */
-        for (r=0; r<32; r++) {
-            sector_buf[c+32*r]=rs_buf[r];
-        }
-    }
-    
-    /* print erasures */
-    printf("Uncorrectable columns:");
-    for (i=0; i<num_erasures; i++) {
-        printf(" %i",erasures[i]);
-    }
-    printf("\n");
-    
-    /* print error count */
-    printf("Number of corrected errors: %i\n",num_errors);
-#if 0
-    for (r=0; r<32; r++) {
-        for (c=0; c<32; c++) {
-            printf("%02X ",sector_buf[c+r*32]);
-            if (c%8==7) {
-                printf(" ");
-            }
-        }
-        printf("\n");
-    }
-#endif
-    if (mo.ecc_cnt==0) {
-        mo.ecc_cnt=num_errors;
-    }
-}
-#endif
 
 /* ECC emulation:
  *
@@ -961,7 +785,9 @@ void rs_decode(Uint8 *sector_buf)
  *
  */
 
-#define ECC_DELAY SECTOR_IO_DELAY/4 /* must be a fraction of sector delay */
+#define ECC_DELAY SECTOR_IO_DELAY/5 /* must be a fraction of sector delay */
+
+bool ecc_repeat=false; /* This is for ECC blocks */
 
 int eccin=0;
 int eccout=1;
@@ -975,11 +801,22 @@ void ecc_decode(void) {
     } else if (ecc_buffer[eccin].size==MO_SECTORSIZE_DISK) {
         Log_Printf(LOG_MO_ECC_LEVEL, "[OSP] ECC decoding buffer.");
         ecc_buffer[eccin].limit=ecc_buffer[eccin].size=MO_SECTORSIZE_DATA;
-#if REAL_ECC
-        if (mo.ctrlr_csr2&MOCSR2_ECC_DIS) { /* TODO: remove once we have encoded disk images */
-            rs_decode(ecc_buffer[eccin].data);
+        
+        int num_errors = rs_decode(ecc_buffer[eccin].data);
+        
+        if (num_errors<0) {
+            Log_Printf(LOG_WARN, "[OSP] ECC: Sector has uncorrectable errors!");
+            mo.err_stat = ERRSTAT_ECC;
+            osp_interrupt(MOINT_DATA_ERR);
+            /* CHECK: Stop ECC and formatter? */
+        } else {
+            Log_Printf(LOG_MO_ECC_LEVEL, "[OSP] ECC: Number of corrected errors: %i\n",num_errors);
+            
+            if (mo.ecc_cnt==0) {
+                mo.ecc_cnt=num_errors;
+            }
         }
-#endif
+        
         ecc_toggle_buffer();
     } else {
         Log_Printf(LOG_WARN, "[OSP] ECC buffer is not ready (%i bytes)!",ecc_buffer[eccin].size);
@@ -995,11 +832,9 @@ void ecc_encode(void) {
     } else if (ecc_buffer[eccin].limit==MO_SECTORSIZE_DATA) {
         Log_Printf(LOG_MO_ECC_LEVEL, "[OSP] ECC encoding buffer.");
         ecc_buffer[eccin].limit=ecc_buffer[eccin].size=MO_SECTORSIZE_DISK;
-#if REAL_ECC
-        if (mo.ctrlr_csr2&MOCSR2_ECC_DIS) { /* TODO: remove once we have encoded disk images */
-            rs_encode(ecc_buffer[eccin].data);
-        }
-#endif
+
+        rs_encode(ecc_buffer[eccin].data);
+
         ecc_toggle_buffer();
     } else {
         Log_Printf(LOG_WARN, "[OSP] ECC buffer is not ready (%i bytes)!",ecc_buffer[eccin].size);
@@ -1081,7 +916,8 @@ void ECC_IO_Handler(void) {
                         ecc_sequence_done();
                     } else {
                         Log_Printf(LOG_WARN,"[OSP] No more data! ECC starve!");
-                        abort();
+                        mo.err_stat = ERRSTAT_STARVE;
+                        osp_interrupt(MOINT_DATA_ERR);
                     }
                 }
             }
@@ -1136,6 +972,7 @@ void ECC_IO_Handler(void) {
                 return;
             }
             if (ecc_buffer[eccout].size==0) {
+                dma_mo_flush_buffer(); /* Flush buffer, FIXME: find better way */
                 ecc_sequence_done();
                 return;
             }
@@ -1167,12 +1004,12 @@ void ECC_IO_Handler(void) {
 void mo_read_sector(Uint32 sector_id) {
     Uint32 sector_num = get_logical_sector(sector_id);
     
-    Log_Printf(LOG_WARN, "MO disk %i: Read sector at offset %i (%i sectors remaining)",
+    Log_Printf(LOG_MO_IO_LEVEL, "MO disk %i: Read sector at offset %i (%i sectors remaining)",
                dnum, sector_num, sector_counter-1);
     
     /* seek to the position */
-	fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK_HACK, SEEK_SET);
-    fread(ecc_buffer[eccin].data, MO_SECTORSIZE_DISK_HACK, 1, modrv[dnum].dsk);
+	fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK, SEEK_SET);
+    fread(ecc_buffer[eccin].data, MO_SECTORSIZE_DISK, 1, modrv[dnum].dsk);
     
     ecc_buffer[eccin].limit = ecc_buffer[eccin].size = MO_SECTORSIZE_DISK;
 }
@@ -1180,49 +1017,45 @@ void mo_read_sector(Uint32 sector_id) {
 void mo_write_sector(Uint32 sector_id) {
     Uint32 sector_num = get_logical_sector(sector_id);
     
-    Log_Printf(LOG_WARN, "MO disk %i: Write sector at offset %i (%i sectors remaining)",
+    Log_Printf(LOG_MO_IO_LEVEL, "MO disk %i: Write sector at offset %i (%i sectors remaining)",
                dnum, sector_num, sector_counter-1);
     
     if (ecc_buffer[eccout].limit==MO_SECTORSIZE_DISK) {
         /* seek to the position */
-#if 1
-        fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK_HACK, SEEK_SET);
-        fwrite(ecc_buffer[eccout].data, MO_SECTORSIZE_DISK_HACK, 1, modrv[dnum].dsk);
-#else
-        Log_Printf(LOG_WARN, "MO Warning: File write disabled!");
-#endif
+        fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK, SEEK_SET);
+        fwrite(ecc_buffer[eccout].data, MO_SECTORSIZE_DISK, 1, modrv[dnum].dsk);
+
         ecc_buffer[eccout].size = 0;
         ecc_buffer[eccout].limit = MO_SECTORSIZE_DATA;
+    } else {
+        mo.err_stat = ERRSTAT_STARVE;
+        osp_interrupt(MOINT_DATA_ERR);
     }
 }
 
 void mo_erase_sector(Uint32 sector_id) {
     Uint32 sector_num = get_logical_sector(sector_id);
     
-    Log_Printf(LOG_WARN, "MO disk %i: Erase sector at offset %i (%i sectors remaining)",
+    Log_Printf(LOG_MO_IO_LEVEL, "MO disk %i: Erase sector at offset %i (%i sectors remaining)",
                dnum, sector_num, sector_counter-1);
     
     Uint8 erase_buf[MO_SECTORSIZE_DISK];
-    memset(erase_buf, 0, MO_SECTORSIZE_DISK);
+    memset(erase_buf, 0xFF, MO_SECTORSIZE_DISK);
     
     /* seek to the position */
-#if 0
-    fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK_HACK, SEEK_SET);
-    fwrite(erase_buf, MO_SECTORSIZE_DISK_HACK, 1, modrv[dnum].dsk);
-#else
-    Log_Printf(LOG_WARN, "MO Warning: File write disabled!");
-#endif
+    fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK, SEEK_SET);
+    fwrite(erase_buf, MO_SECTORSIZE_DISK, 1, modrv[dnum].dsk);
 }
 
 void mo_verify_sector(Uint32 sector_id) {
     Uint32 sector_num = get_logical_sector(sector_id);
     
-    Log_Printf(LOG_WARN, "MO disk %i: Verify sector at offset %i (%i sectors remaining)",
+    Log_Printf(LOG_MO_IO_LEVEL, "MO disk %i: Verify sector at offset %i (%i sectors remaining)",
                dnum, sector_num, sector_counter-1);
     
     /* seek to the position */
-	fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK_HACK, SEEK_SET);
-    fread(ecc_buffer[eccin].data, MO_SECTORSIZE_DISK_HACK, 1, modrv[dnum].dsk);
+	fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK, SEEK_SET);
+    fread(ecc_buffer[eccin].data, MO_SECTORSIZE_DISK, 1, modrv[dnum].dsk);
     
     ecc_buffer[eccin].limit = ecc_buffer[eccin].size = MO_SECTORSIZE_DISK;
 }
@@ -1412,7 +1245,7 @@ void mo_drive_cmd(void) {
                 break;
             case DRV_EC:
                 Log_Printf(LOG_MO_CMD_LEVEL,"[MO] Drive command: Eject (%04X)\n", command);
-                mo_eject_disk();
+                mo_eject_disk(-1);
                 break;
             case DRV_SOO:
                 Log_Printf(LOG_MO_CMD_LEVEL,"[MO] Drive command: Start Spiraling (%04X)\n", command);
@@ -1607,30 +1440,44 @@ void mo_start_spinning(void) {
     mo_set_signals(true, false, CMD_DELAY);
 }
 
-void mo_eject_disk(void) {
-    if (mo_drive_empty()) {
-        return;
+void mo_eject_disk(int drv) {
+    if (drv<0) { /* Called from emulator, else called from GUI */
+        drv=dnum;
+        if (mo_drive_empty())
+            return;
+        
+        mo_set_signals(true, false, CMD_DELAY);
     }
 
-    Log_Printf(LOG_WARN, "MO disk %i: Eject",dnum);
+    Log_Printf(LOG_WARN, "MO disk %i: Eject",drv);
     
-    File_Close(modrv[dnum].dsk);
-    modrv[dnum].dsk=NULL;
-    modrv[dnum].inserted=false;
+    File_Close(modrv[drv].dsk);
+    modrv[drv].dsk=NULL;
+    modrv[drv].inserted=false;
+    modrv[drv].spinning=false;
+    modrv[drv].spiraling=false;
     
-    ConfigureParams.MO.drive[dnum].bDiskInserted=false;
-    ConfigureParams.MO.drive[dnum].szImageName[0]='\0';
-    
-    mo_set_signals(true, false, CMD_DELAY);
+    ConfigureParams.MO.drive[drv].bDiskInserted=false;
+    ConfigureParams.MO.drive[drv].szImageName[0]='\0';
 }
 
 void mo_insert_disk(int drv) {
-    Log_Printf(LOG_WARN, "MO disk %i: Insert",dnum);
+    Log_Printf(LOG_WARN, "MO disk %i: Insert",drv);
     
+    if (ConfigureParams.MO.drive[drv].bWriteProtected) {
+        modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "rb");
+        modrv[drv].protected=true;
+    } else {
+        modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "rb+");
+        modrv[drv].protected=false;
+    }
+    
+    modrv[drv].inserted=true;
+    modrv[drv].dstat&=~DS_EMPTY;
     modrv[drv].dstat|=DS_INSERT;
     modrv[drv].spinning=false;
     modrv[drv].spiraling=false;
-    mo_set_signals(false, true, 0);
+    mo_push_signals(true, true, drv);
 }
 
 void mo_start_spiraling(void) {
@@ -1699,11 +1546,14 @@ void mo_unimplemented_cmd(void) {
 
 void mo_reset(void) {
     if (modrv[dnum].connected) {
-        /* TODO: reset more things */
-        mo.intstatus=0;
+        modrv[dnum].head=NO_HEAD;
+        modrv[dnum].head_pos=modrv[dnum].ho_head_pos=0;
+        modrv[dnum].sec_offset=0;
+        
         modrv[dnum].dstat=DS_RESET;
-        //modrv[dnum].spinning=false;
-        //modrv[dnum].spiraling=false;
+        modrv[dnum].estat=modrv[dnum].hstat=0;
+        modrv[dnum].spinning=false;
+        modrv[dnum].spiraling=false;
         
         if (!modrv[dnum].inserted) {
             modrv[dnum].dstat|=DS_EMPTY;
@@ -1753,8 +1603,13 @@ int delayed_drive=-1;
 void mo_set_signals(bool complete, bool attn, int delay) {
     if (delay>0) {
         if (delayed_drive>=0) {
-            Log_Printf(LOG_WARN, "[MO] Error: Delayed interrupt already in progress!");
-            abort();
+            if (delayed_drive!=dnum) {
+                Log_Printf(LOG_WARN, "[MO] Warning: Delayed interrupt from other drive (%i) in progress!",delayed_drive);
+                mo_push_signals(delayed_compl, delayed_attn, delayed_drive);
+                CycInt_RemovePendingInterrupt(INTERRUPT_MO);
+            } else {
+                Log_Printf(LOG_WARN, "[MO] Warning: Delayed interrupt already in progress!");
+            }
         }
         delayed_drive=dnum;
         delayed_compl=complete;
@@ -1788,6 +1643,8 @@ void MO_Init(void) {
         if (ConfigureParams.MO.drive[i].bDriveConnected) {
             modrv[i].connected=true;
             modrv[i].complete=true;
+            modrv[i].attn=false;
+            modrv[i].dstat=modrv[i].estat=modrv[i].hstat=0;
             if (ConfigureParams.MO.drive[i].bDiskInserted &&
                 File_Exists(ConfigureParams.MO.drive[i].szImageName)) {
                 modrv[i].inserted=true;
@@ -1826,25 +1683,19 @@ void MO_Uninit(void) {
 }
 
 void MO_Insert(int drive) {
-    Log_Printf(LOG_WARN, "Loading magneto-optical disks:");
-    
-    modrv[drive].inserted=true;
-    if (ConfigureParams.MO.drive[drive].bWriteProtected) {
-        modrv[drive].dsk = File_Open(ConfigureParams.MO.drive[drive].szImageName, "rb");
-        modrv[drive].protected=true;
-    } else {
-        modrv[drive].dsk = File_Open(ConfigureParams.MO.drive[drive].szImageName, "rb+");
-        modrv[drive].protected=false;
-    }
+    Log_Printf(LOG_WARN, "Loading magneto-optical disk:");
     Log_Printf(LOG_WARN, "MO Disk%i: %s\n",drive,ConfigureParams.MO.drive[drive].szImageName);
 
     mo_insert_disk(drive);
 }
 
+void MO_Eject(int drive) {
+    Log_Printf(LOG_WARN, "Unloading magneto-optical disk %i",drive);
+
+    mo_eject_disk(drive);
+}
+
 void MO_Reset(void) {
     MO_Uninit();
     MO_Init();
-#if REAL_ECC
-    initialize_ecc();
-#endif
 }

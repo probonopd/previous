@@ -29,6 +29,7 @@ void dma_esp_flush_buffer(void);
 void dma_esp_read_memory(void);
 
 void dma_mo_write_memory(void);
+void dma_mo_flush_buffer(void);
 void dma_mo_read_memory(void);
 
 void dma_enet_write_memory(void);
