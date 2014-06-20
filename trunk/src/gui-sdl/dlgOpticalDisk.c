@@ -12,6 +12,7 @@ const char DlgOpticalDisk_fileid[] = "Previous dlgOpticalDisk.c : " __DATE__ " "
 #include "dialog.h"
 #include "sdlgui.h"
 #include "file.h"
+#include "mo.h"
 
 
 #define MODLG_CONNECTED0        3
@@ -25,6 +26,9 @@ const char DlgOpticalDisk_fileid[] = "Previous dlgOpticalDisk.c : " __DATE__ " "
 #define MODLG_DISKNAME1         15
 
 #define DISKDLG_EXIT            17
+
+/* Constant strings */
+#define MODLG_EJECT_WARNING     "WARNING: Don't eject manually if a guest system is running. Risk of data loss. Eject now?"
 
 /* Variable strings */
 char inserteject0[16] = "Insert";
@@ -160,12 +164,16 @@ void DlgOptical_Main(void)
                             ConfigureParams.MO.drive[0].bDriveConnected = true;
                             modlg[MODLG_CONNECTED0].state |= SG_SELECTED;
                         }
+                        MO_Insert(0);
                     }
                 } else {
-                    ConfigureParams.MO.drive[0].bDiskInserted = false;
-                    sprintf(inserteject0, "Insert");
-                    ConfigureParams.MO.drive[0].szImageName[0] = '\0';
-                    dlgname_mo[0][0] = '\0';
+                    if (DlgAlert_Query(MODLG_EJECT_WARNING)) {
+                        ConfigureParams.MO.drive[0].bDiskInserted = false;
+                        sprintf(inserteject0, "Insert");
+                        ConfigureParams.MO.drive[0].szImageName[0] = '\0';
+                        dlgname_mo[0][0] = '\0';
+                        MO_Eject(0);
+                    }
                 }
                 break;
             case MODLG_CONNECTED0:
@@ -191,12 +199,16 @@ void DlgOptical_Main(void)
                             ConfigureParams.MO.drive[1].bDriveConnected = true;
                             modlg[MODLG_CONNECTED1].state |= SG_SELECTED;
                         }
+                        MO_Insert(1);
                     }
                 } else {
-                    ConfigureParams.MO.drive[1].bDiskInserted = false;
-                    sprintf(inserteject1, "Insert");
-                    ConfigureParams.MO.drive[1].szImageName[0] = '\0';
-                    dlgname_mo[1][0] = '\0';
+                    if (DlgAlert_Query(MODLG_EJECT_WARNING)) {
+                        ConfigureParams.MO.drive[1].bDiskInserted = false;
+                        sprintf(inserteject1, "Insert");
+                        ConfigureParams.MO.drive[1].szImageName[0] = '\0';
+                        dlgname_mo[1][0] = '\0';
+                        MO_Eject(1);
+                    }
                 }
                 break;
             case MODLG_CONNECTED1:
@@ -219,6 +231,20 @@ void DlgOptical_Main(void)
 	}
 	while (but != DISKDLG_EXIT && but != SDLGUI_QUIT
 	        && but != SDLGUI_ERROR && !bQuitProgram);
+    
+    /* Remove this after fixing dual drive issues */
+    if (ConfigureParams.MO.drive[0].bDriveConnected && ConfigureParams.MO.drive[1].bDriveConnected) {
+        if (DlgAlert_Query("WARNING: Using both optical drives causes problems in certain situations. Remove second drive?")) {
+            ConfigureParams.MO.drive[1].bDriveConnected = false;
+            ConfigureParams.MO.drive[1].bDiskInserted = false;
+            sprintf(inserteject1, "Insert");
+            ConfigureParams.MO.drive[1].bWriteProtected = false;
+            modlg[MODLG_PROTECTED1].state &= ~SG_SELECTED;
+            ConfigureParams.MO.drive[1].szImageName[0] = '\0';
+            dlgname_mo[1][0] = '\0';
+        }
+    }
+    /* ----------------------------------------- */
     
     /* Read values from dialog: */
     ConfigureParams.MO.drive[0].bWriteProtected = modlg[MODLG_PROTECTED0].state&SG_SELECTED;

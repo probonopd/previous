@@ -338,6 +338,7 @@ void SCSI_Emulate_Command(Uint8 *cdb) {
                     SCSIdisk[target].status = STAT_CHECK_COND;
                     SCSIdisk[target].sense.code = SC_INVALID_CMD;
                     SCSIdisk[target].sense.valid = false;
+                    SCSIbus.phase = PHASE_ST;
                     break;
             }
             break;
@@ -494,7 +495,7 @@ MODEPAGE SCSI_GetModePage(Uint8 pagecode) {
         case 0x3C: // soft ID page (EEPROM)
             page.pagesize = 0;
             Log_Printf(LOG_WARN, "[SCSI] Mode Sense: Page %02x not yet emulated!\n", pagecode);
-            abort();
+            //abort();
             break;
             
         default:

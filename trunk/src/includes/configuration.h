@@ -111,6 +111,22 @@ typedef struct
   int withoutModifier[SHORTCUT_KEYS];
 } CNF_SHORTCUT;
 
+
+/* Dialog Mouse */
+#define MOUSE_LIN_MIN   0.1
+#define MOUSE_LIN_MAX   10.0
+#define MOUSE_EXP_MIN   0.5
+#define MOUSE_EXP_MAX   1.0
+typedef struct
+{
+    bool bEnableAutoGrab;
+    float fLinSpeedNormal;
+    float fLinSpeedLocked;
+    float fExpSpeedNormal;
+    float fExpSpeedLocked;
+} CNF_MOUSE;
+
+
 /* Memory configuration */
 
 typedef enum
@@ -178,23 +194,13 @@ typedef struct
 
 
 /* Hard drives configuration */
-#define MAX_HARDDRIVES  23
-
-typedef enum
-{
-  DRIVE_C,
-  DRIVE_D,
-  DRIVE_E,
-  DRIVE_F
-} DRIVELETTER;
-
+#define ESP_MAX_DEVS 7
 typedef struct {
   char szImageName[FILENAME_MAX];
   bool bAttached;
   bool bCDROM;
 } SCSIDISK;
 
-#define ESP_MAX_DEVS 7
 typedef struct
 {
   SCSIDISK target[ESP_MAX_DEVS];    
@@ -305,7 +311,6 @@ typedef enum
   DSP_TYPE_EMU
 } DSPTYPE;
 
-#if ENABLE_WINUAE_CPU
 typedef enum
 {
   FPU_NONE = 0,
@@ -313,7 +318,6 @@ typedef enum
   FPU_68882 = 68882,
   FPU_CPU = 68040
 } FPUTYPE;
-#endif
 
 typedef struct
 {
@@ -331,15 +335,11 @@ typedef struct
   bool bRealTimeClock;
   bool bPatchTimerD;
   bool bFastForward;
-    
-#if ENABLE_WINUAE_CPU
   bool bAddressSpace24;
   bool bCycleExactCpu;
   FPUTYPE n_FPUType;
   bool bCompatibleFPU;            /* More compatible FPU */
   bool bMMU;                      /* TRUE if MMU is enabled */
-#endif
-    
 } CNF_SYSTEM;
 
 typedef struct
@@ -362,6 +362,7 @@ typedef struct
   CNF_SCREEN Screen;
   CNF_KEYBOARD Keyboard;
   CNF_SHORTCUT Shortcut;
+  CNF_MOUSE Mouse;
   CNF_SOUND Sound;
   CNF_MEMORY Memory;
   CNF_DISKIMAGE DiskImage;

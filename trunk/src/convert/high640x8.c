@@ -114,7 +114,7 @@ static char buffer[832*1152*2];
 
 static void ConvertHighRes_640x8Bit(void)
 {
-	int y, x,xx;
+	int y, x;
 	int	col;
 	static int first=1;
 	int adr;	
@@ -124,7 +124,7 @@ static void ConvertHighRes_640x8Bit(void)
 		for (x=0;x<4;x++)
 			colors[x] = SDL_MapRGB(sdlscrn->format, sdlColors[x].r, sdlColors[x].g, sdlColors[x].b);
 		for (x=0;x<4096;x++)
-			hicolors[x]=SDL_MapRGB(sdlscrn->format, (x&0xF00)>>4, x&0xF0, (x&0x0F)<<4);
+			hicolors[x]=SDL_MapRGB(sdlscrn->format,((x&0x0F00)>>4)|((x&0x0F00)>>8),(x&0x00F0)|((x&0x00F0)>>4),((x&0x000F)<<4)|(x&0x000F));
 	}
 
 	/* non turbo color */
@@ -139,7 +139,7 @@ static void ConvertHighRes_640x8Bit(void)
 				col=(  (NEXTColorVideo[adr]<<8) |  (NEXTColorVideo[1+adr])  )>>4;
 				putpixel(sdlscrn,x,y,hicolors[col]);
 				buffer[adr]=NEXTColorVideo[adr];
-				buffer[adr]=NEXTColorVideo[adr+1];
+				buffer[adr+1]=NEXTColorVideo[adr+1];
 				}
 			adr+=2;
 			}
@@ -159,7 +159,7 @@ static void ConvertHighRes_640x8Bit(void)
 				col=(  (NEXTColorVideo[adr]<<8) |  (NEXTColorVideo[1+adr])  )>>4;
 				putpixel(sdlscrn,x,y,hicolors[col]);
 				buffer[adr]=NEXTColorVideo[adr];
-				buffer[adr]=NEXTColorVideo[adr+1];
+				buffer[adr+1]=NEXTColorVideo[adr+1];
 				}
 			adr+=2;
 			}
@@ -173,6 +173,7 @@ static void ConvertHighRes_640x8Bit(void)
 			adr=y*280;            
 			for (x = 0; x < 832; x+=4)
 			{
+                if (buffer[adr]!=NEXTVideo[adr]) {
                         col=(NEXTVideo[adr]&0xC0)>>6;
 			putpixelbw(sdlscrn,x,y,col);
                         col=(NEXTVideo[adr]&0x30)>>4;
@@ -181,6 +182,8 @@ static void ConvertHighRes_640x8Bit(void)
 			putpixelbw(sdlscrn,x+2,y,col);
                         col=(NEXTVideo[adr]&0x03);
 			putpixelbw(sdlscrn,x+3,y,col);
+                    buffer[adr]=NEXTVideo[adr];
+                }
 			adr+=1;
 			}
 		}
@@ -192,6 +195,7 @@ static void ConvertHighRes_640x8Bit(void)
 			adr=y*288;            
 			for (x = 0; x < 1120; x+=4)
 			{
+                if (buffer[adr]!=NEXTVideo[adr]) {
                         col=(NEXTVideo[adr]&0xC0)>>6;
 			putpixelbw(sdlscrn,x,y,col);
                         col=(NEXTVideo[adr]&0x30)>>4;
@@ -200,6 +204,8 @@ static void ConvertHighRes_640x8Bit(void)
 			putpixelbw(sdlscrn,x+2,y,col);
                         col=(NEXTVideo[adr]&0x03);
 			putpixelbw(sdlscrn,x+3,y,col);
+                    buffer[adr]=NEXTVideo[adr];
+                }
 			adr+=1;
 			}
 		}

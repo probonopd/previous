@@ -1,564 +1,374 @@
-/*
- * Reed Solomon Encoder/Decoder
- *
- * Copyright Henry Minsky (hqm@alum.mit.edu) 1991-2009
- *
- * This software library is licensed under terms of the GNU GENERAL
- * PUBLIC LICENSE
- *
- * RSCODE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * RSCODE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with Rscode.  If not, see <http://www.gnu.org/licenses/>.
+/*  Previous - rs.c
  
- * Commercial licensing is available under a separate license, please
- * contact author for details.
- *
- * Source code is available at http://rscode.sourceforge.net
+ This file is distributed under the GNU Public License, version 2 or at
+ your option any later version. Read the file gpl.txt for details.
+
+ NeXT magento-optical drive controller uses cross interleaved Reed-Solomon-Codes
+ for error correction. This implementation has been written by Olivier Galibert.
+ The original code was adapted to work with Previous.
+ 
  */
 
-#include <stdio.h>
-#include <ctype.h>
+#include <string.h>
+
+#include "main.h"
 #include "rs.h"
 
-#define DEBUG 0
 
-/* This is one of 14 irreducible polynomials
- * of degree 8 and cycle length 255. (Ch 5, pp. 275, Magnetic Recording)
- * The high order 1 bit is implicit */
-/* x^8 + x^4 + x^3 + x^2 + 1 */
-#define PPOLY 0x1D
+/* Reed-Solomon(36,32) in GF(2**8), generator polynomial (x-1)*(x-2)*(x-4)*(x-8)
+ GF's polynom is the usual 11d
+ */
 
+/* Partial remainders, e.g. t_rem[i] = (i*x^4) % ((x-1)*(x-2)*(x-4)*(x-8)) */
+const Uint32 t_rem[256] = {
+	0x00000000, 0x0f367840, 0x1e6cf080, 0x115a88c0, 0x3cd8fd1d, 0x33ee855d, 0x22b40d9d, 0x2d8275dd,
+	0x78ade73a, 0x779b9f7a, 0x66c117ba, 0x69f76ffa, 0x44751a27, 0x4b436267, 0x5a19eaa7, 0x552f92e7,
+	0xf047d374, 0xff71ab34, 0xee2b23f4, 0xe11d5bb4, 0xcc9f2e69, 0xc3a95629, 0xd2f3dee9, 0xddc5a6a9,
+	0x88ea344e, 0x87dc4c0e, 0x9686c4ce, 0x99b0bc8e, 0xb432c953, 0xbb04b113, 0xaa5e39d3, 0xa5684193,
+	0xfd8ebbe8, 0xf2b8c3a8, 0xe3e24b68, 0xecd43328, 0xc15646f5, 0xce603eb5, 0xdf3ab675, 0xd00cce35,
+	0x85235cd2, 0x8a152492, 0x9b4fac52, 0x9479d412, 0xb9fba1cf, 0xb6cdd98f, 0xa797514f, 0xa8a1290f,
+	0x0dc9689c, 0x02ff10dc, 0x13a5981c, 0x1c93e05c, 0x31119581, 0x3e27edc1, 0x2f7d6501, 0x204b1d41,
+	0x75648fa6, 0x7a52f7e6, 0x6b087f26, 0x643e0766, 0x49bc72bb, 0x468a0afb, 0x57d0823b, 0x58e6fa7b,
+	0xe7016bcd, 0xe837138d, 0xf96d9b4d, 0xf65be30d, 0xdbd996d0, 0xd4efee90, 0xc5b56650, 0xca831e10,
+	0x9fac8cf7, 0x909af4b7, 0x81c07c77, 0x8ef60437, 0xa37471ea, 0xac4209aa, 0xbd18816a, 0xb22ef92a,
+	0x1746b8b9, 0x1870c0f9, 0x092a4839, 0x061c3079, 0x2b9e45a4, 0x24a83de4, 0x35f2b524, 0x3ac4cd64,
+	0x6feb5f83, 0x60dd27c3, 0x7187af03, 0x7eb1d743, 0x5333a29e, 0x5c05dade, 0x4d5f521e, 0x42692a5e,
+	0x1a8fd025, 0x15b9a865, 0x04e320a5, 0x0bd558e5, 0x26572d38, 0x29615578, 0x383bddb8, 0x370da5f8,
+	0x6222371f, 0x6d144f5f, 0x7c4ec79f, 0x7378bfdf, 0x5efaca02, 0x51ccb242, 0x40963a82, 0x4fa042c2,
+	0xeac80351, 0xe5fe7b11, 0xf4a4f3d1, 0xfb928b91, 0xd610fe4c, 0xd926860c, 0xc87c0ecc, 0xc74a768c,
+	0x9265e46b, 0x9d539c2b, 0x8c0914eb, 0x833f6cab, 0xaebd1976, 0xa18b6136, 0xb0d1e9f6, 0xbfe791b6,
+	0xd302d687, 0xdc34aec7, 0xcd6e2607, 0xc2585e47, 0xefda2b9a, 0xe0ec53da, 0xf1b6db1a, 0xfe80a35a,
+	0xabaf31bd, 0xa49949fd, 0xb5c3c13d, 0xbaf5b97d, 0x9777cca0, 0x9841b4e0, 0x891b3c20, 0x862d4460,
+	0x234505f3, 0x2c737db3, 0x3d29f573, 0x321f8d33, 0x1f9df8ee, 0x10ab80ae, 0x01f1086e, 0x0ec7702e,
+	0x5be8e2c9, 0x54de9a89, 0x45841249, 0x4ab26a09, 0x67301fd4, 0x68066794, 0x795cef54, 0x766a9714,
+	0x2e8c6d6f, 0x21ba152f, 0x30e09def, 0x3fd6e5af, 0x12549072, 0x1d62e832, 0x0c3860f2, 0x030e18b2,
+	0x56218a55, 0x5917f215, 0x484d7ad5, 0x477b0295, 0x6af97748, 0x65cf0f08, 0x749587c8, 0x7ba3ff88,
+	0xdecbbe1b, 0xd1fdc65b, 0xc0a74e9b, 0xcf9136db, 0xe2134306, 0xed253b46, 0xfc7fb386, 0xf349cbc6,
+	0xa6665921, 0xa9502161, 0xb80aa9a1, 0xb73cd1e1, 0x9abea43c, 0x9588dc7c, 0x84d254bc, 0x8be42cfc,
+	0x3403bd4a, 0x3b35c50a, 0x2a6f4dca, 0x2559358a, 0x08db4057, 0x07ed3817, 0x16b7b0d7, 0x1981c897,
+	0x4cae5a70, 0x43982230, 0x52c2aaf0, 0x5df4d2b0, 0x7076a76d, 0x7f40df2d, 0x6e1a57ed, 0x612c2fad,
+	0xc4446e3e, 0xcb72167e, 0xda289ebe, 0xd51ee6fe, 0xf89c9323, 0xf7aaeb63, 0xe6f063a3, 0xe9c61be3,
+	0xbce98904, 0xb3dff144, 0xa2857984, 0xadb301c4, 0x80317419, 0x8f070c59, 0x9e5d8499, 0x916bfcd9,
+	0xc98d06a2, 0xc6bb7ee2, 0xd7e1f622, 0xd8d78e62, 0xf555fbbf, 0xfa6383ff, 0xeb390b3f, 0xe40f737f,
+	0xb120e198, 0xbe1699d8, 0xaf4c1118, 0xa07a6958, 0x8df81c85, 0x82ce64c5, 0x9394ec05, 0x9ca29445,
+	0x39cad5d6, 0x36fcad96, 0x27a62556, 0x28905d16, 0x051228cb, 0x0a24508b, 0x1b7ed84b, 0x1448a00b,
+	0x416732ec, 0x4e514aac, 0x5f0bc26c, 0x503dba2c, 0x7dbfcff1, 0x7289b7b1, 0x63d33f71, 0x6ce54731,
+};
 
-int gexp[512];
-int glog[256];
+const Uint8 t_exp[768] = {
+	0x01, 0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1d, 0x3a, 0x74, 0xe8, 0xcd, 0x87, 0x13, 0x26,
+	0x4c, 0x98, 0x2d, 0x5a, 0xb4, 0x75, 0xea, 0xc9, 0x8f, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0,
+	0x9d, 0x27, 0x4e, 0x9c, 0x25, 0x4a, 0x94, 0x35, 0x6a, 0xd4, 0xb5, 0x77, 0xee, 0xc1, 0x9f, 0x23,
+	0x46, 0x8c, 0x05, 0x0a, 0x14, 0x28, 0x50, 0xa0, 0x5d, 0xba, 0x69, 0xd2, 0xb9, 0x6f, 0xde, 0xa1,
+	0x5f, 0xbe, 0x61, 0xc2, 0x99, 0x2f, 0x5e, 0xbc, 0x65, 0xca, 0x89, 0x0f, 0x1e, 0x3c, 0x78, 0xf0,
+	0xfd, 0xe7, 0xd3, 0xbb, 0x6b, 0xd6, 0xb1, 0x7f, 0xfe, 0xe1, 0xdf, 0xa3, 0x5b, 0xb6, 0x71, 0xe2,
+	0xd9, 0xaf, 0x43, 0x86, 0x11, 0x22, 0x44, 0x88, 0x0d, 0x1a, 0x34, 0x68, 0xd0, 0xbd, 0x67, 0xce,
+	0x81, 0x1f, 0x3e, 0x7c, 0xf8, 0xed, 0xc7, 0x93, 0x3b, 0x76, 0xec, 0xc5, 0x97, 0x33, 0x66, 0xcc,
+	0x85, 0x17, 0x2e, 0x5c, 0xb8, 0x6d, 0xda, 0xa9, 0x4f, 0x9e, 0x21, 0x42, 0x84, 0x15, 0x2a, 0x54,
+	0xa8, 0x4d, 0x9a, 0x29, 0x52, 0xa4, 0x55, 0xaa, 0x49, 0x92, 0x39, 0x72, 0xe4, 0xd5, 0xb7, 0x73,
+	0xe6, 0xd1, 0xbf, 0x63, 0xc6, 0x91, 0x3f, 0x7e, 0xfc, 0xe5, 0xd7, 0xb3, 0x7b, 0xf6, 0xf1, 0xff,
+	0xe3, 0xdb, 0xab, 0x4b, 0x96, 0x31, 0x62, 0xc4, 0x95, 0x37, 0x6e, 0xdc, 0xa5, 0x57, 0xae, 0x41,
+	0x82, 0x19, 0x32, 0x64, 0xc8, 0x8d, 0x07, 0x0e, 0x1c, 0x38, 0x70, 0xe0, 0xdd, 0xa7, 0x53, 0xa6,
+	0x51, 0xa2, 0x59, 0xb2, 0x79, 0xf2, 0xf9, 0xef, 0xc3, 0x9b, 0x2b, 0x56, 0xac, 0x45, 0x8a, 0x09,
+	0x12, 0x24, 0x48, 0x90, 0x3d, 0x7a, 0xf4, 0xf5, 0xf7, 0xf3, 0xfb, 0xeb, 0xcb, 0x8b, 0x0b, 0x16,
+	0x2c, 0x58, 0xb0, 0x7d, 0xfa, 0xe9, 0xcf, 0x83, 0x1b, 0x36, 0x6c, 0xd8, 0xad, 0x47, 0x8e, 0x01,
+	0x02, 0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1d, 0x3a, 0x74, 0xe8, 0xcd, 0x87, 0x13, 0x26, 0x4c,
+	0x98, 0x2d, 0x5a, 0xb4, 0x75, 0xea, 0xc9, 0x8f, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0, 0x9d,
+	0x27, 0x4e, 0x9c, 0x25, 0x4a, 0x94, 0x35, 0x6a, 0xd4, 0xb5, 0x77, 0xee, 0xc1, 0x9f, 0x23, 0x46,
+	0x8c, 0x05, 0x0a, 0x14, 0x28, 0x50, 0xa0, 0x5d, 0xba, 0x69, 0xd2, 0xb9, 0x6f, 0xde, 0xa1, 0x5f,
+	0xbe, 0x61, 0xc2, 0x99, 0x2f, 0x5e, 0xbc, 0x65, 0xca, 0x89, 0x0f, 0x1e, 0x3c, 0x78, 0xf0, 0xfd,
+	0xe7, 0xd3, 0xbb, 0x6b, 0xd6, 0xb1, 0x7f, 0xfe, 0xe1, 0xdf, 0xa3, 0x5b, 0xb6, 0x71, 0xe2, 0xd9,
+	0xaf, 0x43, 0x86, 0x11, 0x22, 0x44, 0x88, 0x0d, 0x1a, 0x34, 0x68, 0xd0, 0xbd, 0x67, 0xce, 0x81,
+	0x1f, 0x3e, 0x7c, 0xf8, 0xed, 0xc7, 0x93, 0x3b, 0x76, 0xec, 0xc5, 0x97, 0x33, 0x66, 0xcc, 0x85,
+	0x17, 0x2e, 0x5c, 0xb8, 0x6d, 0xda, 0xa9, 0x4f, 0x9e, 0x21, 0x42, 0x84, 0x15, 0x2a, 0x54, 0xa8,
+	0x4d, 0x9a, 0x29, 0x52, 0xa4, 0x55, 0xaa, 0x49, 0x92, 0x39, 0x72, 0xe4, 0xd5, 0xb7, 0x73, 0xe6,
+	0xd1, 0xbf, 0x63, 0xc6, 0x91, 0x3f, 0x7e, 0xfc, 0xe5, 0xd7, 0xb3, 0x7b, 0xf6, 0xf1, 0xff, 0xe3,
+	0xdb, 0xab, 0x4b, 0x96, 0x31, 0x62, 0xc4, 0x95, 0x37, 0x6e, 0xdc, 0xa5, 0x57, 0xae, 0x41, 0x82,
+	0x19, 0x32, 0x64, 0xc8, 0x8d, 0x07, 0x0e, 0x1c, 0x38, 0x70, 0xe0, 0xdd, 0xa7, 0x53, 0xa6, 0x51,
+	0xa2, 0x59, 0xb2, 0x79, 0xf2, 0xf9, 0xef, 0xc3, 0x9b, 0x2b, 0x56, 0xac, 0x45, 0x8a, 0x09, 0x12,
+	0x24, 0x48, 0x90, 0x3d, 0x7a, 0xf4, 0xf5, 0xf7, 0xf3, 0xfb, 0xeb, 0xcb, 0x8b, 0x0b, 0x16, 0x2c,
+	0x58, 0xb0, 0x7d, 0xfa, 0xe9, 0xcf, 0x83, 0x1b, 0x36, 0x6c, 0xd8, 0xad, 0x47, 0x8e, 0x01, 0x02,
+	0x04, 0x08, 0x10, 0x20, 0x40, 0x80, 0x1d, 0x3a, 0x74, 0xe8, 0xcd, 0x87, 0x13, 0x26, 0x4c, 0x98,
+	0x2d, 0x5a, 0xb4, 0x75, 0xea, 0xc9, 0x8f, 0x03, 0x06, 0x0c, 0x18, 0x30, 0x60, 0xc0, 0x9d, 0x27,
+	0x4e, 0x9c, 0x25, 0x4a, 0x94, 0x35, 0x6a, 0xd4, 0xb5, 0x77, 0xee, 0xc1, 0x9f, 0x23, 0x46, 0x8c,
+	0x05, 0x0a, 0x14, 0x28, 0x50, 0xa0, 0x5d, 0xba, 0x69, 0xd2, 0xb9, 0x6f, 0xde, 0xa1, 0x5f, 0xbe,
+	0x61, 0xc2, 0x99, 0x2f, 0x5e, 0xbc, 0x65, 0xca, 0x89, 0x0f, 0x1e, 0x3c, 0x78, 0xf0, 0xfd, 0xe7,
+	0xd3, 0xbb, 0x6b, 0xd6, 0xb1, 0x7f, 0xfe, 0xe1, 0xdf, 0xa3, 0x5b, 0xb6, 0x71, 0xe2, 0xd9, 0xaf,
+	0x43, 0x86, 0x11, 0x22, 0x44, 0x88, 0x0d, 0x1a, 0x34, 0x68, 0xd0, 0xbd, 0x67, 0xce, 0x81, 0x1f,
+	0x3e, 0x7c, 0xf8, 0xed, 0xc7, 0x93, 0x3b, 0x76, 0xec, 0xc5, 0x97, 0x33, 0x66, 0xcc, 0x85, 0x17,
+	0x2e, 0x5c, 0xb8, 0x6d, 0xda, 0xa9, 0x4f, 0x9e, 0x21, 0x42, 0x84, 0x15, 0x2a, 0x54, 0xa8, 0x4d,
+	0x9a, 0x29, 0x52, 0xa4, 0x55, 0xaa, 0x49, 0x92, 0x39, 0x72, 0xe4, 0xd5, 0xb7, 0x73, 0xe6, 0xd1,
+	0xbf, 0x63, 0xc6, 0x91, 0x3f, 0x7e, 0xfc, 0xe5, 0xd7, 0xb3, 0x7b, 0xf6, 0xf1, 0xff, 0xe3, 0xdb,
+	0xab, 0x4b, 0x96, 0x31, 0x62, 0xc4, 0x95, 0x37, 0x6e, 0xdc, 0xa5, 0x57, 0xae, 0x41, 0x82, 0x19,
+	0x32, 0x64, 0xc8, 0x8d, 0x07, 0x0e, 0x1c, 0x38, 0x70, 0xe0, 0xdd, 0xa7, 0x53, 0xa6, 0x51, 0xa2,
+	0x59, 0xb2, 0x79, 0xf2, 0xf9, 0xef, 0xc3, 0x9b, 0x2b, 0x56, 0xac, 0x45, 0x8a, 0x09, 0x12, 0x24,
+	0x48, 0x90, 0x3d, 0x7a, 0xf4, 0xf5, 0xf7, 0xf3, 0xfb, 0xeb, 0xcb, 0x8b, 0x0b, 0x16, 0x2c, 0x58,
+	0xb0, 0x7d, 0xfa, 0xe9, 0xcf, 0x83, 0x1b, 0x36, 0x6c, 0xd8, 0xad, 0x47, 0x8e, 0x01, 0x02, 0x04,
+};
 
+const Uint8 t_log[256] = {
+	0x00, 0x00, 0x01, 0x19, 0x02, 0x32, 0x1a, 0xc6, 0x03, 0xdf, 0x33, 0xee, 0x1b, 0x68, 0xc7, 0x4b,
+	0x04, 0x64, 0xe0, 0x0e, 0x34, 0x8d, 0xef, 0x81, 0x1c, 0xc1, 0x69, 0xf8, 0xc8, 0x08, 0x4c, 0x71,
+	0x05, 0x8a, 0x65, 0x2f, 0xe1, 0x24, 0x0f, 0x21, 0x35, 0x93, 0x8e, 0xda, 0xf0, 0x12, 0x82, 0x45,
+	0x1d, 0xb5, 0xc2, 0x7d, 0x6a, 0x27, 0xf9, 0xb9, 0xc9, 0x9a, 0x09, 0x78, 0x4d, 0xe4, 0x72, 0xa6,
+	0x06, 0xbf, 0x8b, 0x62, 0x66, 0xdd, 0x30, 0xfd, 0xe2, 0x98, 0x25, 0xb3, 0x10, 0x91, 0x22, 0x88,
+	0x36, 0xd0, 0x94, 0xce, 0x8f, 0x96, 0xdb, 0xbd, 0xf1, 0xd2, 0x13, 0x5c, 0x83, 0x38, 0x46, 0x40,
+	0x1e, 0x42, 0xb6, 0xa3, 0xc3, 0x48, 0x7e, 0x6e, 0x6b, 0x3a, 0x28, 0x54, 0xfa, 0x85, 0xba, 0x3d,
+	0xca, 0x5e, 0x9b, 0x9f, 0x0a, 0x15, 0x79, 0x2b, 0x4e, 0xd4, 0xe5, 0xac, 0x73, 0xf3, 0xa7, 0x57,
+	0x07, 0x70, 0xc0, 0xf7, 0x8c, 0x80, 0x63, 0x0d, 0x67, 0x4a, 0xde, 0xed, 0x31, 0xc5, 0xfe, 0x18,
+	0xe3, 0xa5, 0x99, 0x77, 0x26, 0xb8, 0xb4, 0x7c, 0x11, 0x44, 0x92, 0xd9, 0x23, 0x20, 0x89, 0x2e,
+	0x37, 0x3f, 0xd1, 0x5b, 0x95, 0xbc, 0xcf, 0xcd, 0x90, 0x87, 0x97, 0xb2, 0xdc, 0xfc, 0xbe, 0x61,
+	0xf2, 0x56, 0xd3, 0xab, 0x14, 0x2a, 0x5d, 0x9e, 0x84, 0x3c, 0x39, 0x53, 0x47, 0x6d, 0x41, 0xa2,
+	0x1f, 0x2d, 0x43, 0xd8, 0xb7, 0x7b, 0xa4, 0x76, 0xc4, 0x17, 0x49, 0xec, 0x7f, 0x0c, 0x6f, 0xf6,
+	0x6c, 0xa1, 0x3b, 0x52, 0x29, 0x9d, 0x55, 0xaa, 0xfb, 0x60, 0x86, 0xb1, 0xbb, 0xcc, 0x3e, 0x5a,
+	0xcb, 0x59, 0x5f, 0xb0, 0x9c, 0xa9, 0xa0, 0x51, 0x0b, 0xf5, 0x16, 0xeb, 0x7a, 0x75, 0x2c, 0xd7,
+	0x4f, 0xae, 0xd5, 0xe9, 0xe6, 0xe7, 0xad, 0xe8, 0x74, 0xd6, 0xf4, 0xea, 0xa8, 0x50, 0x58, 0xaf,
+};
 
-static void init_exp_table (void);
-
-
-void
-init_galois_tables (void)
+Uint32 ecc_block(const Uint8 *s, int ss)
 {
-    /* initialize the table of powers of alpha */
-    init_exp_table();
-}
-
-
-static void
-init_exp_table (void)
-{
-    int i, z;
-    int pinit,p1,p2,p3,p4,p5,p6,p7,p8;
+    int i;
+    Uint32 r = (s[0] << 24) | (s[ss] << 16) | (s[2*ss] << 8) | s[3*ss];
     
-    pinit = p2 = p3 = p4 = p5 = p6 = p7 = p8 = 0;
-    p1 = 1;
-	
-    gexp[0] = 1;
-    gexp[255] = gexp[0];
-    glog[0] = 0;			/* shouldn't log[0] be an error? */
-	
-    for (i = 1; i < 256; i++) {
-        pinit = p8;
-        p8 = p7;
-        p7 = p6;
-        p6 = p5;
-        p5 = p4 ^ pinit;
-        p4 = p3 ^ pinit;
-        p3 = p2 ^ pinit;
-        p2 = p1;
-        p1 = pinit;
-        gexp[i] = p1 + p2*2 + p3*4 + p4*8 + p5*16 + p6*32 + p7*64 + p8*128;
-        gexp[i+255] = gexp[i];
-    }
-	
-    for (i = 1; i < 256; i++) {
-        for (z = 0; z < 256; z++) {
-            if (gexp[z] == i) {
-                glog[i] = z;
-                break;
-            }
+    s += 4*ss;
+    for(i=4; i<36; i++) {
+        r = t_rem[r >> 24] ^ (r << 8);
+        if(i < 32) {
+            r ^= *s;
+            s += ss;
         }
     }
+    return r;
 }
 
-/* multiplication using logarithms */
-int gmult(int a, int b)
+void rs_encode_string(Uint8 *sector, int off, int step)
 {
-    int i,j;
-    if (a==0 || b == 0) return (0);
-    i = glog[a];
-    j = glog[b];
-    return (gexp[i+j]);
+	Uint32 ecc = ecc_block(sector+off, step);
+	sector[off+32*step] = ecc >> 24;
+	sector[off+33*step] = ecc >> 16;
+	sector[off+34*step] = ecc >> 8;
+	sector[off+35*step] = ecc;
 }
 
-
-int ginv (int elt)
+int rs_decode_string(Uint8 *sector, int off, int step)
 {
-    return (gexp[255-glog[elt]]);
-}
-
-/* The Error Locator Polynomial, also known as Lambda or Sigma. Lambda[0] == 1 */
-static int Lambda[MAXDEG];
-
-/* The Error Evaluator Polynomial */
-static int Omega[MAXDEG];
-
-/* local ANSI declarations */
-static int compute_discrepancy(int lambda[], int S[], int L, int n);
-static void init_gamma(int gamma[]);
-static void compute_modified_omega (void);
-static void mul_z_poly (int src[]);
-
-/* error locations found using Chien's search*/
-static int ErrorLocs[256];
-static int NErrors;
-
-/* erasure flags */
-static int ErasureLocs[256];
-static int NErasures;
-
-/* From  Cain, Clark, "Error-Correction Coding For Digital Communications", pp. 216. */
-void
-Modified_Berlekamp_Massey (void)
-{
-    int n, L, L2, k, d, i;
-    int psi[MAXDEG], psi2[MAXDEG], D[MAXDEG];
-    int gamma[MAXDEG];
-	
-    /* initialize Gamma, the erasure locator polynomial */
-    init_gamma(gamma);
+    int i;
+	Uint32 ecc = ecc_block(sector+off, step);
+	Uint32 ref_ecc =
+    (sector[off+32*step] << 24) |
+    (sector[off+33*step] << 16) |
+    (sector[off+34*step] << 8) |
+    sector[off+35*step];
+	if(ref_ecc == ecc)
+		return 0;
     
-    /* initialize to z */
-    copy_poly(D, gamma);
-    mul_z_poly(D);
-	
-    copy_poly(psi, gamma);
-    k = -1; L = NErasures;
-	
-    for (n = NErasures; n < NPAR; n++) {
+	// Syndrome polynomial
+	// syn[i] = value of the codebook polynom at 2**(i-1)
+	Uint8 syn[5];
+	memset(syn, 0, 5);
+	syn[0] = 1;
+	for(i=0; i<36; i++) {
+		Uint8 v = sector[off+step*(35-i)];
+		if(v) {
+			syn[1] ^= v;
+			int lv = t_log[v];
+			syn[2] ^= t_exp[lv+i];
+			syn[3] ^= t_exp[lv+2*i];
+			syn[4] ^= t_exp[lv+3*i];
+		}
+	}
+    
+	// Berlekamp-Massey
+    
+	Uint8 sigma[5];
+	Uint8 omega[5];
+	Uint8 tau[5];
+	Uint8 gamma[5];
+	int d;
+	int b;
+    
+	memset(sigma, 0, 5);
+	memset(omega, 0, 5);
+	memset(tau, 0, 5);
+	memset(gamma, 0, 5);
+	sigma[0] = 1;
+	omega[0] = 1;
+	tau[0] = 1;
+	d = 0;
+	b = 0;
+    
+    int l;
+	for(l=1; l<5; l++) {
+		// 1- Determine the l-order coefficient syn*sigma
+		Uint8 delta = 0;
+		for(i=0; i<=l; i++)
+			if(sigma[i] && syn[l-i])
+				delta ^= t_exp[t_log[sigma[i]] + t_log[syn[l-i]]];
         
-        d = compute_discrepancy(psi, synBytes, L, n);
-		
-        if (d != 0) {
+		// 2- Select update method a/b
+		int limit = (l+1)/2;
+		int exact = l & 1;
+		if(!delta || d > limit || (d == limit && exact && !b)) {
+			// 2.1- Method a
+			// b and d unchanged
+			// tau and gamma multiplied by x
+			// sigma = sigma - delta * tau
+			// omega = omega - delta * gamma
             
-            /* psi2 = psi - d*D */
-            for (i = 0; i < MAXDEG; i++) psi2[i] = psi[i] ^ gmult(d, D[i]);
+			for(i=0; i<l; i++) {
+				tau[l-i] = tau[l-i-1];
+				gamma[l-i] = gamma[l-i-1];
+			}
+			tau[0] = gamma[0] = 0;
             
-            
-            if (L < (n-k)) {
-                L2 = n-k;
-                k = n-L;
-                /* D = scale_poly(ginv(d), psi); */
-                for (i = 0; i < MAXDEG; i++) D[i] = gmult(psi[i], ginv(d));
-                L = L2;
-            }
-			
-            /* psi = psi2 */
-            for (i = 0; i < MAXDEG; i++) psi[i] = psi2[i];
-        }
-		
-        mul_z_poly(D);
-    }
-	
-    for(i = 0; i < MAXDEG; i++) Lambda[i] = psi[i];
-    compute_modified_omega();
+			if(delta) {
+				Uint8 ldelta = t_log[delta];
+				for(i=1; i<=l; i++) {
+					if(tau[i])
+						sigma[i] ^= t_exp[t_log[tau  [i]] + ldelta];
+					if(gamma[i])
+						omega[i] ^= t_exp[t_log[gamma[i]] + ldelta];
+				}
+			}
+		} else {
+			// 2.2- Method b
+			d = l-d;
+			b = !b;
+			// tau(n+1)   = sigma(n) / delta
+			// gamma(n+1) = omega(n) / delta
+			// sigma(n+1) = sigma(n) - delta*x*tau(n)
+			// omega(n+1) = omega(n) - delta*x*gamma(n)
+			Uint8 ldelta = t_log[delta];
+			Uint8 ildelta = ldelta ^ 255;
+			for(i=l; i>0; i--) {
+				if(tau[i-1])
+					sigma[i]   = sigma[i] ^ t_exp[t_log[tau  [i-1]] + ldelta];
+                
+				if(gamma[i-1])
+					omega[i]   = omega[i] ^ t_exp[t_log[gamma[i-1]] + ldelta];
+                
+				if(sigma[i-1])
+					tau[i-1]   = t_exp[t_log[sigma[i-1]] + ildelta];
+				else
+					tau[i-1]   = 0x00;
+                
+				if(omega[i-1])
+					gamma[i-1] = t_exp[t_log[omega[i-1]] + ildelta];
+				else
+					gamma[i-1]   = 0x00;
+			}
+		}
+	}
     
-	
-}
-
-/* given Psi (called Lambda in Modified_Berlekamp_Massey) and synBytes,
- compute the combined erasure/error evaluator polynomial as
- Psi*S mod z^4
- */
-void
-compute_modified_omega ()
-{
-    int i;
-    int product[MAXDEG*2];
-	
-    mult_polys(product, Lambda, synBytes);
-    zero_poly(Omega);
-    for(i = 0; i < NPAR; i++) Omega[i] = product[i];
+	// Find the roots of sigma to get the error positions (they're the inverses of 2**position)
+	// Compute the error(s)
     
-}
-
-/* polynomial multiplication */
-void
-mult_polys (int dst[], int p1[], int p2[])
-{
-    int i, j;
-    int tmp1[MAXDEG*2];
-	
-    for (i=0; i < (MAXDEG*2); i++) dst[i] = 0;
-	
-    for (i = 0; i < MAXDEG; i++) {
-        for(j=MAXDEG; j<(MAXDEG*2); j++) tmp1[j]=0;
-		
-        /* scale tmp1 by p1[i] */
-        for(j=0; j<MAXDEG; j++) tmp1[j]=gmult(p2[j], p1[i]);
-        /* and mult (shift) tmp1 right by i */
-        for (j = (MAXDEG*2)-1; j >= i; j--) tmp1[j] = tmp1[j-i];
-        for (j = 0; j < i; j++) tmp1[j] = 0;
-		
-        /* add into partial product */
-        for(j=0; j < (MAXDEG*2); j++) dst[j] ^= tmp1[j];
-    }
-}
-
-
-
-/* gamma = product (1-z*a^Ij) for erasure locs Ij */
-void
-init_gamma (int gamma[])
-{
-    int e, tmp[MAXDEG];
-	
-    zero_poly(gamma);
-    zero_poly(tmp);
-    gamma[0] = 1;
-	
-    for (e = 0; e < NErasures; e++) {
-        copy_poly(tmp, gamma);
-        scale_poly(gexp[ErasureLocs[e]], tmp);
-        mul_z_poly(tmp);
-        add_polys(gamma, tmp);
-    }
-}
-
-
-
-void
-compute_next_omega (int d, int A[], int dst[], int src[])
-{
-    int i;
-    for ( i = 0; i < MAXDEG;  i++) {
-        dst[i] = src[i] ^ gmult(d, A[i]);
-    }
-}
-
-
-
-int
-compute_discrepancy (int lambda[], int S[], int L, int n)
-{
-    int i, sum=0;
-	
-    for (i = 0; i <= L; i++)
-        sum ^= gmult(lambda[i], S[n-i]);
-    return (sum);
-}
-
-/********** polynomial arithmetic *******************/
-
-void add_polys (int dst[], int src[])
-{
-    int i;
-    for (i = 0; i < MAXDEG; i++) dst[i] ^= src[i];
-}
-
-void copy_poly (int dst[], int src[])
-{
-    int i;
-    for (i = 0; i < MAXDEG; i++) dst[i] = src[i];
-}
-
-void scale_poly (int k, int poly[])
-{
-    int i;
-    for (i = 0; i < MAXDEG; i++) poly[i] = gmult(k, poly[i]);
-}
-
-
-void zero_poly (int poly[])
-{
-    int i;
-    for (i = 0; i < MAXDEG; i++) poly[i] = 0;
-}
-
-
-/* multiply by z, i.e., shift right by 1 */
-static void mul_z_poly (int src[])
-{
-    int i;
-    for (i = MAXDEG-1; i > 0; i--) src[i] = src[i-1];
-    src[0] = 0;
-}
-
-
-/* Finds all the roots of an error-locator polynomial with coefficients
- * Lambda[j] by evaluating Lambda at successive values of alpha.
- *
- * This can be tested with the decoder's equations case.
- */
-
-
-void
-Find_Roots (void)
-{
-    int sum, r, k;
-    NErrors = 0;
+	if(sigma[3] || sigma[4]) {
+		// Should not happen
+		return -1;
+	}
     
-    for (r = 1; r < 256; r++) {
-        sum = 0;
-        /* evaluate lambda at r */
-        for (k = 0; k < NPAR+1; k++) {
-            sum ^= gmult(gexp[(k*r)%255], Lambda[k]);
-        }
-        if (sum == 0)
-        {
-            ErrorLocs[NErrors] = (255-r); NErrors++;
-            if (DEBUG) fprintf(stderr, "Root found at r = %d, (255-r) = %d\n", r, (255-r));
-        }
-    }
-}
-
-/* Combined Erasure And Error Magnitude Computation
- *
- * Pass in the codeword, its size in bytes, as well as
- * an array of any known erasure locations, along the number
- * of these erasures.
- *
- * Evaluate Omega(actually Psi)/Lambda' at the roots
- * alpha^(-i) for error locs i.
- *
- * Returns 1 if everything ok, or 0 if an out-of-bounds error is found
- *
- */
-
-int
-correct_errors_erasures (unsigned char codeword[],
-                         int csize,
-                         int nerasures,
-                         int erasures[])
-{
-    int r, i, j, err;
-    
-    /* If you want to take advantage of erasure correction, be sure to
-     set NErasures and ErasureLocs[] with the locations of erasures.
-     */
-    NErasures = nerasures;
-    for (i = 0; i < NErasures; i++) ErasureLocs[i] = erasures[i];
-    
-    Modified_Berlekamp_Massey();
-    Find_Roots();
-    
-    
-    if ((NErrors <= NPAR) && NErrors > 0) {
+	if(sigma[2] && sigma[0]) {
+		int epos1, epos2;
+		Uint8 ls1 = t_log[sigma[1]];
+		Uint8 ls2 = t_log[sigma[2]];
+		for(epos1 = 0; epos1 < 256; epos1++) {
+			Uint8 res = sigma[0];
+			if(sigma[1])
+				res ^= t_exp[255-epos1+ls1];
+			res ^= t_exp[2*(255-epos1)+ls2];
+			if(!res)
+				break;
+		}
+		if(epos1 > 35)
+			return -1;
         
-        /* first check for illegal error locs */
-        for (r = 0; r < NErrors; r++) {
-            if (ErrorLocs[r] >= csize) {
-                if (DEBUG) fprintf(stderr, "Error loc i=%d outside of codeword length %d\n", i, csize);
-                return(0);
-            }
-        }
+		// sigma = c.(x-1/r1)(x-1/r2) = c.x*x - c*x*(1/r1+1/r2) + c/(r1*r2)
         
-        for (r = 0; r < NErrors; r++) {
-            int num, denom;
-            i = ErrorLocs[r];
-            /* evaluate Omega at alpha^(-i) */
-            
-            num = 0;
-            for (j = 0; j < MAXDEG; j++)
-                num ^= gmult(Omega[j], gexp[((255-i)*j)%255]);
-            
-            /* evaluate Lambda' (derivative) at alpha^(-i) ; all odd powers disappear */
-            denom = 0;
-            for (j = 1; j < MAXDEG; j += 2) {
-                denom ^= gmult(Lambda[j], gexp[((255-i)*(j-1)) % 255]);
-            }
-            
-            err = gmult(num, ginv(denom));
-            if (DEBUG) fprintf(stderr, "Error magnitude %#x at loc %d\n", err, csize-i);
-            
-            codeword[csize-i-1] ^= err;
-        }
-        return NErrors; /* Modified for Previous */
-        //return(1);
-    }
-    else {
-        if (DEBUG && NErrors) fprintf(stderr, "Uncorrectable codeword\n");
-        return(0);
-    }
-}
-
-
-/* Encoder parity bytes */
-int pBytes[MAXDEG];
-
-/* Decoder syndrome bytes */
-int synBytes[MAXDEG];
-
-/* generator polynomial */
-int genPoly[MAXDEG*2];
-
-//int DEBUG = FALSE;
-
-static void
-compute_genpoly (int nbytes, int genpoly[]);
-
-/* Initialize lookup tables, polynomials, etc. */
-void
-initialize_ecc ()
-{
-    /* Initialize the galois field arithmetic tables */
-    init_galois_tables();
-    
-    /* Compute the encoder generator polynomial */
-    compute_genpoly(NPAR, genPoly);
-}
-
-void
-zero_fill_from (unsigned char buf[], int from, int to)
-{
-    int i;
-    for (i = from; i < to; i++) buf[i] = 0;
-}
-
-/* debugging routines */
-void
-print_parity (void)
-{
-    int i;
-    printf("Parity Bytes: ");
-    for (i = 0; i < NPAR; i++)
-        printf("[%d]:%x, ",i,pBytes[i]);
-    printf("\n");
-}
-
-
-void
-print_syndrome (void)
-{
-    int i;
-    printf("Syndrome Bytes: ");
-    for (i = 0; i < NPAR; i++)
-        printf("[%d]:%x, ",i,synBytes[i]);
-    printf("\n");
-}
-
-/* Append the parity bytes onto the end of the message */
-void
-build_codeword (unsigned char msg[], int nbytes, unsigned char dst[])
-{
-    int i;
-	
-    for (i = 0; i < nbytes; i++) dst[i] = msg[i];
-	
-    for (i = 0; i < NPAR; i++) {
-        dst[i+nbytes] = pBytes[NPAR-1-i];
-    }
-}
-
-/**********************************************************
- * Reed Solomon Decoder
- *
- * Computes the syndrome of a codeword. Puts the results
- * into the synBytes[] array.
- */
-
-void
-decode_data(unsigned char data[], int nbytes)
-{
-    int i, j, sum;
-    for (j = 0; j < NPAR;  j++) {
-        sum	= 0;
-        for (i = 0; i < nbytes; i++) {
-            sum = data[i] ^ gmult(gexp[j+1], sum);
-        }
-        synBytes[j]  = sum;
-    }
-}
-
-
-/* Check if the syndrome is zero */
-int
-check_syndrome (void)
-{
-    int i, nz = 0;
-    for (i =0 ; i < NPAR; i++) {
-        if (synBytes[i] != 0) {
-            nz = 1;
-            break;
-        }
-    }
-    return nz;
-}
-
-
-void
-debug_check_syndrome (void)
-{
-    int i;
-	
-    for (i = 0; i < 3; i++) {
-        printf(" inv log S[%d]/S[%d] = %d\n", i, i+1,
-               glog[gmult(synBytes[i], ginv(synBytes[i+1]))]);
-    }
-}
-
-
-/* Create a generator polynomial for an n byte RS code.
- * The coefficients are returned in the genPoly arg.
- * Make sure that the genPoly array which is passed in is
- * at least n+1 bytes long.
- */
-
-static void
-compute_genpoly (int nbytes, int genpoly[])
-{
-    int i, tp[256], tp1[256];
-	
-    /* multiply (x + a^n) for n = 1 to nbytes */
-    
-    zero_poly(tp1);
-    tp1[0] = 1;
-    
-    for (i = 1; i <= nbytes; i++) {
-        zero_poly(tp);
-        tp[0] = gexp[i];		/* set up x+a^n */
-        tp[1] = 1;
+		// s0 = s2/(r1*r2) -> r1*r2*s0 = s2 -> r1 = s2 / (r1*s0)
+		// -> r2 = sigma[2]/(r1*sigma[0])
+		epos2 = ls2 - epos1 - t_log[sigma[0]];
+		if(epos2 < 0)
+			epos2 += 255;
+		if(epos2 > 35)
+			return -1;
         
-        mult_polys(genpoly, tp, tp1);
-        copy_poly(tp1, genpoly);
-    }
+		Uint8 err1 = omega[0];
+		if(omega[1])
+			err1 ^= t_exp[t_log[omega[1]] + 255 - epos1];
+		if(omega[2])
+			err1 ^= t_exp[t_log[omega[2]] + 2*(255 - epos1)];
+		err1 = t_log[err1] + epos1;
+		Uint8 div = t_log[1 ^ t_exp[255 + epos2 - epos1]];
+		err1 = t_exp[255 + err1 - div];
+        
+		Uint8 err2 = omega[0];
+		if(omega[1])
+			err2 ^= t_exp[t_log[omega[1]] + 255 - epos2];
+		if(omega[2])
+			err2 ^= t_exp[t_log[omega[2]] + 2*(255 - epos2)];
+		err2 = t_log[err2] + epos2;
+		div = t_log[1 ^ t_exp[255 + epos1 - epos2]];
+		err2 = t_exp[255 + err2 - div];
+        
+		sector[off + step*(35-epos1)] ^= err1;
+		sector[off + step*(35-epos2)] ^= err2;
+		return 2;
+        
+	} else if(sigma[1] && sigma[0]) {
+		// sigma = c.(x-1/r1) -> r1=sigma[1]/sigma[0]
+		int epos = t_log[sigma[1]] - t_log[sigma[0]];
+        
+		if(epos > 35)
+			return -1;
+        
+		Uint8 err = sigma[1]^omega[1];
+		sector[off + step*(35-epos)] ^= err;
+		return 1;
+        
+	} else {
+		// Should not happen
+		return -1;
+	}
 }
 
-/* Simulate a LFSR with generator polynomial for n byte RS code.
- * Pass in a pointer to the data array, and amount of data.
- *
- * The parity bytes are deposited into pBytes[], and the whole message
- * and parity are copied to dest to make a codeword.
- *
- */
-
-void
-encode_data (unsigned char msg[], int nbytes, unsigned char dst[])
+void rs_encode(Uint8 *sector)
 {
-    int i, LFSR[NPAR+1],dbyte, j;
-	
-    for(i=0; i < NPAR+1; i++) LFSR[i]=0;
-    
-    for (i = 0; i < nbytes; i++) {
-        dbyte = msg[i] ^ LFSR[NPAR-1];
-        for (j = NPAR-1; j > 0; j--) {
-            LFSR[j] = LFSR[j-1] ^ gmult(genPoly[j], dbyte);
-        }
-        LFSR[0] = gmult(genPoly[0], dbyte);
-    }
-    
-    for (i = 0; i < NPAR; i++)
-        pBytes[i] = LFSR[i];
-	
-    build_codeword(msg, nbytes, dst);
+    int i;
+    /* Create encoded sector structure */
+	for(i=31; i>0; i--)
+		memmove(sector+36*i, sector+32*i, 32);
+    /* Encode columns */
+	for(i=0; i<32; i++)
+		rs_encode_string(sector, i, 36);
+    /* Encode rows */
+	for(i=0; i<36; i++)
+		rs_encode_string(sector, 36*i, 1);
 }
 
+int rs_decode(Uint8 *sector)
+{
+    int i,e;
+	int ecount = 0;
+    /* Decode rows */
+    for(i=0; i<36; i++) {
+        e = rs_decode_string(sector, 36*i, 1);
+        if(e!=-1) {
+            ecount += e;
+        }
+    }
+    /* Decode columns */
+    for(i=0; i<32; i++) {
+        e = rs_decode_string(sector, i, 36);
+        if(e==-1) {
+            return -1; /* Uncorrectable */
+        } else {
+            ecount += e;
+        }
+    }
+    /* Build decoded sector structure */
+	for(i=1; i<32; i++)
+		memmove(sector+i*32, sector+i*36, 32);
+    
+    return ecount;
+}

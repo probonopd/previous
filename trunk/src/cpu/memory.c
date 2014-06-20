@@ -833,14 +833,14 @@ uae_u8 *ROMmemory;
 
 static uae_u32 ROMmem_lget(uaecptr addr)
 {
-    if ((addr<0x2000) && (SCR_ROM_overlay)) {do_get_mem_long(NEXTRam + 0x03FFE000 +addr);}
+//  if ((addr<0x2000) && (SCR_ROM_overlay)) {do_get_mem_long(NEXTRam + 0x03FFE000 +addr);}
     addr &= ROMmem_mask;
     return do_get_mem_long(ROMmemory + addr);
 }
 
 static uae_u32 ROMmem_wget(uaecptr addr)
 {
-    if ((addr<0x2000) && (SCR_ROM_overlay)) {do_get_mem_word(NEXTRam + 0x03FFE000 +addr);}
+//  if ((addr<0x2000) && (SCR_ROM_overlay)) {do_get_mem_word(NEXTRam + 0x03FFE000 +addr);}
     addr &= ROMmem_mask;
     return do_get_mem_word(ROMmemory + addr);   
 
@@ -848,7 +848,7 @@ static uae_u32 ROMmem_wget(uaecptr addr)
 
 static uae_u32 ROMmem_bget(uaecptr addr)
 {
-    if ((addr<0x2000) && (SCR_ROM_overlay)) {return NEXTRam[0x03FFE000 +addr];}
+//  if ((addr<0x2000) && (SCR_ROM_overlay)) {return NEXTRam[0x03FFE000 +addr];}
     addr &= ROMmem_mask;
     return ROMmemory[addr];
 }

@@ -386,8 +386,6 @@ void Main_WarpMouse(int x, int y)
 SDL_Event mymouse[100];
 static void Main_HandleMouseMotion(SDL_Event *pEvent)
 {
-	static float fdx=0.0;
-	static float fdy=0.0;
 	int dx, dy;
 	int i,nb;
 
@@ -402,26 +400,11 @@ static void Main_HandleMouseMotion(SDL_Event *pEvent)
 	dy += mymouse[i].motion.yrel;
 	}
 
-	fdx+=dx;
-	fdy+=dy;
-
 	if (bGrabMouse) {
-		fdx=fdx/10.0;
-		fdy=fdy/10.0;
+    	Keymap_MouseMove(dx,dy,ConfigureParams.Mouse.fLinSpeedLocked,ConfigureParams.Mouse.fExpSpeedLocked);
 	} else {
-		fdx=fdx/2.0;
-		fdy=fdy/2.0;
+    	Keymap_MouseMove(dx,dy,ConfigureParams.Mouse.fLinSpeedNormal,ConfigureParams.Mouse.fLinSpeedNormal);
 	}
-
-	dx=fdx;
-	fdx-=dx;
-	dy=fdy;
-	fdy-=dy;
-
-	// printf("dx=%d dy=%d nb=%d\n",dx,dy,nb);
-
-    	Keymap_MouseMove(dx,dy);
-
 }
 
 
@@ -479,18 +462,18 @@ void Main_EventHandler(void)
 		 case SDL_MOUSEBUTTONDOWN:
 			if (event.button.button == SDL_BUTTON_LEFT)
 			{
-				if (!bGrabMouse) {
+				if (ConfigureParams.Mouse.bEnableAutoGrab && !bGrabMouse) {
 					bGrabMouse = true;        /* Toggle flag */
 
 					/* If we are in windowed mode, toggle the mouse cursor mode now: */
 					if (!bInFullScreen)
 					{
 						SDL_WM_GrabInput(SDL_GRAB_ON);
-						SDL_WM_SetCaption("Previous Mouse is grabbed press AltGr-m to ungrab","previous");
+                        Main_SetTitle(MOUSE_LOCK_MSG);
 					}
 				}
-
-                		Keymap_MouseDown(true);
+                
+                Keymap_MouseDown(true);
 			}
 			else if (event.button.button == SDL_BUTTON_RIGHT)
 			{

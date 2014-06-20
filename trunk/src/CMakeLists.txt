@@ -1,6 +1,5 @@
 set(SOURCES
-	cart.c cfgopts.c
-	clocks_timings.c configuration.c options.c  change.c
+	cfgopts.c clocks_timings.c configuration.c options.c  change.c
 	control.c cycInt.c cycles.c dialog.c dma.c esp.c ethernet.c file.c
 	ioMem.c ioMemTabNEXT.c memorySnapShot.c keymap.c kms.c
 	m68000.c main.c mo.c nextMemory.c paths.c 
@@ -24,15 +23,11 @@ endif(ENABLE_OSX_BUNDLE)
 # and set the subsytem of the resulting .exe to "windows GUI" instead of "console"
 if(WIN32)
 	set(GUIWIN_SOURCES gui-win/opencon.c)
-	set(GUIWIN_RES gui-win/hatari-winicon.rc)
+    set(GUIWIN_RES gui-win/previous-winicon.rc)
 	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -mwindows")
 endif(WIN32)
 
-if(ENABLE_WINUAE_CPU)
 	set(CPUDIR cpu)
-else()
-	set(CPUDIR uae-cpu)
-endif(ENABLE_WINUAE_CPU)
 
 include_directories(${CMAKE_BINARY_DIR} includes debug ${CPUDIR}
 		    ${SDL_INCLUDE_DIR})
@@ -58,8 +53,8 @@ add_subdirectory(${CPUDIR})
 
 # When building for OSX, add specific sources
 if(ENABLE_OSX_BUNDLE)
-	add_executable(previous MACOSX_BUNDLE ${GUIOSX_RSRCS} ${SOURCES} ${GUIOSX_SOURCES})
-	set_target_properties(previous PROPERTIES MACOSX_BUNDLE_INFO_PLIST
+	add_executable(Previous MACOSX_BUNDLE ${GUIOSX_RSRCS} ${SOURCES} ${GUIOSX_SOURCES})
+	set_target_properties(Previous PROPERTIES MACOSX_BUNDLE_INFO_PLIST
 			      ${CMAKE_CURRENT_SOURCE_DIR}/gui-osx/Info-Previous.plist)
 	set(MACOSX_BUNDLE_ICON_FILE Previous.icns)
 	# Create Previous.app bundle
@@ -71,7 +66,7 @@ if(ENABLE_OSX_BUNDLE)
 			# Copy Localized .nib to Bundle
 			COMMAND cp -R ${CMAKE_CURRENT_SOURCE_DIR}/gui-osx/*.lproj ${CMAKE_CURRENT_BINARY_DIR}/Previous.app/Contents/Resources/
 	)	
-	add_dependencies(previous osx_bundle_dirs)
+	add_dependencies(Previous osx_bundle_dirs)
 	set_source_files_properties(${GUIOSX_RSRCS}
 			PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 
@@ -84,53 +79,53 @@ elseif(WIN32)
 	ENABLE_LANGUAGE(RC)
 	set(CMAKE_RC_COMPILE_OBJECT "<CMAKE_RC_COMPILER> -Ocoff -o <OBJECT> <SOURCE>")
 	set_source_files_properties(${GUIWIN_RES} PROPERTIES LANGUAGE RC)
-	add_executable(previous ${GUIWIN_RES} ${SOURCES} ${GUIWIN_SOURCES})
+	add_executable(Previous ${GUIWIN_RES} ${SOURCES} ${GUIWIN_SOURCES})
 
 # Other targets, use default sources
 else()
-	add_executable(previous ${SOURCES})
+	add_executable(Previous ${SOURCES})
 endif(ENABLE_OSX_BUNDLE)
 
-target_link_libraries(previous Debug GuiSdl UaeCpu ${SDL_LIBRARY})
+target_link_libraries(Previous Debug GuiSdl UaeCpu ${SDL_LIBRARY})
 
 if(MATH_FOUND AND NOT APPLE)
-	target_link_libraries(previous ${MATH_LIBRARY})
+	target_link_libraries(Previous ${MATH_LIBRARY})
 endif()
 
 if(SDLMAIN_LIBRARY)
-	target_link_libraries(previous ${SDLMAIN_LIBRARY})
+	target_link_libraries(Previous ${SDLMAIN_LIBRARY})
 endif(SDLMAIN_LIBRARY)
 
 if(READLINE_FOUND)
-	target_link_libraries(previous ${READLINE_LIBRARY})
+	target_link_libraries(Previous ${READLINE_LIBRARY})
 endif(READLINE_FOUND)
 
 if(ZLIB_FOUND)
-	target_link_libraries(previous ${ZLIB_LIBRARY})
+	target_link_libraries(Previous ${ZLIB_LIBRARY})
 endif(ZLIB_FOUND)
 
 if(PNG_FOUND)
-	target_link_libraries(previous ${PNG_LIBRARY})
+	target_link_libraries(Previous ${PNG_LIBRARY})
 endif(PNG_FOUND)
 
 if(X11_FOUND)
-	target_link_libraries(previous ${X11_LIBRARIES})
+	target_link_libraries(Previous ${X11_LIBRARIES})
 endif(X11_FOUND)
 
 if(PORTAUDIO_FOUND)
-	target_link_libraries(previous ${PORTAUDIO_LIBRARY})
+	target_link_libraries(Previous ${PORTAUDIO_LIBRARY})
 endif(PORTAUDIO_FOUND)
 
 if(WIN32)
 	# Needed for socket() on Windows
-	target_link_libraries(previous ws2_32)
+	target_link_libraries(Previous ws2_32)
 endif(WIN32)
 
 if(ENABLE_OSX_BUNDLE)
-	install(TARGETS previous BUNDLE DESTINATION /Applications)
+	install(TARGETS Previous BUNDLE DESTINATION /Applications)
 else()
-	install(TARGETS previous RUNTIME DESTINATION ${BINDIR})
-	install(FILES previous-icon.bmp DESTINATION ${DATADIR})
+	install(TARGETS Previous RUNTIME DESTINATION ${BINDIR})
+	install(FILES Previous-icon.bmp DESTINATION ${DATADIR})
 	file(GLOB TOS_IMG_FILE tos.img)
 	if(TOS_IMG_FILE)
 		install(FILES tos.img DESTINATION ${DATADIR})

@@ -19,6 +19,8 @@
 
 #define LOG_EN_LEVEL        LOG_WARN
 #define LOG_EN_REG_LEVEL    LOG_WARN
+#define LOG_EN_DATA 0
+
 #define IO_SEG_MASK	0x1FFFF
 
 
@@ -336,6 +338,7 @@ bool enet_packet_from_me(Uint8 *packet) {
 }
 
 void print_buf(Uint8 *buf, Uint32 size) {
+#if LOG_EN_DATA
     int i;
     for (i=0; i<size; i++) {
         if (i==14 || (i-14)%16==0) {
@@ -344,6 +347,7 @@ void print_buf(Uint8 *buf, Uint32 size) {
         printf("%02X ",buf[i]);
     }
     printf("\n");
+#endif
 }
 
 

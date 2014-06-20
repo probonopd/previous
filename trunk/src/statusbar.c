@@ -217,7 +217,7 @@ void Statusbar_Init(SDL_Surface *surf)
 	LedColorBg  = SDL_MapRGB(surf->format, 0x00, 0x00, 0x00);
 	SysColorOff = SDL_MapRGB(surf->format, 0x40, 0x00, 0x00);
 	SysColorOn  = SDL_MapRGB(surf->format, 0xe0, 0x00, 0x00);
-	GrayBg      = SDL_MapRGB(surf->format, 0xc0, 0xc0, 0xc0);
+	GrayBg      = SDL_MapRGB(surf->format, 0xb5, 0xb7, 0xaa);
 
 	/* disable leds */
 	for (i = 0; i < NUM_DEVICE_LEDS; i++) {

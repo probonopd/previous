@@ -6,8 +6,8 @@
   */
 
 #if defined(_VCWIN_)
-#pragma comment(lib, ".\\SDL\\lib\\sdl.lib")			// sdl.lib	
-#pragma comment(lib, ".\\zlib\\win32\\zlib1.lib")		// zlib1.lib 
+#pragma comment(lib, "..\\SDL\\lib\\sdl.lib")			// sdl.lib	
+#pragma comment(lib, "..\\zlib\\win32\\zlib1.lib")		// zlib1.lib 
 #endif
 
 #if defined(_VCWIN_)

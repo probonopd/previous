@@ -26,8 +26,6 @@ endif(NOT CMAKE_BUILD_TYPE)
 
 set(ENABLE_TRACING 1
     CACHE BOOL "Enable tracing messages for debugging")
-set(ENABLE_WINUAE_CPU 1
-    CACHE BOOL "Enable WinUAE CPU core (experimental!)")
 
 if(APPLE)
 	set(ENABLE_OSX_BUNDLE 1

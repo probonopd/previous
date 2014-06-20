@@ -124,14 +124,14 @@ Uint8 translate_key(SDLKey sdlkey) {
     }
 }
 
+#define NEW_MOD_HANDLING   0
+
+#if NEW_MOD_HANDLING
 Uint8 translate_modifiers(SDLMod modifiers) {
 
     Uint8 mod = 0x00;
     
-    if (modifiers&KMOD_RMETA) {
-        mod |= 0x01;
-    }
-    if (modifiers&KMOD_LMETA) {
+    if (modifiers&(KMOD_LCTRL|KMOD_RCTRL)) {
         mod |= 0x01;
     }
     if (modifiers&KMOD_LSHIFT) {
@@ -140,10 +140,10 @@ Uint8 translate_modifiers(SDLMod modifiers) {
     if (modifiers&KMOD_RSHIFT) {
         mod |= 0x04;
     }
-    if (modifiers&KMOD_LCTRL) {
+    if (modifiers&KMOD_LMETA) {
         mod |= 0x08;
     }
-    if (modifiers&KMOD_RCTRL) {
+    if (modifiers&KMOD_RMETA) {
         mod |= 0x10;
     }
     if (modifiers&KMOD_LALT) {
@@ -153,12 +153,12 @@ Uint8 translate_modifiers(SDLMod modifiers) {
         mod |= 0x40;
     }
     if (modifiers&KMOD_CAPS) {
-        mod |= (0x02|0x04);
+        mod |= 0x02;
     }
 
     return mod;
 }
-
+#else
 Uint8 modifiers = 0;
 bool capslock = false;
 
@@ -166,8 +166,8 @@ Uint8 modifier_keydown(SDLKey sdl_modifier) {
     Uint8 mod = 0x00;
     
     switch (sdl_modifier) {
-        case SDLK_RMETA:
-        case SDLK_LMETA:
+        case SDLK_LCTRL:
+        case SDLK_RCTRL:
             modifiers|=0x01;
             break;
         case SDLK_LSHIFT:
@@ -176,10 +176,10 @@ Uint8 modifier_keydown(SDLKey sdl_modifier) {
         case SDLK_RSHIFT:
             modifiers|=0x04;
             break;
-        case SDLK_LCTRL:
+        case SDLK_LMETA:
             modifiers|=0x08;
             break;
-        case SDLK_RCTRL:
+        case SDLK_RMETA:
             modifiers|=0x10;
             break;
         case SDLK_LALT:
@@ -206,8 +206,8 @@ Uint8 modifier_keyup(SDLKey sdl_modifier) {
     Uint8 mod = 0x00;
     
     switch (sdl_modifier) {
-        case SDLK_RMETA:
-        case SDLK_LMETA:
+        case SDLK_LCTRL:
+        case SDLK_RCTRL:
             modifiers&=~0x01;
             break;
         case SDLK_LSHIFT:
@@ -216,10 +216,10 @@ Uint8 modifier_keyup(SDLKey sdl_modifier) {
         case SDLK_RSHIFT:
             modifiers&=~0x04;
             break;
-        case SDLK_LCTRL:
+        case SDLK_LMETA:
             modifiers&=~0x08;
             break;
-        case SDLK_RCTRL:
+        case SDLK_RMETA:
             modifiers&=~0x10;
             break;
         case SDLK_LALT:
@@ -241,7 +241,7 @@ Uint8 modifier_keyup(SDLKey sdl_modifier) {
     
     return mod;
 }
-
+#endif
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -253,11 +253,12 @@ void Keymap_KeyDown(SDL_keysym *sdlkey)
     
     int symkey = sdlkey->sym;
 	int modkey = sdlkey->mod;
-    if (ShortCut_CheckKeys(modkey, symkey, 1)) // Check if we pressed a shortcut
+    if (ShortCut_CheckKeys(modkey, symkey, 1)) {// Check if we pressed a shortcut
         ShortCut_ActKey();
-    
+        return;
+    }
     Uint8 keycode = translate_key(symkey);
-#if 0
+#if NEW_MOD_HANDLING
     Uint8 modifiers = translate_modifiers(modkey);
 #else
     Uint8 modifiers = modifier_keydown(symkey);
@@ -283,7 +284,7 @@ void Keymap_KeyUp(SDL_keysym *sdlkey)
 		return;
     
     Uint8 keycode = translate_key(symkey);
-#if 0
+#if NEW_MOD_HANDLING
     Uint8 modifiers = translate_modifiers(modkey);
 #else
     Uint8 modifiers = modifier_keyup(symkey);
@@ -330,22 +331,59 @@ void Keymap_SimulateCharacter(char asckey, bool press)
 /**
  * User moved mouse
  */
-void Keymap_MouseMove(int dx, int dy)
+void Keymap_MouseMove(int dx, int dy, float lin, float exp)
 {
+    static bool s_left=false;
+    static bool s_up=false;
+    static float s_fdx=0.0;
+    static float s_fdy=0.0;
+    
     bool left=false;
     bool up=false;
+    float fdx;
+    float fdy;
     
-    if (dx<0) {
-        dx=-dx;
-        left=true;
-    }
-    if (dy<0) {
-        dy=-dy;
-        up=true;
-    }
+    if ((dx!=0) || (dy!=0)) {
+        /* Remove the sign */
+        if (dx<0) {
+            dx=-dx;
+            left=true;
+        }
+        if (dy<0) {
+            dy=-dy;
+            up=true;
+        }
         
-    if ((dx>0) || (dy>0))
-    kms_mouse_move(dx, left, dy, up);
+        /* Exponential adjustmend */
+        fdx = pow(dx, exp);
+        fdy = pow(dy, exp);
+        
+        /* Linear adjustment */
+        fdx *= lin;
+        fdy *= lin;
+        
+        /* Add residuals */
+        if (left==s_left) {
+            s_fdx+=fdx;
+        } else {
+            s_fdx=fdx;
+            s_left=left;
+        }
+        if (up==s_up) {
+            s_fdy+=fdy;
+        } else {
+            s_fdy=fdy;
+            s_up=up;
+        }
+        
+        /* Convert to integer and save residuals */
+        dx=s_fdx;
+        s_fdx-=dx;
+        dy=s_fdy;
+        s_fdy-=dy;
+        //printf("adjusted: dx=%i, dy=%i\n",dx,dy);
+        kms_mouse_move(dx, left, dy, up);
+    }
 }
 
 /*-----------------------------------------------------------------------*/

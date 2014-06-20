@@ -250,7 +250,7 @@ static void SDLGui_DrawBox(const SGOBJ *bdlg, int objnum)
 {
 	SDL_Rect rect;
 	int x, y, w, h, offset;
-	Uint32 grey = SDL_MapRGB(pSdlGuiScrn->format,192,192,192);
+	Uint32 grey = SDL_MapRGB(pSdlGuiScrn->format,181,183,170);
 	Uint32 upleftc, downrightc;
 
 	x = bdlg[objnum].x*sdlgui_fontwidth;
@@ -266,13 +266,13 @@ static void SDLGui_DrawBox(const SGOBJ *bdlg, int objnum)
 
 	if (bdlg[objnum].state & SG_SELECTED)
 	{
-		upleftc = SDL_MapRGB(pSdlGuiScrn->format,128,128,128);
+		upleftc = SDL_MapRGB(pSdlGuiScrn->format,147,145,170);
 		downrightc = SDL_MapRGB(pSdlGuiScrn->format,255,255,255);
 	}
 	else
 	{
 		upleftc = SDL_MapRGB(pSdlGuiScrn->format,255,255,255);
-		downrightc = SDL_MapRGB(pSdlGuiScrn->format,128,128,128);
+		downrightc = SDL_MapRGB(pSdlGuiScrn->format,147,145,170);
 	}
 
 	/* The root box should be bigger than the screen, so we disable the offset there: */
@@ -394,9 +394,9 @@ static void SDLGui_DrawScrollbar(const SGOBJ *bdlg, int objnum)
 {
  	SDL_Rect rect;
  	int x, y, w, h;
- 	Uint32 grey0 = SDL_MapRGB(pSdlGuiScrn->format,128,128,128);
- 	Uint32 grey1 = SDL_MapRGB(pSdlGuiScrn->format,196,196,196);
- 	Uint32 grey2 = SDL_MapRGB(pSdlGuiScrn->format, 64, 64, 64);
+ 	Uint32 grey0 = SDL_MapRGB(pSdlGuiScrn->format,147,145,170);
+ 	Uint32 grey1 = SDL_MapRGB(pSdlGuiScrn->format,181,183,170);
+ 	Uint32 grey2 = SDL_MapRGB(pSdlGuiScrn->format, 73, 72, 85);
  
  	x = bdlg[objnum].x * sdlgui_fontwidth;
  	y = bdlg[objnum].y * sdlgui_fontheight + bdlg[objnum].h;
@@ -470,8 +470,8 @@ static void SDLGui_EditField(SGOBJ *dlg, int objnum)
 	/* Enable unicode translation to get proper characters with SDL_PollEvent */
 	nOldUnicodeMode = SDL_EnableUNICODE(true);
 
-	grey = SDL_MapRGB(pSdlGuiScrn->format, 192, 192, 192);
-	cursorCol = SDL_MapRGB(pSdlGuiScrn->format, 128, 128, 128);
+	grey = SDL_MapRGB(pSdlGuiScrn->format, 181, 183, 170);
+	cursorCol = SDL_MapRGB(pSdlGuiScrn->format, 147, 145, 170);
 
 	rect.x = (dlg[0].x + dlg[objnum].x) * sdlgui_fontwidth;
  	rect.y = (dlg[0].y + dlg[objnum].y) * sdlgui_fontheight;
@@ -698,7 +698,7 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 		return SDLGUI_ERROR;
 	}
 
-	grey = SDL_MapRGB(pSdlGuiScrn->format,192,192,192);
+	grey = SDL_MapRGB(pSdlGuiScrn->format,181,183,170);
 
 	dlgrect.x = dlg[0].x * sdlgui_fontwidth;
  	dlgrect.y = dlg[0].y * sdlgui_fontheight;

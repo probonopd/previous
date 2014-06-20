@@ -1,14 +1,8 @@
 /*
-  Hatari - dlgSystem.c
+  Previous - dlgSystem.c
 
   This file is distributed under the GNU Public License, version 2 or at
   your option any later version. Read the file gpl.txt for details.
-
- This file contains 2 system panels :
-    - 1 for the old uae CPU
-    - 1 for the new WinUae cpu
-
- The selection is made during compilation with the ENABLE_WINUAE_CPU define
 
 */
 const char DlgAdvanced_fileid[] = "Hatari dlgAdvanced.c : " __DATE__ " " __TIME__;

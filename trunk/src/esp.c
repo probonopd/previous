@@ -12,7 +12,7 @@
 #include "scsi.h"
 
 #define LOG_ESPDMA_LEVEL    LOG_DEBUG   /* Print debugging messages for ESP DMA registers */
-#define LOG_ESPCMD_LEVEL    LOG_DEBUG    /* Print debugging messages for ESP commands */
+#define LOG_ESPCMD_LEVEL    LOG_DEBUG   /* Print debugging messages for ESP commands */
 #define LOG_ESPREG_LEVEL    LOG_DEBUG   /* Print debugging messages for ESP registers */
 #define LOG_ESPFIFO_LEVEL   LOG_DEBUG   /* Print debugging messages for ESP FIFO */
 
@@ -698,7 +698,7 @@ void esp_select(bool atn) {
         esp_state = DISCONNECTED;
         int seltout = (selecttimeout * 8192 * clockconv) / ESP_CLOCK_FREQ; /* timeout in microseconds */
         Log_Printf(LOG_ESPCMD_LEVEL, "[ESP] Select: Target %i, timeout after %i microseconds",target,seltout);
-        CycInt_AddRelativeInterrupt(seltout*ConfigureParams.System.nCpuFreq, INT_CPU_CYCLE, INTERRUPT_ESP);
+        CycInt_AddRelativeInterrupt(seltout/**ConfigureParams.System.nCpuFreq*/, INT_CPU_CYCLE, INTERRUPT_ESP);
         return;
     }
     

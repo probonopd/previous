@@ -82,8 +82,8 @@ static void Screen_CreatePalette(void)
 {
 
 	sdlColors[0].r = sdlColors[0].g = sdlColors[0].b = 255;
-	sdlColors[1].r = sdlColors[1].g = sdlColors[1].b = 160;
-	sdlColors[2].r = sdlColors[2].g = sdlColors[2].b = 80;
+	sdlColors[1].r = sdlColors[1].g = sdlColors[1].b = 170;
+	sdlColors[2].r = sdlColors[2].g = sdlColors[2].b = 85;
 	sdlColors[3].r = sdlColors[3].g = sdlColors[3].b = 0;
 }
 
@@ -135,7 +135,7 @@ static void Screen_SetResolution(void)
 	Uint32 sdlVideoFlags;
 	bool bDoubleLowRes = false;
 
-	BitCount = 8;
+	BitCount = 0; /* host native */
 
 	nBorderPixelsTop = nBorderPixelsBottom = 0;
 	nBorderPixelsLeft = nBorderPixelsRight = 0;
