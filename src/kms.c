@@ -473,9 +473,9 @@ void kms_mouse_move(int x, bool left, int y, bool up) {
     if (y>0x3F)
         y=0x3F;
 
-    if (!left)  /* right */
+    if (!left && x>0)  /* right */
         x=(0x3F-x)|0x40;
-    if (!up)    /* down */
+    if (!up && y>0)    /* down */
         y=(0x3F-y)|0x40;
     
     if (kms_device_enabled(km_address|KM_ADDR_MOUSE)) {
