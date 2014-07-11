@@ -94,12 +94,12 @@ int SDLGui_Init(void)
 	}
 
 	/* Set color palette of the font graphics: */
-	SDL_SetColors(pSmallFontGfx, blackWhiteColors, 0, 2);
-	SDL_SetColors(pBigFontGfx, blackWhiteColors, 0, 2);
+	SDL_SetPaletteColors(pSmallFontGfx->format->palette, blackWhiteColors, 0, 2);
+	SDL_SetPaletteColors(pBigFontGfx->format->palette, blackWhiteColors, 0, 2);
 
 	/* Set font color 0 as transparent: */
-	SDL_SetColorKey(pSmallFontGfx, (SDL_SRCCOLORKEY|SDL_RLEACCEL), 0);
-	SDL_SetColorKey(pBigFontGfx, (SDL_SRCCOLORKEY|SDL_RLEACCEL), 0);
+	SDL_SetColorKey(pSmallFontGfx, (SDL_TRUE|SDL_RLEACCEL), 0);
+	SDL_SetColorKey(pBigFontGfx, (SDL_TRUE|SDL_RLEACCEL), 0);
 
 	return 0;
 }
@@ -465,10 +465,10 @@ static void SDLGui_EditField(SGOBJ *dlg, int objnum)
 	SDL_Rect rect;
 	Uint32 grey, cursorCol;
 	SDL_Event event;
-	int nOldUnicodeMode;
 
-	/* Enable unicode translation to get proper characters with SDL_PollEvent */
-	nOldUnicodeMode = SDL_EnableUNICODE(true);
+	/* Enable text input to get unicode characters with SDL_TEXTINPUT event */
+    SDL_SetTextInputRect(&rect);
+    SDL_StartTextInput();
 
 	grey = SDL_MapRGB(pSdlGuiScrn->format, 181, 183, 170);
 	cursorCol = SDL_MapRGB(pSdlGuiScrn->format, 147, 145, 170);
@@ -531,22 +531,21 @@ static void SDLGui_EditField(SGOBJ *dlg, int objnum)
 							memmove(&txt[cursorPos], &txt[cursorPos+1], strlen(&txt[cursorPos+1])+1);
 						break;
 					 default:
-						/* If it is a "good" key then insert it into the text field */
-						if (event.key.keysym.unicode >= 32 && event.key.keysym.unicode < 128
-						        && event.key.keysym.unicode != PATHSEP)
-						{
-							if (strlen(txt) < (size_t)dlg[objnum].w)
-							{
-								memmove(&txt[cursorPos+1], &txt[cursorPos], strlen(&txt[cursorPos])+1);
-								txt[cursorPos] = event.key.keysym.unicode;
-								cursorPos += 1;
-							}
-						}
+						/* Get other keys from SDL_TEXTINPUT event */
+                            break;
+                    }
+                    break;
+                case SDL_TEXTINPUT:
+                        if (strlen(txt) < (size_t)dlg[objnum].w)
+                        {
+                            memmove(&txt[cursorPos+1], &txt[cursorPos], strlen(&txt[cursorPos])+1);
+							txt[cursorPos] = event.text.text[0];
+                            cursorPos += 1;
+                        }
 						break;
 					}
 					break;
 				}
-			}
 			while (SDL_PollEvent(&event));
 
 			blinkState = 1;
@@ -569,7 +568,7 @@ static void SDLGui_EditField(SGOBJ *dlg, int objnum)
 	}
 	while (!bStopEditing);
 
-	SDL_EnableUNICODE(nOldUnicodeMode);
+    SDL_StopTextInput();
 }
 
 
@@ -714,7 +713,7 @@ int SDLGui_DoDialog(SGOBJ *dlg, SDL_Event *pEventOut)
 	                                  pSdlGuiScrn->format->Rmask, pSdlGuiScrn->format->Gmask, pSdlGuiScrn->format->Bmask, pSdlGuiScrn->format->Amask);
 	if (pSdlGuiScrn->format->palette != NULL)
 	{
-		SDL_SetColors(pBgSurface, pSdlGuiScrn->format->palette->colors, 0, pSdlGuiScrn->format->palette->ncolors-1);
+		SDL_SetPaletteColors(pBgSurface->format->palette, pSdlGuiScrn->format->palette->colors, 0, pSdlGuiScrn->format->palette->ncolors-1);
 	}
 
 	if (pBgSurface != NULL)

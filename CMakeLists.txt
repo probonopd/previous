@@ -44,10 +44,10 @@ endif(APPLE)
 # Check for libraries:
 # ####################
 
-find_package(SDL REQUIRED)
-if(NOT SDL_FOUND)
-	message(FATAL_ERROR "SDL library not found!")
-endif(NOT SDL_FOUND)
+find_package(SDL2 REQUIRED)
+if(NOT SDL2_FOUND)
+	message(FATAL_ERROR "SDL2 library not found!")
+endif(NOT SDL2_FOUND)
 
 find_package(Math)
 
@@ -100,13 +100,9 @@ if(DETECTED_LFS_CFLAGS)
 endif(DETECTED_LFS_CFLAGS)
 
 # Additional CFLAGS suggested by the SDL library:
-execute_process(COMMAND pkg-config --cflags-only-other sdl
-                OUTPUT_VARIABLE DETECTED_SDL_CFLAGS
-                ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
-if(DETECTED_SDL_CFLAGS)
-	add_definitions(${DETECTED_SDL_CFLAGS})
-	# message(STATUS "Additional CFLAGS of SDL: ${DETECTED_SDL_CFLAGS}")
-endif(DETECTED_SDL_CFLAGS)
+execute_process(COMMAND pkg-config --cflags-only-other sdl2
+		OUTPUT_VARIABLE DETECTED_SDL_CFLAGS
+		ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 
 # ###########################
 # Check for optional headers:
@@ -115,9 +111,9 @@ endif(DETECTED_SDL_CFLAGS)
 check_include_files(termios.h HAVE_TERMIOS_H)
 check_include_files(strings.h HAVE_STRINGS_H)
 check_include_files(malloc.h HAVE_MALLOC_H)
-check_include_files(SDL/SDL_config.h HAVE_SDL_SDL_CONFIG_H)
 check_include_files(sys/times.h HAVE_SYS_TIMES_H)
 check_include_files("sys/socket.h;sys/un.h" HAVE_UNIX_DOMAIN_SOCKETS)
+check_include_files(SDL2/SDL_config.h HAVE_SDL2_SDL_CONFIG_H)
 
 # #############################
 # Check for optional functions:

@@ -24,13 +24,10 @@ const char Keymap_fileid[] = "Hatari keymap.c : " __DATE__ " " __TIME__;
 
 
 void Keymap_Init(void) {
-    if(ConfigureParams.Keyboard.bDisableKeyRepeat)
-        SDL_EnableKeyRepeat(0, 0);
-    else
-        SDL_EnableKeyRepeat(SDL_DEFAULT_REPEAT_DELAY, SDL_DEFAULT_REPEAT_INTERVAL);
+
 }
 
-Uint8 translate_key(SDLKey sdlkey) {
+Uint8 translate_key(SDL_Keycode sdlkey) {
     
     switch (sdlkey) {
         case SDLK_BACKSLASH: return 0x03;
@@ -40,28 +37,28 @@ Uint8 translate_key(SDLKey sdlkey) {
         case SDLK_o: return 0x07;
         case SDLK_p: return 0x08;
         case SDLK_LEFT: return 0x09;
-        case SDLK_KP0: return 0x0B;
+        case SDLK_KP_0: return 0x0B;
         case SDLK_KP_PERIOD: return 0x0C;
         case SDLK_KP_ENTER: return 0x0D;
         case SDLK_DOWN: return 0x0F;
         case SDLK_RIGHT: return 0x10;
-        case SDLK_KP1: return 0x11;
-        case SDLK_KP4: return 0x12;
-        case SDLK_KP6: return 0x13;
-        case SDLK_KP3: return 0x14;
+        case SDLK_KP_1: return 0x11;
+        case SDLK_KP_4: return 0x12;
+        case SDLK_KP_6: return 0x13;
+        case SDLK_KP_3: return 0x14;
         case SDLK_KP_PLUS: return 0x15;
         case SDLK_UP: return 0x16;
-        case SDLK_KP2: return 0x17;
-        case SDLK_KP5: return 0x18;
+        case SDLK_KP_2: return 0x17;
+        case SDLK_KP_5: return 0x18;
         case SDLK_BACKSPACE: return 0x1B;
         case SDLK_EQUALS: return 0x1C;
         case SDLK_MINUS: return 0x1D;
         case SDLK_8: return 0x1E;
         case SDLK_9: return 0x1F;
         case SDLK_0: return 0x20;
-        case SDLK_KP7: return 0x21;
-        case SDLK_KP8: return 0x22;
-        case SDLK_KP9: return 0x23;
+        case SDLK_KP_7: return 0x21;
+        case SDLK_KP_8: return 0x22;
+        case SDLK_KP_9: return 0x23;
         case SDLK_KP_MINUS: return 0x24;
         case SDLK_KP_MULTIPLY: return 0x25;
         case SDLK_BACKQUOTE: return 0x26;
@@ -127,7 +124,7 @@ Uint8 translate_key(SDLKey sdlkey) {
 #define NEW_MOD_HANDLING   0
 
 #if NEW_MOD_HANDLING
-Uint8 translate_modifiers(SDLMod modifiers) {
+Uint8 translate_modifiers(SDL_Keymod modifiers) {
 
     Uint8 mod = 0x00;
     
@@ -140,10 +137,10 @@ Uint8 translate_modifiers(SDLMod modifiers) {
     if (modifiers&KMOD_RSHIFT) {
         mod |= 0x04;
     }
-    if (modifiers&KMOD_LMETA) {
+    if (modifiers&KMOD_LGUI) {
         mod |= 0x08;
     }
-    if (modifiers&KMOD_RMETA) {
+    if (modifiers&KMOD_RGUI) {
         mod |= 0x10;
     }
     if (modifiers&KMOD_LALT) {
@@ -162,8 +159,7 @@ Uint8 translate_modifiers(SDLMod modifiers) {
 Uint8 modifiers = 0;
 bool capslock = false;
 
-Uint8 modifier_keydown(SDLKey sdl_modifier) {
-    Uint8 mod = 0x00;
+Uint8 modifier_keydown(SDL_Keycode sdl_modifier) {
     
     switch (sdl_modifier) {
         case SDLK_LCTRL:
@@ -176,10 +172,10 @@ Uint8 modifier_keydown(SDLKey sdl_modifier) {
         case SDLK_RSHIFT:
             modifiers|=0x04;
             break;
-        case SDLK_LMETA:
+        case SDLK_LGUI:
             modifiers|=0x08;
             break;
-        case SDLK_RMETA:
+        case SDLK_RGUI:
             modifiers|=0x10;
             break;
         case SDLK_LALT:
@@ -189,21 +185,16 @@ Uint8 modifier_keydown(SDLKey sdl_modifier) {
             modifiers|=0x40;
             break;
         case SDLK_CAPSLOCK:
-            capslock=true;
+            capslock=capslock?false:true;
             break;
         default:
             break;
     }
     
-    mod = modifiers;
-    if (capslock)
-        mod|=0x02;
-    
-    return mod;
+    return modifiers|(capslock?0x02:0x00);
 }
 
-Uint8 modifier_keyup(SDLKey sdl_modifier) {
-    Uint8 mod = 0x00;
+Uint8 modifier_keyup(SDL_Keycode sdl_modifier) {
     
     switch (sdl_modifier) {
         case SDLK_LCTRL:
@@ -216,10 +207,10 @@ Uint8 modifier_keyup(SDLKey sdl_modifier) {
         case SDLK_RSHIFT:
             modifiers&=~0x04;
             break;
-        case SDLK_LMETA:
+        case SDLK_LGUI:
             modifiers&=~0x08;
             break;
-        case SDLK_RMETA:
+        case SDLK_RGUI:
             modifiers&=~0x10;
             break;
         case SDLK_LALT:
@@ -229,17 +220,13 @@ Uint8 modifier_keyup(SDLKey sdl_modifier) {
             modifiers&=~0x40;
             break;
         case SDLK_CAPSLOCK:
-            capslock=false;
+            //capslock=false;
             break;
         default:
             break;
     }
     
-    mod = modifiers;
-    if (capslock)
-        mod|=0x02;
-    
-    return mod;
+    return modifiers|(capslock?0x02:0x00);
 }
 #endif
 
@@ -247,7 +234,7 @@ Uint8 modifier_keyup(SDLKey sdl_modifier) {
 /**
  * User pressed key down
  */
-void Keymap_KeyDown(SDL_keysym *sdlkey)
+void Keymap_KeyDown(SDL_Keysym *sdlkey)
 {
     Log_Printf(LOG_WARN, "Key pressed: %s\n", SDL_GetKeyName(sdlkey->sym));
     
@@ -274,7 +261,7 @@ void Keymap_KeyDown(SDL_keysym *sdlkey)
 /**
  * User released key
  */
-void Keymap_KeyUp(SDL_keysym *sdlkey)
+void Keymap_KeyUp(SDL_Keysym *sdlkey)
 {
     Log_Printf(LOG_WARN, "Key released: %s\n", SDL_GetKeyName(sdlkey->sym));
     
@@ -301,7 +288,7 @@ void Keymap_KeyUp(SDL_keysym *sdlkey)
  */
 void Keymap_SimulateCharacter(char asckey, bool press)
 {
-	SDL_keysym sdlkey;
+	SDL_Keysym sdlkey;
 
 	sdlkey.mod = KMOD_NONE;
 	sdlkey.scancode = 0;

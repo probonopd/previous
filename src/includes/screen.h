@@ -10,6 +10,10 @@
 
 #include <SDL_video.h>    /* for SDL_Surface */
 
+#if 1
+void SDL_UpdateRect(SDL_Surface *screen, Sint32 x, Sint32 y, Sint32 w, Sint32 h);
+void SDL_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects);
+#endif
 
 /* The 'screen' is a representation of the ST video memory	*/
 /* taking into account all the border tricks. Data are stored	*/
@@ -73,6 +77,7 @@ extern int NEXTScreenStartHorizLine;
 extern int NEXTScreenLeftSkipBytes;
 extern FRAMEBUFFER *pFrameBuffer;
 extern Uint8 pNEXTScreen[(1120*832)*2];
+extern struct SDL_Window *sdlWindow;
 extern SDL_Surface *sdlscrn;
 extern Uint32 STRGBPalette[16];
 extern Uint32 ST2RGB[4096];

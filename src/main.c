@@ -174,9 +174,11 @@ bool Main_PauseEmulation(bool visualize)
 		/* make sure msg gets shown */
 		Statusbar_Update(sdlscrn);
 
-		if (bGrabMouse && !bInFullScreen)
+		if (bGrabMouse && !bInFullScreen) {
 			/* Un-grab mouse pointer in windowed mode */
-			SDL_WM_GrabInput(SDL_GRAB_OFF);
+			SDL_SetRelativeMouseMode(SDL_FALSE);
+            SDL_SetWindowGrab(sdlWindow, SDL_FALSE);
+        }
 	}
 	return true;
 }
@@ -199,9 +201,11 @@ bool Main_UnPauseEmulation(void)
 	/* Cause full screen update (to clear all) */
 	Screen_SetFullUpdate();
 
-	if (bGrabMouse)
+	if (bGrabMouse) {
 		/* Grab mouse pointer again */
-		SDL_WM_GrabInput(SDL_GRAB_ON);
+		SDL_SetRelativeMouseMode(SDL_TRUE);
+        SDL_SetWindowGrab(sdlWindow, SDL_TRUE);
+    }
 	return true;
 }
 
@@ -374,8 +378,8 @@ static void Main_CheckForAccurateDelays(void)
  */
 void Main_WarpMouse(int x, int y)
 {
-	SDL_WarpMouse(x, y);                  /* Set mouse pointer to new position */
-	bIgnoreNextMouseMotion = true;        /* Ignore mouse motion event from SDL_WarpMouse */
+    SDL_WarpMouseInWindow(sdlWindow, x, y); /* Set mouse pointer to new position */
+	bIgnoreNextMouseMotion = true;          /* Ignore mouse motion event from SDL_WarpMouse */
 }
 
 
@@ -393,7 +397,7 @@ static void Main_HandleMouseMotion(SDL_Event *pEvent)
 	dy = pEvent->motion.yrel;
 
 	/* get all mouse event to clean the queue and sum them */
-	nb=SDL_PeepEvents(&mymouse[0], 100, SDL_GETEVENT, SDL_EVENTMASK(SDL_MOUSEMOTION));
+	nb=SDL_PeepEvents(&mymouse[0], 100, SDL_GETEVENT, SDL_MOUSEMOTION, SDL_MOUSEMOTION);
 
 	for (i=0;i<nb;i++) {
 	dx += mymouse[i].motion.xrel;
@@ -468,8 +472,9 @@ void Main_EventHandler(void)
 					/* If we are in windowed mode, toggle the mouse cursor mode now: */
 					if (!bInFullScreen)
 					{
-						SDL_WM_GrabInput(SDL_GRAB_ON);
-                        Main_SetTitle(MOUSE_LOCK_MSG);
+						SDL_SetRelativeMouseMode(SDL_TRUE);
+                        SDL_SetWindowGrab(sdlWindow, SDL_TRUE);
+						Main_SetTitle(MOUSE_LOCK_MSG);
 					}
 				}
                 
@@ -485,16 +490,6 @@ void Main_EventHandler(void)
 				/* Start double-click sequence in emulation time */
 //				Keyboard.LButtonDblClk = 1;
 			}
-			else if (event.button.button == SDL_BUTTON_WHEELDOWN)
-			{
-				/* Simulate pressing the "cursor down" key */
-//				IKBD_PressSTKey(0x50, true);
-			}
-			else if (event.button.button == SDL_BUTTON_WHEELUP)
-			{
-				/* Simulate pressing the "cursor up" key */
-//				IKBD_PressSTKey(0x48, true);
-			}
 			break;
 
 		 case SDL_MOUSEBUTTONUP:
@@ -508,25 +503,19 @@ void Main_EventHandler(void)
                 Keymap_MouseUp(false);
 //				Keyboard.bRButtonDown &= ~BUTTON_MOUSE;
 			}
-			else if (event.button.button == SDL_BUTTON_WHEELDOWN)
-			{
-				/* Simulate releasing the "cursor down" key */
-//				IKBD_PressSTKey(0x50, false);
-			}
-			else if (event.button.button == SDL_BUTTON_WHEELUP)
-			{
-				/* Simulate releasing the "cursor up" key */
-//				IKBD_PressSTKey(0x48, false);
-			}
 			break;
 
 		 case SDL_KEYDOWN:
-			Keymap_KeyDown(&event.key.keysym);
+            if (ConfigureParams.Keyboard.bDisableKeyRepeat && event.key.repeat)
+                break;
+
+            Keymap_KeyDown(&event.key.keysym);
 			break;
 
 		 case SDL_KEYUP:
 			Keymap_KeyUp(&event.key.keysym);
 			break;
+                
 
 		default:
 			/* don't let unknown events delay event processing */
@@ -543,10 +532,10 @@ void Main_EventHandler(void)
  */
 void Main_SetTitle(const char *title)
 {
-	if (title)
-		SDL_WM_SetCaption(title, "Previous");
-	else
-		SDL_WM_SetCaption(PROG_NAME, "Previous");
+    if (title)
+        SDL_SetWindowTitle(sdlWindow, title);
+    else
+        SDL_SetWindowTitle(sdlWindow, PROG_NAME);
 }
 
 /*-----------------------------------------------------------------------*/
@@ -674,7 +663,7 @@ static void Main_LoadInitialConfig(void)
 static void Main_StatusbarSetup(void)
 {
 	const char *name = NULL;
-	SDLKey key;
+	SDL_Keycode key;
 
 	key = ConfigureParams.Shortcut.withoutModifier[SHORTCUT_OPTIONS];
 	if (!key)

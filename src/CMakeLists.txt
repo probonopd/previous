@@ -30,7 +30,7 @@ endif(WIN32)
 	set(CPUDIR cpu)
 
 include_directories(${CMAKE_BINARY_DIR} includes debug ${CPUDIR}
-		    ${SDL_INCLUDE_DIR})
+		    ${SDL2_INCLUDE_DIR})
 
 if(ZLIB_FOUND)
 	include_directories(${ZLIB_INCLUDE_DIR})
@@ -86,7 +86,7 @@ else()
 	add_executable(Previous ${SOURCES})
 endif(ENABLE_OSX_BUNDLE)
 
-target_link_libraries(Previous Debug GuiSdl UaeCpu ${SDL_LIBRARY})
+target_link_libraries(Previous Debug GuiSdl UaeCpu ${SDL2_LIBRARY})
 
 if(MATH_FOUND AND NOT APPLE)
 	target_link_libraries(Previous ${MATH_LIBRARY})

@@ -11,12 +11,13 @@
 #include <SDL_keyboard.h>
 #include "SDL.h"
 
+
 extern void Keymap_Init(void);
-extern char Keymap_RemapKeyToSTScanCode(SDL_keysym* pKeySym);
+extern char Keymap_RemapKeyToSTScanCode(SDL_Keysym* pKeySym);
 extern void Keymap_LoadRemapFile(char *pszFileName);
 extern void Keymap_DebounceAllKeys(void);
-extern void Keymap_KeyDown(SDL_keysym *sdlkey);
-extern void Keymap_KeyUp(SDL_keysym *sdlkey);
+extern void Keymap_KeyDown(SDL_Keysym *sdlkey);
+extern void Keymap_KeyUp(SDL_Keysym *sdlkey);
 extern void Keymap_SimulateCharacter(char asckey, bool press);
 
 extern void Keymap_MouseMove(int dx, int dy, float lin, float exp);
