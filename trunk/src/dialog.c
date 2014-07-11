@@ -86,14 +86,6 @@ void Dialog_CheckFiles(void) {
     bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
     SDL_ShowCursor(SDL_ENABLE);
     
-    /* Warn because of 68030 emulation bug. Remove after problem got fixed. */
-    if (ConfigureParams.System.nMachineType==NEXT_CUBE030) {
-        DlgAlert_Notice("WARNING: Running NeXTstep 3.0 or any later "
-                        "version on 68030 NeXT Computer might cause "
-                        "disk image corruption!");
-    }
-    /* -------------------------------------------------------------------- */
-
     /* Check if ROM file exists. If it is missing present a dialog to select a new ROM file. */
     switch (ConfigureParams.System.nMachineType) {
         case NEXT_CUBE030:

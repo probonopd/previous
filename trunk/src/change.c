@@ -210,9 +210,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
     int drive;
     for (drive = 0; drive < MO_MAX_DRIVES; drive++) {
         if (!NeedReset &&
-            (current->MO.drive[drive].bDiskInserted != changed->MO.drive[drive].bDiskInserted ||
-             current->MO.drive[drive].bWriteProtected != changed->MO.drive[drive].bWriteProtected ||
-             strcmp(current->MO.drive[drive].szImageName, changed->MO.drive[drive].szImageName))) {
+            (current->MO.drive[drive].bDriveConnected != changed->MO.drive[drive].bDriveConnected)) {
             bReInitMOEmu = true;
             break;
         }
@@ -250,7 +248,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
         SCSI_Reset();
     }
     
-    /* Re-init SCSI disks? */
+    /* Re-init MO disks? */
     if (bReInitMOEmu) {
         Dprintf("- MO drives<\n");
         MO_Reset();

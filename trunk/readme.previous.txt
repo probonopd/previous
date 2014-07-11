@@ -1,6 +1,6 @@
 
 
-                                 Previous 0.4
+                                 Previous 0.5
 
 
                     http://previous.alternative-system.com/
@@ -59,7 +59,7 @@ Actually it does not emulate Turbo machines.
 For using Previous, you need to have installed the following libraries:
 
 Required:
-- The SDL library v1.2.15 (v2.x won't work) (http://www.libsdl.org)
+- The SDL library v2.0.3 or later (http://www.libsdl.org)
 - The zlib compression library (http://www.gzip.org/zlib/)
 
 
@@ -127,9 +127,7 @@ There are remaining problems with the host to emulated machine interface for
 input devices, mainly keyboard.
 
 
-Known issues (version 0.4):
-- Using NeXTstep 3.0 or later on emulated 68030 NeXT Computer causes disk
-  image corruption in certain situations.
+Known issues (version 0.5):
 - Un-emulated hardware may cause problems in certain situations (see above).
 - The kernel sometimes hangs during the boot process after printing "root on"
   (this is called "root on hang"). NeXTstep 3.0 and later are affected.
@@ -139,8 +137,8 @@ Known issues (version 0.4):
 - The clock does not tick accurately. Real time clock power-on test may fail
   sporadically on fast host systems.
 - FPU only works on x86 hosts.
-- Mac OS X: When minimizing and maximizing the application window there might
-  occur a blue layer above the window's contents. This is an SDL bug.
+- Mac OS X: When minimizing and maximizing the application window the mouse
+  gets unlocked and sometimes is clicking is ignored (SDL bug).
 - Mac OS X: The native GUI is still showing Hatari's preferences.
 
 

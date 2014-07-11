@@ -34,17 +34,10 @@ void Resolution_Init(void)
  	 * initialization, but before Hatari Screen init is called
  	 * for the first time!
  	 */
- 	const SDL_VideoInfo* info = SDL_GetVideoInfo();
- 	if (info->current_w >= 640 && info->current_h >= 400) {
- 		DesktopWidth = info->current_w;
- 		DesktopHeight = info->current_h;
- 	} else {
- 		/* target 800x600 screen with statusbar out of screen */
- 		DesktopWidth = 320;
- 		DesktopHeight = 200;
- 		fprintf(stderr, "WARNING: invalid desktop size %dx%d, defaulting to %dx%d!\n",
- 			info->current_w, info->current_h, DesktopWidth, DesktopHeight);
- 	}
+	fprintf(stderr,"FIXME: Resolution init!\n");
+	DesktopWidth = 800;
+	DesktopHeight = 600;
+
  	/* if user hasn't set own max zoom size, use desktop size */
  	if (!(ConfigureParams.Screen.nMaxWidth &&
  	      ConfigureParams.Screen.nMaxHeight)) {
@@ -118,62 +111,8 @@ static bool Resolution_Select(SDL_Rect **modes, int *width, int *height)
  */
 void Resolution_Search(int *width, int *height, int *bpp)
 {
-	SDL_Rect **modes;
-	SDL_PixelFormat pixelformat;
-	Uint32 modeflags;
-
-	/* Search in available modes the best suited */
-	Dprintf(("resolution: video mode asked: %dx%dx%d\n",
-		 *width, *height, *bpp));
-
-	/* Read available video modes */
-	modeflags = 0 /*SDL_HWSURFACE | SDL_HWPALETTE*/;
-	if (bInFullScreen) {
- 		/* resolution change not allowed? */
- 		if (ConfigureParams.Screen.bKeepResolution) {
- 			Dprintf(("resolution: limit to desktop size\n"));
- 			Resolution_GetDesktopSize(width, height);
- 			return;
- 		}
-		modeflags |= SDL_FULLSCREEN;
-    }
-    
-	/*--- Search a video mode with asked bpp ---*/
-	if (*bpp != 0) {
-		pixelformat.BitsPerPixel = *bpp;
-		modes = SDL_ListModes(&pixelformat, modeflags);
-		if ((modes != (SDL_Rect **) 0) && (modes != (SDL_Rect **) -1)) {
-			Dprintf(("resolution: searching a good video mode (any bpp)\n"));
-			if (Resolution_Select(modes, width, height)) {
-				Dprintf(("resolution: video mode selected: %dx%dx%d\n",
-					 *width, *height, *bpp));
-				return;
-			}
-		}
-	}
-
-	/*--- Search a video mode with any bpp ---*/
-	modes = SDL_ListModes(NULL, modeflags);
-	if ((modes != (SDL_Rect **) 0) && (modes != (SDL_Rect **) -1)) {
-		Dprintf(("resolution: searching a good video mode\n"));
-		if (Resolution_Select(modes, width, height)) {
-			Dprintf(("resolution: video mode selected: %dx%dx%d\n",
-				 *width, *height, *bpp));
-			return;
-		}
-	}
-
-	if (modes == (SDL_Rect **) 0) {
-		fprintf(stderr, "WARNING: No suitable video modes available!\n");
-	}
-
-	if (modes == (SDL_Rect **) -1) {
-		/* Any mode available */
-		Dprintf(("resolution: All resolutions available.\n"));
-	}
-
-	Dprintf(("resolution: video mode selected: %dx%dx%d\n",
-		 *width, *height, *bpp));
+	fprintf(stderr,"FIXME: Resolution_Search\n");
+	Resolution_GetDesktopSize(width, height);
 }
 
 

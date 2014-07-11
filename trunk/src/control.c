@@ -27,6 +27,7 @@ const char Control_fileid[] = "Hatari control.c : " __DATE__ " " __TIME__;
 #include "debugui.h"
 #include "file.h"
 #include "log.h"
+#include "screen.h"
 #include "shortcut.h"
 #include "str.h"
 
@@ -499,6 +500,7 @@ const char *Control_SetSocket(const char *socketpath)
  */
 void Control_ReparentWindow(int width, int height, bool noembed)
 {
+#if 0
 	Display *display;
 	Window parent_win, sdl_win, wm_win;
 	const char *parent_win_id;
@@ -515,7 +517,7 @@ void Control_ReparentWindow(int width, int height, bool noembed)
 	}
 
 	SDL_VERSION(&info.version);
-	if (!SDL_GetWMInfo(&info)) {
+	if (!SDL_GetWindowWMInfo(sdlWindow, &info)) {
 		Log_Printf(LOG_WARN, "Failed to get SDL_GetWMInfo()\n");
 		return;
 	}
@@ -544,6 +546,9 @@ void Control_ReparentWindow(int width, int height, bool noembed)
 		}
 	}
 	info.info.x11.unlock_func();
+#else
+    fprintf(stderr, "FIXME: Port Control_ReparentWindow to SDL2\n");
+#endif
 }
 
 /**
@@ -553,7 +558,7 @@ static int Control_GetUISocket(void)
 {
 	SDL_SysWMinfo info;
 	SDL_VERSION(&info.version);
-	if (!SDL_GetWMInfo(&info)) {
+	if (!SDL_GetWindowWMInfo(sdlWindow, &info)) {
 		Log_Printf(LOG_WARN, "Failed to get SDL_GetWMInfo()\n");
 		return 0;
 	}

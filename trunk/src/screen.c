@@ -25,6 +25,9 @@ const char Screen_fileid[] = "Hatari screen.c : " __DATE__ " " __TIME__;
 
 
 /* extern for several purposes */
+SDL_Window *sdlWindow;
+SDL_Renderer *sdlRenderer;
+SDL_Texture *sdlTexture;
 SDL_Surface *sdlscrn = NULL;                /* The SDL screen surface */
 int nScreenZoomX, nScreenZoomY;             /* Zooming factors, used for scaling mouse motions */
 int nBorderPixelsLeft, nBorderPixelsRight;  /* Pixels in left and right border */
@@ -58,6 +61,22 @@ static int ScrUpdateFlag;               /* Bit mask of how to update screen */
 
 static bool Screen_DrawFrame(bool bForceFlip);
 
+#if 1 /* Translating to SDL2 */
+void SDL_UpdateRects(SDL_Surface *screen, int numrects, SDL_Rect *rects)
+{
+	//fprintf(stderr,"rendering %i %i %i %i %i\n", numrects, rects->x, rects->w, rects->w, rects->h);
+	SDL_UpdateTexture(sdlTexture, NULL, screen->pixels, screen->pitch);
+	SDL_RenderClear(sdlRenderer);
+	SDL_RenderCopy(sdlRenderer, sdlTexture, NULL, NULL);
+	SDL_RenderPresent(sdlRenderer);
+}
+
+void SDL_UpdateRect(SDL_Surface *screen, Sint32 x, Sint32 y, Sint32 w, Sint32 h)
+{
+	SDL_Rect rect = { x, y, w, h };
+	SDL_UpdateRects(screen, 1, &rect);
+}
+#endif
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -132,7 +151,6 @@ static void Screen_SetSTScreenOffsets(void)
 static void Screen_SetResolution(void)
 {
 	int Width, Height, nZoom, SBarHeight, BitCount, maxW, maxH;
-	Uint32 sdlVideoFlags;
 	bool bDoubleLowRes = false;
 
 	BitCount = 0; /* host native */
@@ -155,24 +173,9 @@ static void Screen_SetResolution(void)
 	Screen_SetSTScreenOffsets();  
 	Height += Statusbar_SetHeight(Width, Height);
 
-	/* SDL Video attributes: */
-	if (bInFullScreen)
-	{
-		sdlVideoFlags  = SDL_HWSURFACE|SDL_FULLSCREEN|SDL_HWPALETTE/*|SDL_DOUBLEBUF*/;
-		/* SDL_DOUBLEBUF helps avoiding tearing and can be faster on suitable HW,
-		 * but it doesn't work with partial screen updates done by the ST screen
-		 * update code or the Hatari GUI, so double buffering is disabled.
-		 */
-	}
-	else
-	{
-		sdlVideoFlags  = SDL_SWSURFACE|SDL_HWPALETTE;
-	}
-
 	/* Check if we really have to change the video mode: */
 	if (!sdlscrn || sdlscrn->w != Width || sdlscrn->h != Height
-	    || (BitCount && sdlscrn->format->BitsPerPixel != BitCount)
-	    || (sdlscrn->flags&SDL_FULLSCREEN) != (sdlVideoFlags&SDL_FULLSCREEN))
+	    || (BitCount && sdlscrn->format->BitsPerPixel != BitCount))
 	{
 #ifdef _MUDFLAP
 		if (sdlscrn) {
@@ -186,20 +189,25 @@ static void Screen_SetResolution(void)
 		}
 		
 		/* Set new video mode */
-		//fprintf(stderr,"Requesting video mode %i %i %i\n", Width, Height, BitCount);
-		sdlscrn = SDL_SetVideoMode(Width, Height, BitCount, sdlVideoFlags);
-		//fprintf(stderr,"Got video mode %i %i %i\n", sdlscrn->w, sdlscrn->h, sdlscrn->format->BitsPerPixel);
-
-		/* By default ConfigureParams.Screen.nForceBpp and therefore
-		 * BitCount is zero which means "SDL color depth autodetection".
-		 * In this case the SDL_SetVideoMode() call might return
-		 * a 24 bpp resolution
-		 */
-		if (sdlscrn && sdlscrn->format->BitsPerPixel == 24)
+		fprintf(stderr, "SDL screen request: %d x %d @ %d (%s)\n", Width, Height, BitCount, bInFullScreen?"fullscreen":"windowed");
+		sdlWindow = SDL_CreateWindow(PROG_NAME,
+		                             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+		                             Width, Height, 0);
+		sdlRenderer = SDL_CreateRenderer(sdlWindow, -1, 0);
+		if (!sdlWindow || !sdlRenderer)
 		{
-			fprintf(stderr, "Unsupported color depth 24, trying 32 bpp instead...\n");
-			sdlscrn = SDL_SetVideoMode(Width, Height, 32, sdlVideoFlags);
+			fprintf(stderr,"Failed to create window or renderer!\n");
+			exit(-1);
 		}
+		SDL_RenderSetLogicalSize(sdlRenderer, Width, Height);
+		sdlscrn = SDL_CreateRGBSurface(SDL_SWSURFACE, Width, Height, 32,
+						0x00FF0000, 0x0000FF00,
+						0x000000FF, 0x00000000);
+		sdlTexture = SDL_CreateTexture(sdlRenderer,
+						SDL_PIXELFORMAT_RGB888,
+						SDL_TEXTUREACCESS_STREAMING,
+						Width, Height);
+		fprintf(stderr, "SDL screen granted: %d x %d @ %d\n", sdlscrn->w, sdlscrn->h, sdlscrn->format->BitsPerPixel);
 
 		/* Exit if we can not open a screen */
 		if (!sdlscrn)
@@ -247,8 +255,6 @@ static void Screen_SetResolution(void)
 void Screen_Init(void)
 {
 	int i;
-	SDL_Surface *pIconSurf;
-	char sIconFileName[FILENAME_MAX];
 
 	/* Clear frame buffer structures and set current pointer */
 	memset(FrameBuffers, 0, NUM_FRAMEBUFFERS * sizeof(FRAMEBUFFER));
@@ -266,29 +272,19 @@ void Screen_Init(void)
 	}
 	pFrameBuffer = &FrameBuffers[0];
 
-	/* Load and set icon */
-	snprintf(sIconFileName, sizeof(sIconFileName), "%s%cprevious-icon.bmp",
-	         Paths_GetDataDir(), PATHSEP);
-	pIconSurf = SDL_LoadBMP(sIconFileName);
-	if (pIconSurf)
-	{
-		SDL_SetColorKey(pIconSurf, SDL_SRCCOLORKEY, SDL_MapRGB(pIconSurf->format, 255, 255, 255));
-		SDL_WM_SetIcon(pIconSurf, NULL);
-		SDL_FreeSurface(pIconSurf);
-	}
-
 	/* Set initial window resolution */
 	bInFullScreen = ConfigureParams.Screen.bFullScreen;
 	Screen_SetResolution();
 
-	if (bGrabMouse)
-		SDL_WM_GrabInput(SDL_GRAB_ON);
+	if (bGrabMouse) {
+		SDL_SetRelativeMouseMode(SDL_TRUE);
+        SDL_SetWindowGrab(sdlWindow, SDL_TRUE);
+    }
 
 	Video_SetScreenRasters();                       /* Set rasters ready for first screen */
 
 	Screen_CreatePalette();
 	/* Configure some SDL stuff: */
-	SDL_WM_SetCaption(PROG_NAME, "Previous");
 	SDL_ShowCursor(SDL_DISABLE);
 }
 
@@ -403,7 +399,8 @@ void Screen_EnterFullScreen(void)
 		{
 			Screen_Refresh();
 		}
-		SDL_WM_GrabInput(SDL_GRAB_ON);  /* Grab mouse pointer in fullscreen */
+		SDL_SetRelativeMouseMode(SDL_TRUE);
+        SDL_SetWindowGrab(sdlWindow, SDL_TRUE);
 	}
 }
 
@@ -445,7 +442,8 @@ void Screen_ReturnFromFullScreen(void)
 		if (!bGrabMouse)
 		{
 			/* Un-grab mouse pointer in windowed mode */
-			SDL_WM_GrabInput(SDL_GRAB_OFF);
+			SDL_SetRelativeMouseMode(SDL_FALSE);
+            SDL_SetWindowGrab(sdlWindow, SDL_FALSE);
 		}
 	}
 }
@@ -474,10 +472,13 @@ void Screen_ModeChanged(void)
 		/* Set new display mode, if differs from current */
 		Screen_SetResolution();
 		Screen_SetFullUpdate();
-	if (bInFullScreen || bGrabMouse)
-		SDL_WM_GrabInput(SDL_GRAB_ON);
-	else
-		SDL_WM_GrabInput(SDL_GRAB_OFF);
+	if (bInFullScreen || bGrabMouse) {
+		SDL_SetRelativeMouseMode(SDL_TRUE);
+        SDL_SetWindowGrab(sdlWindow, SDL_TRUE);
+	} else {
+		SDL_SetRelativeMouseMode(SDL_FALSE);
+        SDL_SetWindowGrab(sdlWindow, SDL_FALSE);
+    }
 }
 
 
@@ -587,7 +588,6 @@ static void Screen_Blit(void)
  */
 static bool Screen_DrawFrame(bool bForceFlip)
 {
-	int new_res;
 	void (*pDrawFunction)(void);
 	
 	/* Lock screen ready for drawing */

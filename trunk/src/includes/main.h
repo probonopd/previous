@@ -18,7 +18,7 @@
 #elif __linux__
 #define MOUSE_LOCK_MSG "Mouse is locked. Press shortcut-m to release."
 #elif __APPLE__
-#define MOUSE_LOCK_MSG "Mouse is locked. Press cmd-alt-m to release."
+#define MOUSE_LOCK_MSG "Mouse is locked. Press alt-m to release."
 #else
 #define MOUSE_LOCK_MSG "Mouse is locked. Press shortcut-m to release."
 #endif

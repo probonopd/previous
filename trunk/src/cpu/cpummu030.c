@@ -22,8 +22,8 @@
  * - If possible, test mmu030_table_search with all kinds of translations
  *   (early termination, invalid descriptors, bus errors, indirect
  *   descriptors, PTEST in different levels, etc).
- * - Check which bits of an ATC entry should be set and which should be
- *   un-set, if an invalid translation occurs.
+ * - Check which bits of an ATC entry or the status register should be set 
+ *   and which should be un-set, if an invalid translation occurs.
  * - Handle cache inhibit bit when accessing ATC entries
  */
 
@@ -1061,7 +1061,8 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
         uae_u32 limit = 0;
         uae_u32 unused_fields_mask = 0;
         bool super = (fc&4) ? true : false;
-        bool write_protect = false;
+        bool super_violation = false;
+        bool write_protected = false;
         bool cache_inhibit = false;
         bool descr_modified = false;
         
@@ -1178,20 +1179,23 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
         /* Upper level tables */
         do {
             if (descr_num) { /* if not root pointer */
+                /* Check protection */
+                if ((descr_size==8) && (descr[0]&DESCR_S) && !super) {
+                    super_violation = true;
+                }
+                if (descr[0]&DESCR_WP) {
+                    write_protected = true;
+                }
+                
                 /* Set the updated bit */
-                if (!level && !(descr[0]&DESCR_U) && !(mmu030.status&MMUSR_SUPER_VIOLATION)) {
+                if (!level && !(descr[0]&DESCR_U) && !super_violation) {
                     descr[0] |= DESCR_U;
                     phys_put_long(descr_addr[descr_num], descr[0]);
                 }
+                
                 /* Update status bits */
-                if (descr_size==8) {
-                    if (descr[0]&DESCR_S)
-                        mmu030.status |= super ? 0 : MMUSR_SUPER_VIOLATION;
-                }
-                if (descr[0]&DESCR_WP) {
-                    mmu030.status |= (descr[0]&DESCR_WP) ? MMUSR_WRITE_PROTECTED : 0;
-                    write_protect = true;
-                }
+                mmu030.status |= super_violation ? MMUSR_SUPER_VIOLATION : 0;
+                mmu030.status |= write_protected ? MMUSR_WRITE_PROTECTED : 0;
                 
                 /* Check if ptest level is reached */
                 if (level && (level==descr_num)) {
@@ -1316,9 +1320,17 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
     handle_page_descriptor:
         
         if (descr_num) { /* if not root pointer */
-            if (!level && !(mmu030.status&MMUSR_SUPER_VIOLATION)) {
+            /* check protection */
+            if ((descr_size==8) && (descr[0]&DESCR_S) && !super) {
+                super_violation = true;
+            }
+            if (descr[0]&DESCR_WP) {
+                write_protected = true;
+            }
+
+            if (!level && !super_violation) {
                 /* set modified bit */
-                if (!(descr[0]&DESCR_M) && write && !(mmu030.status&MMUSR_WRITE_PROTECTED)) {
+                if (!(descr[0]&DESCR_M) && write && !write_protected) {
                     descr[0] |= DESCR_M;
                     descr_modified = true;
                 }
@@ -1333,19 +1345,14 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
                 }
             }
             
-            if ((descr_size==8) && (descr[0]&DESCR_S)) {
-                mmu030.status |= super ? 0 : MMUSR_SUPER_VIOLATION;
-            }
+            /* update status bits */
+            mmu030.status |= super_violation ? MMUSR_SUPER_VIOLATION : 0;
+            mmu030.status |= write_protected ? MMUSR_WRITE_PROTECTED : 0;
             
             /* check if caching is inhibited */
             cache_inhibit = descr[0]&DESCR_CI ? true : false;
             
-            /* check write protection */
-            if (descr[0]&DESCR_WP) {
-                mmu030.status |= (descr[0]&DESCR_WP) ? MMUSR_WRITE_PROTECTED : 0;
-                write_protect = true;
-            }
-            /* TODO: check if this is handled at correct point (maybe before updating descr?) */
+            /* check for the modified bit and set it in the status register */
             mmu030.status |= (descr[0]&DESCR_M) ? MMUSR_MODIFIED : 0;
         }
         
@@ -1410,10 +1417,7 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
     
     /* check if we have to handle ptest */
     if (level) {
-        if (mmu030.status&MMUSR_INVALID) {
-            /* these bits are undefined, if the I bit is set: */
-            mmu030.status &= ~(MMUSR_WRITE_PROTECTED|MMUSR_MODIFIED|MMUSR_SUPER_VIOLATION);
-        }
+        /* Note: wp, m and sv bits are undefined if the invalid bit is set */
         mmu030.status = (mmu030.status&~MMUSR_NUM_LEVELS_MASK) | descr_num;
 
         /* If root pointer is page descriptor (descr_num 0), return 0 */
@@ -1456,14 +1460,10 @@ uae_u32 mmu030_table_search(uaecptr addr, uae_u32 fc, bool write, int level) {
     } else {
         mmu030.atc[i].physical.bus_error = false;
     }
-    if (write && !(mmu030.status&MMUSR_SUPER_VIOLATION) && !(mmu030.status&MMUSR_LIMIT_VIOLATION)) {
-        mmu030.atc[i].physical.modified = true;
-    } else {
-        mmu030.atc[i].physical.modified = false;
-    }
     mmu030.atc[i].physical.cache_inhibit = cache_inhibit;
-    mmu030.atc[i].physical.write_protect = write_protect;
-
+    mmu030.atc[i].physical.modified = (mmu030.status&MMUSR_MODIFIED) ? true : false;
+    mmu030.atc[i].physical.write_protect = (mmu030.status&MMUSR_WRITE_PROTECTED) ? true : false;
+    
 #if MMU030_ATC_DBG_MSG    
     write_log(_T("ATC create entry(%i): logical = %08X, physical = %08X, FC = %i\n"), i,
               mmu030.atc[i].logical.addr, mmu030.atc[i].physical.addr,
@@ -1502,11 +1502,9 @@ void mmu030_ptest_atc_search(uaecptr logical_addr, uae_u32 fc, bool write) {
     }
     
     mmu030.status |= mmu030.atc[i].physical.bus_error ? (MMUSR_BUS_ERROR|MMUSR_INVALID) : 0;
+    /* Note: write protect and modified bits are undefined if the invalid bit is set */
     mmu030.status |= mmu030.atc[i].physical.write_protect ? MMUSR_WRITE_PROTECTED : 0;
     mmu030.status |= mmu030.atc[i].physical.modified ? MMUSR_MODIFIED : 0;
-    if (mmu030.status&MMUSR_INVALID) {
-        mmu030.status &= ~(MMUSR_WRITE_PROTECTED|MMUSR_MODIFIED);
-    }
 }
 
 /* This function is used for PTEST level 1 - 7. */
@@ -1756,13 +1754,11 @@ uae_u32 mmu030_get_atc_generic(uaecptr addr, int l, uae_u32 fc, int size, int fl
  * stored in the ATC entries. If a matching entry is found it sets
  * the history bit and returns the cache index of the entry. */
 int mmu030_logical_is_in_atc(uaecptr addr, uae_u32 fc, bool write) {
-    uaecptr physical_addr = 0;
     uaecptr logical_addr = 0;
     uae_u32 addr_mask = mmu030.translation.page.imask;
-    uae_u32 page_index = addr & mmu030.translation.page.mask;
 	uae_u32 maddr = addr & addr_mask;
     int offset = (maddr >> mmu030.translation.page.size) & 0x1f;
-
+    
     int i, index;
 	index = atcindextable[offset];
     for (i=0; i<ATC030_NUM_ENTRIES; i++) {
@@ -1771,16 +1767,18 @@ int mmu030_logical_is_in_atc(uaecptr addr, uae_u32 fc, bool write) {
         if (maddr==(logical_addr&addr_mask) &&
             (mmu030.atc[index].logical.fc==fc) &&
             mmu030.atc[index].logical.valid) {
-            /* If M bit is set or access is read, return true
-             * else invalidate entry */
-				if (mmu030.atc[index].physical.bus_error || mmu030.atc[index].physical.modified || !write) {
-					/* Maintain history bit */
-					mmu030_atc_handle_history_bit(index);
-					atcindextable[offset] = index;
-					return index;
-				} else {
-					mmu030.atc[index].logical.valid = false;
-				}
+            /* If access is valid write and M bit is not set, invalidate entry
+             * else return index */
+            if (!write || mmu030.atc[index].physical.modified ||
+                mmu030.atc[index].physical.write_protect ||
+                mmu030.atc[index].physical.bus_error) {
+                /* Maintain history bit */
+                mmu030_atc_handle_history_bit(index);
+                atcindextable[offset] = index;
+                return index;
+            } else {
+                mmu030.atc[index].logical.valid = false;
+            }
 		}
 		index++;
 		if (index >= ATC030_NUM_ENTRIES)

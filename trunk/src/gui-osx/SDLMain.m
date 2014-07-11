@@ -314,7 +314,7 @@ static void CustomApplicationMain (int argc, char **argv)
 
     /* Hand off to main application code */
     gCalledAppMainline = TRUE;
-    status = SDL_main (gArgc, gArgv);
+    //status = SDL_main (gArgc, gArgv);
 
     /* We're done, thank you for playing */
     exit(status);
@@ -589,7 +589,7 @@ static void CustomApplicationMain (int argc, char **argv)
 	
 	SDL_KeyboardEvent event;
 	event.type = SDL_KEYDOWN;
-	event.which = 0;
+	//event.which = 0;
 	event.state = SDL_PRESSED;
 	event.keysym.sym = SDLK_F11;
 	SDL_PushEvent((SDL_Event*)&event);	// Send the F11 key press
@@ -658,7 +658,7 @@ static void CustomApplicationMain (int argc, char **argv)
 #  undef main
 #endif
 
-
+#if 0
 /* Main entry point to executable - should *not* be SDL_main! */
 int main (int argc, char **argv)
 {
@@ -686,4 +686,4 @@ int main (int argc, char **argv)
 #endif
     return 0;
 }
-
+#endif

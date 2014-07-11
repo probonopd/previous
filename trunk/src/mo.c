@@ -12,9 +12,9 @@
  */
 
 /* TODO:
- * - Add support for DMA and ECC starve
- * - Check support for ECC uncorrectable sector errors
- * - Improve drive error handling (attn conditions)
+ * - Fix soft timeouts when polling empty second drive
+ * - Add realistic seek timings
+ * - Check drive error handling (attn conditions)
  */
 
 #include "ioMem.h"
@@ -75,6 +75,7 @@ struct {
     
     bool spinning;
     bool spiraling;
+    bool seeking;
     
     bool attn;
     bool complete;
@@ -535,10 +536,15 @@ enum {
     FMT_MODE_IDLE
 } fmt_mode;
 
+bool write_timing;
+
 void mo_formatter_cmd(void) {
     
     if (mo.ctrlr_csr1==FMT_RESET) {
         Log_Printf(LOG_MO_CMD_LEVEL,"[OSP] Formatter command: Reset (%02X)\n", mo.ctrlr_csr1);
+        if (fmt_mode!=FMT_MODE_IDLE) {
+            Log_Printf(LOG_WARN,"[OSP] Warning: Formatter reset while busy!\n");
+        }
         fmt_mode = FMT_MODE_IDLE;
         ecc_state = ECC_STATE_DONE;
         mo.ecc_cnt=0;
@@ -576,6 +582,7 @@ void mo_formatter_cmd(void) {
     }
     if (mo.ctrlr_csr1&FMT_WRITE) {
         Log_Printf(LOG_MO_CMD_LEVEL,"[OSP] Formatter command: Write (%02X)\n", mo.ctrlr_csr1);
+        write_timing = false;
         fmt_mode = FMT_MODE_WRITE;
     }
 }
@@ -622,7 +629,7 @@ bool fmt_match_id(Uint32 sector_id) {
         if (mo.ctrlr_csr2&MOCSR2_SECT_TIMER) {
             sector_timer++;
             if (sector_timer>SECTOR_TIMEOUT_COUNT) {
-                Log_Printf(LOG_MO_CMD_LEVEL, "[OSP] Sector timeout!");
+                Log_Printf(LOG_WARN, "[OSP] Sector timeout!");
                 sector_timer=0;
                 fmt_mode=FMT_MODE_IDLE;
                 osp_interrupt(MOINT_TIMEOUT);
@@ -660,10 +667,12 @@ void fmt_io(Uint32 sector_id) {
                 abort();
             }
             /* WARNING: first sector must be mismatch to pre-fill the ECC buffer for writing */
-            if (fmt_match_id(sector_id)) {
+            if (fmt_match_id(sector_id) && write_timing) {
                 /* Write sector from ECC buffer to disk */
                 mo_write_sector(sector_id);
                 fmt_sector_done();
+            } else {
+                write_timing = true;
             }
             /* (Re)fill ECC buffer from memory using DMA and encode data */
             ecc_write();
@@ -844,7 +853,7 @@ void ecc_encode(void) {
 
 void ecc_write(void) {
     if (ecc_state!=ECC_STATE_DONE) {
-        Log_Printf(LOG_WARN,"[OSP] Warning: ECC not accepting command (busy %i)", ecc_state);
+        Log_Printf(LOG_MO_ECC_LEVEL,"[OSP] Warning: ECC not accepting command (busy %i)", ecc_state);
         return;
     }
     ecc_mode=ECC_MODE_WRITE;
@@ -911,14 +920,9 @@ void ECC_IO_Handler(void) {
                 dma_mo_read_memory();
                 
                 if (ecc_buffer[eccin].size==old_size) {
-                    if (ecc_buffer[eccin].size==0) {
-                        Log_Printf(LOG_WARN,"[OSP] No more data! Sequence done.");
-                        ecc_sequence_done();
-                    } else {
-                        Log_Printf(LOG_WARN,"[OSP] No more data! ECC starve!");
-                        mo.err_stat = ERRSTAT_STARVE;
-                        osp_interrupt(MOINT_DATA_ERR);
-                    }
+                    Log_Printf(LOG_WARN,"[OSP] No more data! ECC starve! (%i byte)", old_size);
+                    mo.err_stat = ERRSTAT_STARVE;
+                    osp_interrupt(MOINT_DATA_ERR);
                 }
             }
             if (ecc_buffer[eccin].size==ecc_buffer[eccin].limit) {
@@ -985,7 +989,7 @@ void ECC_IO_Handler(void) {
                 }
                 return;
             }
-            Log_Printf(LOG_WARN, "[OSP] ECC waiting for disk write!");
+            Log_Printf(LOG_MO_ECC_LEVEL, "[OSP] ECC waiting for disk write!");
             break;
 
         default:
@@ -1028,8 +1032,9 @@ void mo_write_sector(Uint32 sector_id) {
         ecc_buffer[eccout].size = 0;
         ecc_buffer[eccout].limit = MO_SECTORSIZE_DATA;
     } else {
-        mo.err_stat = ERRSTAT_STARVE;
-        osp_interrupt(MOINT_DATA_ERR);
+        Log_Printf(LOG_WARN, "MO disk %i: Incomplete write (in: size=%i limit=%i, out: size=%i limit=%i)!", dnum,
+                   ecc_buffer[eccin].size, ecc_buffer[eccin].limit, ecc_buffer[eccout].size, ecc_buffer[eccout].limit);
+        abort();
     }
 }
 
@@ -1294,20 +1299,36 @@ bool mo_protected(void) {
     return false;
 }
 
+#define SEEK_TIMING 0
 void mo_seek(Uint16 command) {
+#if SEEK_TIMING
+    int seek_time=modrv[dnum].head_pos;
+#endif
     if (mo_drive_empty()) {
         return;
     }
+    modrv[dnum].seeking = true;
     modrv[dnum].head_pos = (modrv[dnum].ho_head_pos&0xF000) | (command&0x0FFF);
-    modrv[dnum].sec_offset = 0; /* CHECK: is this needed? */
+#if SEEK_TIMING
+    if (seek_time>modrv[dnum].head_pos) {
+        seek_time=seek_time-modrv[dnum].head_pos;
+    } else {
+        seek_time=modrv[dnum].head_pos-seek_time;
+    }
+    seek_time*=20;
+    if (seek_time>180000) {
+        seek_time=180000;
+    }
+    mo_set_signals(true, false, 20000+seek_time);
+#else
     mo_set_signals(true, false, CMD_DELAY);
+#endif
 }
 
 void mo_high_order_seek(Uint16 command) {
     if (mo_drive_empty()) {
         return;
     }
-    /* CHECK: only seek command actually moves head? */
     if ((command&0xF)>4) {
         modrv[dnum].dstat|=DS_SEEK;
         mo_set_signals(true, true, CMD_DELAY);
@@ -1321,6 +1342,7 @@ void mo_jump_head(Uint16 command) {
     if (mo_drive_empty()) {
         return;
     }
+    modrv[dnum].seeking = true;
 
     int offset = command&0x7;
     if (command&0x8) {
@@ -1329,7 +1351,7 @@ void mo_jump_head(Uint16 command) {
     } else {
         modrv[dnum].head_pos+=offset;
     }
-    modrv[dnum].sec_offset=0; /* CHECK: is this needed? */
+    modrv[dnum].sec_offset=0;
     
     switch (command&0xF0) {
         case RJ_READ:
@@ -1359,8 +1381,11 @@ void mo_jump_head(Uint16 command) {
     if (mo_protected()) {
         return;
     }
-
+#if SEEK_TIMING
+    mo_set_signals(true, false, 10000);
+#else
     mo_set_signals(true, false, CMD_DELAY);
+#endif
 }
 
 void mo_recalibrate(void) {
@@ -1437,7 +1462,7 @@ void mo_start_spinning(void) {
     }
     modrv[dnum].dstat &= ~DS_STOPPED;
     modrv[dnum].spinning=true;
-    mo_set_signals(true, false, CMD_DELAY);
+    mo_set_signals(true, false, 30000000);
 }
 
 void mo_eject_disk(int drv) {
@@ -1477,7 +1502,7 @@ void mo_insert_disk(int drv) {
     modrv[drv].dstat|=DS_INSERT;
     modrv[drv].spinning=false;
     modrv[drv].spiraling=false;
-    mo_push_signals(true, true, drv);
+    mo_push_signals(true, false, drv);
 }
 
 void mo_start_spiraling(void) {
@@ -1513,7 +1538,7 @@ void mo_spiraling_operation(void) {
     
     int i;
     for (i=0; i<2; i++) {
-        if (modrv[i].spiraling) {
+        if (modrv[i].spiraling && !modrv[i].seeking) {
             
             /* If the drive is selected, connect to formatter */
             if (i==dnum) {
@@ -1545,22 +1570,30 @@ void mo_unimplemented_cmd(void) {
 }
 
 void mo_reset(void) {
-    if (modrv[dnum].connected) {
-        modrv[dnum].head=NO_HEAD;
-        modrv[dnum].head_pos=modrv[dnum].ho_head_pos=0;
-        modrv[dnum].sec_offset=0;
-        
-        modrv[dnum].dstat=DS_RESET;
-        modrv[dnum].estat=modrv[dnum].hstat=0;
-        modrv[dnum].spinning=false;
-        modrv[dnum].spiraling=false;
-        
-        if (!modrv[dnum].inserted) {
-            modrv[dnum].dstat|=DS_EMPTY;
-        } else if (!modrv[dnum].spinning) {
-            modrv[dnum].dstat|=DS_STOPPED;
+    int i;
+    for (i=0; i<2; i++) {
+        if (modrv[i].connected) {
+            modrv[i].head=NO_HEAD;
+            modrv[i].head_pos=modrv[i].ho_head_pos=0;
+            modrv[i].sec_offset=0;
+            
+            modrv[i].dstat=DS_RESET;
+            modrv[i].estat=modrv[i].hstat=0;
+            if (modrv[i].inserted) { /* CHECK: really spin up on reset? */
+                modrv[i].spinning=true;
+            } else {
+                modrv[i].spinning=false;
+            }
+            modrv[i].spiraling=false;
+            
+            if (!modrv[i].inserted) {
+                modrv[i].dstat|=DS_EMPTY;
+            } else if (!modrv[i].spinning) {
+                modrv[i].dstat|=DS_STOPPED;
+            }
+            modrv[i].attn=false;
+            modrv[i].complete=true;
         }
-        mo_set_signals(true,true,100000);
     }
 }
 
@@ -1574,22 +1607,24 @@ void mo_push_signals(bool complete, bool attn, int drive) {
     }
     bool interrupt = false;
     
-    if (!modrv[dnum].complete) {
-        modrv[dnum].complete=complete;
-        if (modrv[dnum].complete) {
+    if (!modrv[drive].complete) {
+        modrv[drive].complete=complete;
+        if (modrv[drive].complete) {
             if (drive==dnum && mo.intmask&MOINT_CMD_COMPL) {
                 interrupt=true;
             }
         }
     }
-    if (!modrv[dnum].attn) {
-        modrv[dnum].attn=attn;
-        if (modrv[dnum].attn) {
+    if (!modrv[drive].attn) {
+        modrv[drive].attn=attn;
+        if (modrv[drive].attn) {
             if (drive==dnum && mo.intmask&MOINT_ATTN) {
                 interrupt=true;
             }
         }
     }
+    
+    modrv[drive].seeking=false;
 
     if (interrupt) {
         set_interrupt(INT_DISK, SET_INT);
