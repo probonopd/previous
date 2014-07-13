@@ -92,9 +92,9 @@ if(MATH_FOUND AND NOT APPLE)
 	target_link_libraries(Previous ${MATH_LIBRARY})
 endif()
 
-if(SDLMAIN_LIBRARY)
-	target_link_libraries(Previous ${SDLMAIN_LIBRARY})
-endif(SDLMAIN_LIBRARY)
+if(SDL2MAIN_LIBRARY)
+	target_link_libraries(Previous ${SDL2MAIN_LIBRARY})
+endif(SDL2MAIN_LIBRARY)
 
 if(READLINE_FOUND)
 	target_link_libraries(Previous ${READLINE_LIBRARY})
