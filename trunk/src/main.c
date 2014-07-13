@@ -705,12 +705,14 @@ int main(int argc, char *argv[])
 
 	/* Now load the values from the configuration file */
 	Main_LoadInitialConfig();
-
+    
+#if 0 /* FIXME: This sometimes causes exits when starting from application bundles */
 	/* Check for any passed parameters */
 	if (!Opt_ParseParameters(argc, (const char * const *)argv))
 	{
 		return 1;
 	}
+#endif
 	/* monitor type option might require "reset" -> true */
 	Configuration_Apply(true);
 
