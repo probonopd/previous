@@ -37,7 +37,7 @@ static void	Video_DrawScreen(void);
 
 
 int nScanlinesPerFrame = 832;                   /* Number of scan lines per frame */
-int nCyclesPerLine = 1120;
+int nCyclesPerLine = 442;
 
 /*-----------------------------------------------------------------------*/
 /**
