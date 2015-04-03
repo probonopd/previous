@@ -15,6 +15,8 @@ const char DlgOpticalDisk_fileid[] = "Previous dlgOpticalDisk.c : " __DATE__ " "
 #include "mo.h"
 
 
+#define DUAL_MO_DRIVE 0 /* FIXME: Enable this after fixing dual drive issues */
+
 #define MODLG_CONNECTED0        3
 #define MODLG_INSERT0           6
 #define MODLG_PROTECTED0        7
@@ -25,7 +27,11 @@ const char DlgOpticalDisk_fileid[] = "Previous dlgOpticalDisk.c : " __DATE__ " "
 #define MODLG_PROTECTED1        14
 #define MODLG_DISKNAME1         15
 
+#if DUAL_MO_DRIVE
 #define DISKDLG_EXIT            17
+#else
+#define DISKDLG_EXIT            10
+#endif
 
 /* Constant strings */
 #define MODLG_EJECT_WARNING     "WARNING: Don't eject manually if a guest system is running. Risk of data loss. Eject now?"
@@ -39,7 +45,11 @@ char inserteject1[16] = "Insert";
 /* The magneto optical drive dialog: */
 static SGOBJ modlg[] =
 {
+#if DUAL_MO_DRIVE
     { SGBOX, 0, 0, 0,0, 64,30, NULL },
+#else
+    { SGBOX, 0, 0, 0,0, 64,20, NULL },
+#endif
 	{ SGTEXT, 0, 0, 21,1, 10,1, "Magneto-optical drives" },
 
 	{ SGTEXT, 0, 0, 2,4, 14,1, "MO Drive 0:" },
@@ -50,8 +60,8 @@ static SGOBJ modlg[] =
 	{ SGBUTTON, 0, 0, 20,7, 10,1, inserteject0 },
 	{ SGCHECKBOX, 0, 0, 32,7, 17,1, "Write protected" },
 	{ SGTEXT, 0, 0, 4,9, 56,1, NULL },
-
-	{ SGTEXT, 0, 0, 2,14, 14,1, "MO Drive 1:                (disabled)" },
+#if DUAL_MO_DRIVE
+	{ SGTEXT, 0, 0, 2,14, 14,1, "MO Drive 1:" },
     { SGCHECKBOX, 0, 0, 16, 14, 11, 1, "Connected" },
     
     { SGBOX, 0, 0, 2,16, 60,6, NULL },
@@ -63,6 +73,12 @@ static SGOBJ modlg[] =
     { SGTEXT, 0, 0, 2,24, 14,1, "Note: Magneto-optical drives only work with non-turbo Cubes." },
 
     { SGBUTTON, SG_DEFAULT, 0, 22,27, 20,1, "Back to main menu" },
+#else
+    { SGTEXT, 0, 0, 2,14, 14,1, "Note: Magneto-optical drives only work with non-turbo Cubes." },
+    
+    { SGBUTTON, SG_DEFAULT, 0, 22,17, 20,1, "Back to main menu" },
+#endif
+
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 
@@ -202,7 +218,7 @@ void DlgOptical_Main(void)
                     ConfigureParams.MO.drive[0].bWriteProtected = modlg[MODLG_PROTECTED0].state&SG_SELECTED;
                 }
                 break;
-#if 0   /* FIXME: Enable this after fixing dual drive issues */
+#if DUAL_MO_DRIVE
             case MODLG_INSERT1:
                 if (!ConfigureParams.MO.drive[1].bDiskInserted) {
                     if (SDLGui_FileConfSelect(dlgname_mo[1], ConfigureParams.MO.drive[1].szImageName, modlg[MODLG_DISKNAME1].w, false)) {
