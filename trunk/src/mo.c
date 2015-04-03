@@ -1471,6 +1471,7 @@ void mo_eject_disk(int drv) {
         if (mo_drive_empty())
             return;
         
+        Statusbar_AddMessage("Ejecting magneto-optical disk.", 0);
         mo_set_signals(true, false, CMD_DELAY);
     }
 

@@ -52,13 +52,18 @@ Uint32 lasteventc; // debugging code
 void System_Timer_Read(void) { // tuned for power-on test
 //    lasteventc = eventcounter; // debugging code
     if (ConfigureParams.System.nCpuLevel == 3) {
-//        eventcounter = (nCyclesMainCounter/((128/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF; // debugging code
-        IoMem_WriteLong(IoAccessCurrentAddress&0x1FFFF, (nCyclesMainCounter/((128/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF);
+        if (NEXTRom[0xFFAB]==0x04) { // HACK for ROM version 0.8.31 power-on test, WARNING: this causes slowdown of emulation
+//            eventcounter = (nCyclesMainCounter/((1280/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF; // debugging code
+            IoMem_WriteLong(IoAccessCurrentAddress&0x1FFFF, (nCyclesMainCounter/((1280/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF);
+        } else {
+//            eventcounter = (nCyclesMainCounter/((128/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF; // debugging code
+            IoMem_WriteLong(IoAccessCurrentAddress&0x1FFFF, (nCyclesMainCounter/((128/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF);
+        }
     } else { // System has 68040 CPU
 //        eventcounter = (nCyclesMainCounter/((64/ConfigureParams.System.nCpuFreq)*9))&0xFFFFF; // debugging code
         IoMem_WriteLong(IoAccessCurrentAddress&0x1FFFF, (nCyclesMainCounter/((64/ConfigureParams.System.nCpuFreq)*9))&0xFFFFF);
     }
-//    printf("DIFFERENCE = %i\n",eventcounter-lasteventc);
+//    printf("DIFFERENCE = %i PC = %08X\n",eventcounter-lasteventc,m68k_getpc());
 }
 
 /* Floppy Disk Drive - Work on this later */

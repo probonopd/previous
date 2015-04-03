@@ -1138,8 +1138,8 @@ const char* memory_init(int *nNewNEXTMemSize)
 	
 	{
 		int i;
-		for (i=0;i<sizeof(NEXTVideo);i++) NEXTVideo[i]=0xAA;
-		for (i=0;i<sizeof(NEXTRam);i++) NEXTRam[i]=0xAA;
+		for (i=0;i<sizeof(NEXTVideo);i++) NEXTVideo[i]=0;
+		for (i=0;i<sizeof(NEXTRam);i++) NEXTRam[i]=0;
 	}
     
 	return NULL;
