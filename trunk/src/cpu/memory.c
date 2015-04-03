@@ -325,14 +325,19 @@ static uae_u8 *NEXTmem_xlate(uaecptr addr)
 }
 
 
-/* **** NEXT RAM empty areas **** NEED TO CHECK: really do bus errors ??? **** */
+/* **** NEXT RAM empty areas (experimental) **** */
 
 static uae_u32 NEXTempty_lget(uaecptr addr)
 {
     if (illegal_mem)
         write_log ("Empty mem area lget at %08lx\n", (long)addr);
     
-//    M68000_BusError(addr, 1);
+    uae_u8 bank = ((addr-NEXT_RAM_START)>>bankshift)&0x3;
+    
+    if (MemBank_Size[bank]) {
+        addr = (((addr%MemBank_Size[bank])+(bank<<bankshift))+NEXT_RAM_START)&NEXTmem_mask;
+        return do_get_mem_long(NEXTRam + addr);
+    }
     return addr;
 }
 
@@ -341,7 +346,7 @@ static uae_u32 NEXTempty_wget(uaecptr addr)
     if (illegal_mem)
         write_log ("Empty mem area wget at %08lx\n", (long)addr);
     
-    M68000_BusError(addr, 1);
+    abort();
     return 0;
 }
 
@@ -350,10 +355,9 @@ static uae_u32 NEXTempty_bget(uaecptr addr)
     if (illegal_mem)
         write_log ("Empty mem area bget at %08lx\n", (long)addr);
     
-    M68000_BusError(addr, 1);
+    abort();
     return 0;
 }
-/*------------------- this part is experimental ---------------------*/
 
 static void NEXTempty_lput(uaecptr addr, uae_u32 l)
 {
@@ -367,14 +371,13 @@ static void NEXTempty_lput(uaecptr addr, uae_u32 l)
         do_put_mem_long(NEXTRam + addr, l);
     }
 }
-/*-------------------- end of experimental code ----------------------*/
 
 static void NEXTempty_wput(uaecptr addr, uae_u32 w)
 {
     if (illegal_mem)
         write_log ("Empty mem area wput at %08lx\n", (long)addr);
     
-    M68000_BusError(addr, 0);
+    abort();
 }
 
 static void NEXTempty_bput(uaecptr addr, uae_u32 b)
@@ -382,7 +385,7 @@ static void NEXTempty_bput(uaecptr addr, uae_u32 b)
     if (illegal_mem)
         write_log ("Empty mem area bput at %08lx\n", (long)addr);
     
-    M68000_BusError(addr, 0);
+    abort();
 }
 
 static int NEXTempty_check(uaecptr addr, uae_u32 size)

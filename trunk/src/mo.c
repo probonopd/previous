@@ -1451,6 +1451,7 @@ void mo_stop_spinning(void) {
     if (mo_drive_empty()) {
         return;
     }
+    Statusbar_AddMessage("Stop magneto-optical disk spin.", 0);
     modrv[dnum].spinning=false;
     modrv[dnum].spiraling=false;
     mo_set_signals(true, false, CMD_DELAY);
@@ -1460,6 +1461,7 @@ void mo_start_spinning(void) {
     if (mo_drive_empty()) {
         return;
     }
+    Statusbar_AddMessage("Spin-up magneto-optical disk.", 0);
     modrv[dnum].dstat &= ~DS_STOPPED;
     modrv[dnum].spinning=true;
     mo_set_signals(true, false, 30000000);
@@ -1498,6 +1500,7 @@ void mo_insert_disk(int drv) {
         modrv[drv].protected=false;
     }
     
+    Statusbar_AddMessage("Inserting magneto-optical disk.", 0);
     modrv[drv].inserted=true;
     modrv[drv].dstat&=~DS_EMPTY;
     modrv[drv].dstat|=DS_INSERT;
