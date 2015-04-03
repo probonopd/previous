@@ -148,14 +148,15 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
     /* Did we change SCSI disk? */
     int target;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
-        if (!current->SCSI.target[target].bCDROM || !(current->SCSI.target[target].bCDROM == changed->SCSI.target[target].bCDROM)) {
-            if ((current->SCSI.target[target].bAttached || current->SCSI.target[target].bAttached != changed->SCSI.target[target].bAttached)) {
-                if (strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName)) {
-                    printf("scsi disk reset\n");
-                    return true;
-                }
+        if (current->SCSI.target[target].bCDROM == changed->SCSI.target[target].bCDROM) {
+            if (changed->SCSI.target[target].bCDROM ||
+                ((current->SCSI.target[target].bAttached == changed->SCSI.target[target].bAttached) &&
+                 !strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName))) {
+                    continue;
             }
         }
+        printf("scsi disk reset\n");
+        return true;
     }
     
     /* Did we change MO drive? */
