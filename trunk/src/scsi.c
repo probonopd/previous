@@ -65,6 +65,7 @@
 #define SC_NO_ERROR         0x00    // 0
 #define SC_NO_SECTOR        0x01    // 4
 #define SC_WRITE_FAULT      0x03    // 5
+#define SC_NOT_READY        0x04    // 2
 #define SC_INVALID_CMD      0x20    // 5
 #define SC_INVALID_LBA      0x21    // 5
 #define SC_INVALID_CDB      0x24    // 5
@@ -104,6 +105,7 @@ void SCSI_ReadSector(Uint8 *cdb);
 void SCSI_WriteSector(Uint8 *cdb);
 void SCSI_RequestSense(Uint8 *cdb);
 void SCSI_ModeSense(Uint8 *cdb);
+void SCSI_FormatDrive(Uint8 *cdb);
 
 
 /* Helpers */
@@ -233,10 +235,10 @@ Uint8 SCSIdisk_Send_Message(void) {
 
 bool SCSIdisk_Select(Uint8 target) {
 
-    /* If there is no disk present, return timeout true */
-    if (SCSIdisk[target].dsk==NULL) {
+    /* If there is no disk drive present, return timeout true */
+    if (SCSIdisk[target].dsk==NULL && !SCSIdisk[target].cdrom) {
         Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Selection timeout, target = %i", target);
-        SCSIbus.phase = PHASE_ST; /* TODO: Check what's the correct phase */
+        SCSIbus.phase = PHASE_ST;
         return true;
     } else {
         SCSIbus.target = target;
@@ -326,8 +328,8 @@ void SCSI_Emulate_Command(Uint8 *cdb) {
                     SCSI_ModeSense(cdb);
                     break;
                 case CMD_FORMAT_DRIVE:
-                    Log_Printf(LOG_WARN, "SCSI command: Format drive\n");
-                    abort();
+                    Log_Printf(LOG_SCSI_LEVEL, "SCSI command: Format drive\n");
+                    SCSI_FormatDrive(cdb);
                     break;
                 /* as of yet unsupported commands */
                 case CMD_VERIFY_TRACK:
@@ -511,8 +513,17 @@ MODEPAGE SCSI_GetModePage(Uint8 pagecode) {
 /* SCSI Commands */
 
 void SCSI_TestUnitReady(Uint8 *cdb) {
-	SCSIdisk[SCSIbus.target].status = STAT_GOOD;
-    SCSIbus.phase = PHASE_ST;
+    Uint8 target = SCSIbus.target;
+    
+    if (SCSIdisk[target].cdrom && SCSIdisk[target].dsk==NULL) { /* Empty CD-ROM drive */
+        SCSIdisk[target].status = STAT_CHECK_COND;
+        SCSIdisk[target].sense.code = SC_NOT_READY;
+        SCSIbus.phase = PHASE_ST;
+    } else {
+        SCSIdisk[target].status = STAT_GOOD;
+        SCSIdisk[target].sense.code = SC_NO_ERROR;
+        SCSIbus.phase = PHASE_ST;
+    }
 }
 
 void SCSI_ReadCapacity(Uint8 *cdb) {
@@ -770,6 +781,9 @@ void SCSI_RequestSense(Uint8 *cdb) {
         case SC_NO_ERROR:
             SCSIdisk[target].sense.key = SK_NOSENSE;
             break;
+        case SC_NOT_READY:
+            SCSIdisk[target].sense.key = SK_NOTREADY;
+            break;
         case SC_WRITE_FAULT:
         case SC_INVALID_CMD:
         case SC_INVALID_LBA:
@@ -919,4 +933,19 @@ void SCSI_ModeSense(Uint8 *cdb) {
     SCSIbus.phase = PHASE_DI;
     SCSIdisk[target].sense.code = SC_NO_ERROR;
     SCSIdisk[target].sense.valid = false;
+}
+
+
+void SCSI_FormatDrive(Uint8 *cdb) {
+    Uint8 format_data = cdb[1]&0x10;
+    
+    Log_Printf(LOG_WARN, "[SCSI] Format drive command with parameters %02X\n",cdb[1]&0x1F);
+    
+    if (format_data) {
+        Log_Printf(LOG_WARN, "[SCSI] Format drive with format data unsupported!\n");
+        abort();
+    } else {
+        SCSIdisk[SCSIbus.target].status = STAT_GOOD;
+        SCSIbus.phase = PHASE_ST;
+    }
 }
