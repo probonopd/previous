@@ -193,6 +193,12 @@ void SCSI_Reset(void) {
     SCSI_Init();
 }
 
+void SCSI_Eject(Uint8 target) {
+    ConfigureParams.SCSI.target[target].bAttached = false;
+    ConfigureParams.SCSI.target[target].szImageName[0] = '\0';
+    SCSI_Reset();
+}
+
 
 
 /* INQUIRY response data */
@@ -741,7 +747,28 @@ void SCSI_Inquiry (Uint8 *cdb) {
 
 
 void SCSI_StartStop(Uint8 *cdb) {
-    SCSIdisk[SCSIbus.target].status = STAT_GOOD;
+    Uint8 target = SCSIbus.target;
+    
+    switch (cdb[4]&0x03) {
+        case 0:
+            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Stop disk %i", target);
+            break;
+        case 1:
+            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Start disk %i", target);
+            break;
+        case 2:
+            Log_Printf(LOG_WARN, "[SCSI] Eject disk %i", target);
+            if (SCSIdisk[target].cdrom) {
+                SCSI_Eject(target);
+                Statusbar_AddMessage("Ejecting SCSI CD-ROM.", 0);
+            }
+            break;
+        default:
+            Log_Printf(LOG_WARN, "[SCSI] Invalid start/stop");
+            break;
+    }
+    
+    SCSIdisk[target].status = STAT_GOOD;
     SCSIbus.phase = PHASE_ST;
 }
 
