@@ -27,6 +27,7 @@ const char Change_fileid[] = "Hatari change.c : " __DATE__ " " __TIME__;
 #include "hatari-glue.h"
 #include "scsi.h"
 #include "mo.h"
+#include "ethernet.h"
 
 #define DEBUG 1
 #if DEBUG
@@ -184,7 +185,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	bool bReInitGemdosDrive = false;
 	bool bReInitSCSIEmu = false;
     bool bReInitMOEmu = false;
-	bool bReInitIDEEmu = false;
+	bool bReInitEnetEmu = false;
 	bool bReInitIoMem = false;
 	bool bScreenModeChange = false;
 	bool bReInitMidi = false;
@@ -216,6 +217,12 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
             break;
         }
     }
+    
+    /* Do we need to change Ethernet connection? */
+    if (!NeedReset && current->Ethernet.bEthernetConnected != changed->Ethernet.bEthernetConnected) {
+        bReInitEnetEmu = true;
+    }
+    
 
 	/* Copy details to configuration,
 	 * so it can be saved out or set on reset
@@ -253,6 +260,11 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
     if (bReInitMOEmu) {
         Dprintf("- MO drives<\n");
         MO_Reset();
+    }
+    
+    if (bReInitEnetEmu) {
+        Dprintf("- Ethernet<\n");
+        Ethernet_Reset(false);
     }
 
 	/* Force things associated with screen change */

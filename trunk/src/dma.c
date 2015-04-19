@@ -873,6 +873,10 @@ void dma_enet_read_memory(void) { /* This channel does not use DMA buffering */
             dma[CHANNEL_EN_TX].csr |= (DMA_COMPLETE|DMA_BUSEXC);
         } ENDTRY
         
+        if (!(dma[CHANNEL_EN_TX].limit&EN_EOP)) {
+            abort();
+        }
+        
         dma_enet_interrupt(CHANNEL_EN_TX);
     }
 }

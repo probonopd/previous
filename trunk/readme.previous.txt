@@ -1,6 +1,6 @@
 
 
-                                 Previous 0.5
+                                 Previous 0.6
 
 
                     http://previous.alternative-system.com/
@@ -112,9 +112,9 @@ Color graphics	good
 RTC		good
 Timers		buggy
 SCSI drive	good
-MO drive	buggy
+MO drive	good (single drive)
 Floppy drive	missing
-Ethernet	dummy
+Ethernet	good
 Serial		missing
 Printer		missing
 Sound		missing
@@ -131,7 +131,7 @@ Known issues (version 0.5):
 - Un-emulated hardware may cause problems in certain situations (see above).
 - The kernel sometimes hangs during the boot process after printing "root on"
   (this is called "root on hang"). NeXTstep 3.0 and later are affected.
-- The MO drive causes problems (mainly hangs) when both drives are used.
+- The MO drive causes problems (mainly hangs) when both drives are used (disabled).
 - Keys are not mapped correctly depending on the host keyboard layout.
 - Shortcuts do not work properly or overlap with host commands on some platforms.
 - The clock does not tick accurately. Real time clock power-on test may fail
@@ -158,8 +158,8 @@ and initiate a clean shut down by pressing F10 (emulates the power button).
 
 Many thanks go to the members of the NeXT International Forums for their
 help. Special thanks go to Gavin Thomas Nicol, Piotr Twarecki, Toni Wilen,
-Michael Bosshard, Thomas Huth, Olivier Galibert, Vaughan Kaufman and 
-Peter Leonard!
+Michael Bosshard, Thomas Huth, Olivier Galibert, Jason Stevens, Vaughan Kaufman 
+and Peter Leonard!
 This emulator would not exist without their help.
 
 

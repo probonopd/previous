@@ -14,11 +14,13 @@
 #include "sysReg.h"
 #include "dma.h"
 #include "ethernet.h"
+#include "enet_slirp.h"
 #include "cycInt.h"
 #include "statusbar.h"
 
-#define LOG_EN_LEVEL        LOG_WARN
-#define LOG_EN_REG_LEVEL    LOG_WARN
+
+#define LOG_EN_LEVEL        LOG_DEBUG
+#define LOG_EN_REG_LEVEL    LOG_DEBUG
 #define LOG_EN_DATA 0
 
 #define IO_SEG_MASK	0x1FFFF
@@ -337,6 +339,22 @@ bool enet_packet_from_me(Uint8 *packet) {
         return false;
 }
 
+#define MIN_PACKET_LEN 60  /* Hack for short packets */
+
+void enet_receive(Uint8 *pkt, int len) {
+    if (enet_packet_for_me(pkt)) {
+        if (len<MIN_PACKET_LEN) {
+            Log_Printf(LOG_WARN, "[EN] HACK: short packet received (%i byte). Fixed.", len);
+            len = MIN_PACKET_LEN;
+        }
+        
+        memcpy(enet_rx_buffer.data,pkt,len);
+        enet_rx_buffer.size=enet_rx_buffer.limit=len;
+    } else {
+        Log_Printf(LOG_WARN, "[EN] Packet is not for me.");
+    }
+}
+
 void print_buf(Uint8 *buf, Uint32 size) {
 #if LOG_EN_DATA
     int i;
@@ -372,18 +390,21 @@ enum {
 
 void ENET_IO_Handler(void) {
     CycInt_AcknowledgeInterrupt();
-    
+
     if (enet.reset&EN_RESET) {
         Log_Printf(LOG_WARN, "Stopping Ethernet Transmitter/Receiver");
         enet_stopped=true;
+        /* Stop SLIRP */
+        if (ConfigureParams.Ethernet.bEthernetConnected) {
+            enet_slirp_stop();
+        }
         return;
     }
     
     /* Receive packet */
     switch (receiver_state) {
         case RECV_STATE_WAITING:
-            /* TODO: Receive from real network! */
-            if (enet_rx_buffer.size>0 && enet_packet_for_me(enet_rx_buffer.data)) {
+            if (enet_rx_buffer.size>0) {
                 Log_Printf(LOG_EN_LEVEL, "[EN] Receiving packet from %02X:%02X:%02X:%02X:%02X:%02X",
                            enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
                            enet_rx_buffer.data[9], enet_rx_buffer.data[10], enet_rx_buffer.data[11]);
@@ -392,6 +413,12 @@ void ENET_IO_Handler(void) {
                 enet_rx_buffer.limit+=4;
                 receiver_state = RECV_STATE_RECEIVING;
                 /* Fall through to receiving state */
+            } else if (enet.tx_mode&TXMODE_DIS_LOOP) {
+                /* Receive from real world network */
+                if (ConfigureParams.Ethernet.bEthernetConnected) {
+                    enet_slirp_queue_poll();
+                }
+                break;
             } else
                 break;
         case RECV_STATE_RECEIVING:
@@ -400,7 +427,8 @@ void ENET_IO_Handler(void) {
             if (enet_rx_buffer.size>=ENET_FRAMESIZE_MIN || enet.rx_mode&RXMODE_ENA_SHORT) {
                 dma_enet_write_memory();
                 if (enet_rx_buffer.size>0) {
-                    Log_Printf(LOG_EN_LEVEL, "[EN] Receiving packet: Transfer not complete!");
+                    Log_Printf(LOG_WARN, "[EN] Receiving packet: Transfer not complete!");
+                    abort();
                     enet_rx_buffer.size=0;                  /* HACK: */
                     receiver_state = RECV_STATE_WAITING;    /* HACK: prevent loop until chaining is implemented */
                     break; /* Loop in receiving state */
@@ -412,7 +440,8 @@ void ENET_IO_Handler(void) {
                     }
                 }
             } else {
-                Log_Printf(LOG_EN_LEVEL, "[EN] Received packet is short (%i byte)",enet_rx_buffer.size);
+                Log_Printf(LOG_WARN, "[EN] Received packet is short (%i byte)",enet_rx_buffer.size);
+                enet_rx_buffer.size = 0;
                 enet_rx_interrupt(RXSTAT_SHORT_PKT);
             }
             receiver_state = RECV_STATE_WAITING;
@@ -432,18 +461,19 @@ void ENET_IO_Handler(void) {
                        enet_tx_buffer.data[3], enet_tx_buffer.data[4], enet_tx_buffer.data[5]);
             print_buf(enet_tx_buffer.data, enet_tx_buffer.size);
             if (enet.tx_mode&TXMODE_DIS_LOOP) {
-                /* TODO: Send to real network! */
+                /* Send to real world network */
+                if (ConfigureParams.Ethernet.bEthernetConnected) {
+                    enet_slirp_input(enet_tx_buffer.data,enet_tx_buffer.size);
+                }
                 enet_tx_buffer.size=0;
             } else {
                 /* Loop back */
-                memcpy(enet_rx_buffer.data, enet_tx_buffer.data, enet_tx_buffer.size);
-                enet_rx_buffer.size=enet_rx_buffer.limit=enet_tx_buffer.size;
+                Log_Printf(LOG_WARN, "[EN] Loopback packet.");
+                enet_receive(enet_tx_buffer.data, enet_tx_buffer.size);
                 enet_tx_buffer.size=0;
-                //enet_tx_interrupt(TXSTAT_TX_RECVD);
             }
         }
     }
-    //CycInt_AddRelativeInterrupt(ENET_IO_DELAY, INT_CPU_CYCLE, INTERRUPT_ENET_IO);
     CycInt_AddRelativeInterrupt(receiver_state==RECV_STATE_WAITING?ENET_IO_DELAY:ENET_IO_SHORT, INT_CPU_CYCLE, INTERRUPT_ENET_IO);
 }
 
@@ -454,13 +484,28 @@ void enet_reset(void) {
         Log_Printf(LOG_WARN, "Starting Ethernet Transmitter/Receiver");
         enet_stopped=false;
         CycInt_AddRelativeInterrupt(ENET_IO_DELAY, INT_CPU_CYCLE, INTERRUPT_ENET_IO);
+        /* Start SLIRP */
+        if (ConfigureParams.Ethernet.bEthernetConnected) {
+            enet_slirp_start();
+        }
     }
 }
 
-void Ethernet_Reset(void) {
-    enet.reset=EN_RESET;
-    enet_stopped=true;
-    
-    enet_rx_buffer.size=enet_tx_buffer.size=0;
-    enet_rx_buffer.limit=enet_tx_buffer.limit=2048;
+void Ethernet_Reset(bool hard) {
+    if (hard) {
+        enet.reset=EN_RESET;
+        enet_stopped=true;
+        enet_rx_buffer.size=enet_tx_buffer.size=0;
+        enet_rx_buffer.limit=enet_tx_buffer.limit=2048;
+        /* Stop SLIRP */
+        enet_slirp_stop();
+    } else {
+        if (ConfigureParams.Ethernet.bEthernetConnected && !(enet.reset&EN_RESET)) {
+            /* Start SLIRP */
+            enet_slirp_start();
+        } else {
+            /* Stop SLIRP */
+            enet_slirp_stop();
+        }
+    }
 }

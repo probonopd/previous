@@ -21,13 +21,12 @@ const char DlgOpticalDisk_fileid[] = "Previous dlgOpticalDisk.c : " __DATE__ " "
 #define MODLG_INSERT0           6
 #define MODLG_PROTECTED0        7
 #define MODLG_DISKNAME0         8
-
+#if DUAL_MO_DRIVE
 #define MODLG_CONNECTED1        10
 #define MODLG_INSERT1           13
 #define MODLG_PROTECTED1        14
 #define MODLG_DISKNAME1         15
 
-#if DUAL_MO_DRIVE
 #define DISKDLG_EXIT            17
 #else
 #define DISKDLG_EXIT            10
@@ -130,7 +129,7 @@ void DlgOptical_Main(void)
         sprintf(inserteject0, "Insert");
     }
     modlg[MODLG_DISKNAME0].txt = dlgname_mo[0];
-    
+#if DUAL_MO_DRIVE
     if (ConfigureParams.MO.drive[1].bDriveConnected && ConfigureParams.MO.drive[1].bDiskInserted) {
         File_ShrinkName(dlgname_mo[1], ConfigureParams.MO.drive[1].szImageName,
                         modlg[MODLG_DISKNAME1].w);
@@ -140,30 +139,30 @@ void DlgOptical_Main(void)
         sprintf(inserteject1, "Insert");
     }
     modlg[MODLG_DISKNAME1].txt = dlgname_mo[1];
-
+#endif
 
     /* Drive connected true or false? */
     if (ConfigureParams.MO.drive[0].bDriveConnected)
         modlg[MODLG_CONNECTED0].state |= SG_SELECTED;
     else
         modlg[MODLG_CONNECTED0].state &= ~SG_SELECTED;
-    
+#if DUAL_MO_DRIVE
     if (ConfigureParams.MO.drive[1].bDriveConnected)
         modlg[MODLG_CONNECTED1].state |= SG_SELECTED;
     else
         modlg[MODLG_CONNECTED1].state &= ~SG_SELECTED;
-
+#endif
     /* Write protection true or false? */
     if (ConfigureParams.MO.drive[0].bWriteProtected)
         modlg[MODLG_PROTECTED0].state |= SG_SELECTED;
     else
         modlg[MODLG_PROTECTED0].state &= ~SG_SELECTED;
-    
+#if DUAL_MO_DRIVE
     if (ConfigureParams.MO.drive[1].bWriteProtected)
         modlg[MODLG_PROTECTED1].state |= SG_SELECTED;
     else
         modlg[MODLG_PROTECTED1].state &= ~SG_SELECTED;
-
+#endif
     
 	/* Draw and process the dialog */
 	do

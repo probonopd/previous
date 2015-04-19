@@ -1,7 +1,7 @@
 set(SOURCES
-	cfgopts.c clocks_timings.c configuration.c options.c  change.c
-	control.c cycInt.c cycles.c dialog.c dma.c esp.c ethernet.c file.c
-	ioMem.c ioMemTabNEXT.c memorySnapShot.c keymap.c kms.c
+	bmap.c cfgopts.c clocks_timings.c configuration.c options.c  change.c
+	control.c cycInt.c cycles.c dialog.c dma.c esp.c enet_slirp.c ethernet.c
+	file.c ioMem.c ioMemTabNEXT.c memorySnapShot.c keymap.c kms.c
 	m68000.c main.c mo.c nextMemory.c paths.c 
 	ramdac.c resolution.c reset.c rs.c rtcnvram.c scandir.c
 	scc.c screen.c screenSnapShot.c scsi.c shortcut.c
@@ -29,7 +29,7 @@ endif(WIN32)
 
 	set(CPUDIR cpu)
 
-include_directories(${CMAKE_BINARY_DIR} includes debug ${CPUDIR}
+include_directories(${CMAKE_BINARY_DIR} includes debug ${CPUDIR} slirp
 		    ${SDL2_INCLUDE_DIR})
 
 if(ZLIB_FOUND)
@@ -45,11 +45,12 @@ if(X11_FOUND)
 endif(X11_FOUND)
 
 
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/debug ${CMAKE_CURRENT_BINARY_DIR}/gui-sdl ${CMAKE_CURRENT_BINARY_DIR}/${CPUDIR}) 
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/debug ${CMAKE_CURRENT_BINARY_DIR}/gui-sdl ${CMAKE_CURRENT_BINARY_DIR}/${CPUDIR} ${CMAKE_CURRENT_BINARY_DIR}/slirp) 
 
 add_subdirectory(debug)
 add_subdirectory(gui-sdl)
 add_subdirectory(${CPUDIR})
+add_subdirectory(slirp)
 
 # When building for OSX, add specific sources
 if(ENABLE_OSX_BUNDLE)
@@ -86,7 +87,7 @@ else()
 	add_executable(Previous ${SOURCES})
 endif(ENABLE_OSX_BUNDLE)
 
-target_link_libraries(Previous Debug GuiSdl UaeCpu ${SDL2_LIBRARY})
+target_link_libraries(Previous Debug GuiSdl UaeCpu Slirp ${SDL2_LIBRARY})
 
 if(MATH_FOUND AND NOT APPLE)
 	target_link_libraries(Previous ${MATH_LIBRARY})
