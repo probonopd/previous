@@ -1,0 +1,71 @@
+WARNING: Do not start NeXTstep 1.0a and earlier with Ethernet
+         enabled, unless you configured it using the following
+         procedure. There is a bug causing file system corruption
+         on 1.x and 0.x hangs in the boot process. The bugs are
+         possibly in NeXTstep itself.
+
+
+Howto: Setup networking on NeXTstep 0.8 and 0.9:
+   FIXME: No procedure yet.
+
+
+
+Howto: Setup networking on NeXTstep 1.0 through 2.2:
+
+1. On first boot you might be dropped to the single user
+   mode console. Just type "exit" to continue booting.
+
+2. Open "/etc/resolv.conf" and add "nameserver 10.0.2.3".
+   If this file does not exist, you have to first create it. 
+   Be sure you create a plain text file. If you use Edit.app
+   you can do this by selecting Format > Text > Make ASCII.
+   You can save the file from the save dialog by typing 
+   "/etc/resolv.conf" to the name field.
+
+3. Open NetManager.app (you find it in NextAdmin directory),
+   select "Local..." and configure with these values:
+   a  Set "Network type" to "Non-NetInfo Network"
+   b  For "NIS Domain Name" (2.x) or "Yellow Pages Domain Name"
+      (0.x, 1.x) select "None"
+   c  Choose a hostname (select whatever you want)
+   d  Set "Address" to "10.0.2.15"
+   e  Set "Router" to "10.0.2.2"
+   f  Set "Broadcast Address to "10.0.2.255"
+   g  Set "Netmask" to "255.255.255.0"
+   h  Hit "OK" and confirm all messages. It will reboot. Done.
+
+
+
+Howto: Setup networking on NeXTstep 3.0 and later:
+
+1. Use Simple Network Starter (you find it in the NextAdmin directory) 
+   and set up some values:
+   a  Check "Provide the services specified below."
+   b  Choose a hostname (whatever you want).
+   c  Set IP address to "10.0.2.15".
+   d  Go to "Network Options..." and set 
+      Router to "10.0.2.2"
+      Broadcast Address to "10.0.2.255"
+      Netmask to "255.255.255.0" and
+      NIS Domain Name to "None".
+   e  Hit configure. You will be prompted to connect the Ethernet
+      cable.
+   f  If not already done, connect emulated Ethernet now using
+      Previous' GUI and hit OK.
+
+2. Using root access rights open and edit these files:
+   a  /etc/hostconfig and replace "-ROUTER-" with "10.0.2.2".
+   b  /etc/resolv.conf and add "nameserver 10.0.2.3".
+      If this file does not exist, you have to first create it. 
+      Be sure you create a plain text file. If you use Edit.app
+      you can do this by selecting Format > Text > Make ASCII.
+
+   Howto: Open the above files using root privileges (NeXTstep 3.3):
+   a  Open the /etc directory with this command in Terminal:
+      "open /etc"
+   b  Select the file/application to open and from Workspace select 
+      Services > Open Sesame > Open As Root.
+   c  For making a new resolv.conf open Edit.app the same way (b) 
+      and in the save dialog type as name "/etc/resolv.conf"
+
+3. Reboot.

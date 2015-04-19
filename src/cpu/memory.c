@@ -20,6 +20,7 @@ const char Memory_fileid[] = "Hatari memory.c : " __DATE__ " " __TIME__;
 
 #include "main.h"
 #include "ioMem.h"
+#include "bmap.h"
 #include "reset.h"
 #include "nextMemory.h"
 #include "m68000.h"
@@ -107,9 +108,9 @@ uae_u8 NEXTColorVideo[2*1024*1024];
 #define NEXT_BMAP_START		0x020C0000
 #define NEXT_BMAP2_START    0x820C0000
 #define NEXT_BMAP_SIZE		0x10000
-#define	NEXTbmap_size		NEXT_BMAP_SIZE
-#define	NEXTbmap_mask		0x0000FFFF
-uae_u8  NEXTbmap[NEXT_BMAP_SIZE];
+#define NEXT_BMAP_MASK      0x0000FFFF
+#define BMAP_SIZE           0x40
+#define BMAP_MASK           0x0000003F
 
 
 #ifdef SAVE_MEMORY_BANKS
@@ -725,56 +726,83 @@ static uae_u8 *NEXTcolorvideo_xlate(uaecptr addr)
 
 static uae_u32 NEXTbmap_lget(uaecptr addr)
 {
-	write_log ("bmap lget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
-    addr &= NEXTbmap_mask;
-    return do_get_mem_long(NEXTbmap + addr);
+    if ((addr&NEXT_BMAP_MASK)>BMAP_SIZE) {
+        write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+        M68000_BusError(addr, 0);
+        return 0;
+    }
+    write_log ("bmap lget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+    addr &= BMAP_MASK;
+    return bmap_lget(addr);
 }
 
 static uae_u32 NEXTbmap_wget(uaecptr addr)
 {
-	write_log ("bmap wget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
-    addr &= NEXTbmap_mask;
-    return do_get_mem_word(NEXTbmap + addr);
+    if ((addr&NEXT_BMAP_MASK)>BMAP_SIZE) {
+        write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+        M68000_BusError(addr, 0);
+        return 0;
+    }
+    write_log ("bmap wget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+    addr &= BMAP_MASK;
+    return bmap_wget(addr);
 }
 
 static uae_u32 NEXTbmap_bget(uaecptr addr)
 {
-	write_log ("bmap bget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
-    addr &= NEXTbmap_mask;
-    return NEXTbmap[addr];
+    if ((addr&NEXT_BMAP_MASK)>BMAP_SIZE) {
+        write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+        M68000_BusError(addr, 0);
+        return 0;
+    }
+    write_log ("bmap bget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+    addr &= BMAP_MASK;
+    return bmap_bget(addr);
 }
 
 static void NEXTbmap_lput(uaecptr addr, uae_u32 l)
 {
-	write_log ("bmap lput at %08lx val=%x PC=%08x\n", (long)addr,l,m68k_getpc());
-    addr &= NEXTbmap_mask;
-    do_put_mem_long(NEXTbmap + addr, l);
+    if ((addr&NEXT_BMAP_MASK)>BMAP_SIZE) {
+        write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+        M68000_BusError(addr, 0);
+    }
+    write_log ("bmap lput at %08lx val=%x PC=%08x\n", (long)addr,l,m68k_getpc());
+    addr &= BMAP_MASK;
+    bmap_lput(addr, l);
 }
 
 static void NEXTbmap_wput(uaecptr addr, uae_u32 w)
 {
-	write_log ("bmap wput at %08lx val=%x PC=%08x\n", (long)addr,w,m68k_getpc());
-    addr &= NEXTbmap_mask;
-    do_put_mem_word(NEXTbmap + addr, w);
+    if ((addr&NEXT_BMAP_MASK)>BMAP_SIZE) {
+        write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+        M68000_BusError(addr, 0);
+    }
+    write_log ("bmap wput at %08lx val=%x PC=%08x\n", (long)addr,w,m68k_getpc());
+    addr &= BMAP_MASK;
+    bmap_wput(addr, w);
 }
 
 static void NEXTbmap_bput(uaecptr addr, uae_u32 b)
 {
-	write_log ("bmap bput at %08lx val=%x PC=%08x\n", (long)addr,b,m68k_getpc());
-    addr &= NEXTbmap_mask;
-    NEXTbmap[addr] = b;
+    if ((addr&NEXT_BMAP_MASK)>BMAP_SIZE) {
+        write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+        M68000_BusError(addr, 0);
+    }
+    write_log ("bmap bput at %08lx val=%x PC=%08x\n", (long)addr,b,m68k_getpc());
+    addr &= BMAP_MASK;
+    bmap_bput(addr, b);
 }
 
 static int NEXTbmap_check(uaecptr addr, uae_u32 size)
 {
-    addr &= NEXTbmap_mask;
-    return (addr + size) <= NEXTbmap_size;
+    addr &= BMAP_MASK;
+    return (addr + size) <= BMAP_SIZE;
 }
 
 static uae_u8 *NEXTbmap_xlate(uaecptr addr)
 {
-    addr &= NEXTbmap_mask;
-    return (uae_u8*)NEXTbmap + addr;
+    addr &= BMAP_MASK;
+    return 0; //(uae_u8*)NEXTbmap + addr;
 }
 
 
@@ -1111,9 +1139,10 @@ const char* memory_init(int *nNewNEXTMemSize)
     if (ConfigureParams.System.bTurbo)
         map_banks(&IOmem_bank, NEXT_IO3_START >> 16, NEXT_IO_SIZE>>16);
 
-// turbo rom makes test here... both read and write    
-    map_banks(&bmap_bank, NEXT_BMAP_START >> 16, NEXT_BMAP_SIZE>>16);
-    map_banks(&bmap_bank, NEXT_BMAP2_START >> 16, NEXT_BMAP_SIZE>>16);
+    if (ConfigureParams.System.nMachineType != NEXT_CUBE030) {
+        map_banks(&bmap_bank, NEXT_BMAP_START >> 16, NEXT_BMAP_SIZE>>16);
+        map_banks(&bmap_bank, NEXT_BMAP2_START >> 16, NEXT_BMAP_SIZE>>16);
+    }
 
     
 	ROMmemory=NEXTRom;

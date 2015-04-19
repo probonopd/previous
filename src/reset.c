@@ -47,10 +47,10 @@ static const char* Reset_ST(bool bCold)
     SCSI_Reset();                 /* Reset SCSI disks */
     MO_Reset();                   /* Reset MO disks */
     SCC_Reset();                  /* Reset SCC */
-    Ethernet_Reset();             /* Reset Ethernet */
+    Ethernet_Reset(true);         /* Reset Ethernet */
 	Screen_Reset();               /* Reset screen */
 	M68000_Reset(bCold);          /* Reset CPU */
-    	DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */
+    DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */
 
 	return NULL;
 }

@@ -19,6 +19,7 @@ extern void Dialog_DeviceDlg(void);
 extern void DlgFloppy_Main(void);
 extern void DlgHardDisk_Main(void);
 extern void DlgOptical_Main(void);
+extern void DlgEthernet_Main(void);
 extern void Dialog_JoyDlg(void);
 extern void Dialog_KeyboardDlg(void);
 extern void Dialog_MouseDlg(void);

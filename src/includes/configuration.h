@@ -224,6 +224,12 @@ typedef struct {
 } CNF_MO;
 
 
+/* Ethernet configuration */
+typedef struct {
+    bool bEthernetConnected;
+} CNF_ENET;
+
+
 /* Falcon register $FFFF8006 bits 6 & 7 (mirrored in $FFFF82C0 bits 0 & 1):
  * 00 Monochrome
  * 01 RGB - Colormonitor
@@ -369,6 +375,7 @@ typedef struct
   CNF_BOOT Boot;
   CNF_SCSI SCSI;
   CNF_MO MO;
+  CNF_ENET Ethernet;
   CNF_ROM Rom;
   CNF_RS232 RS232;
   CNF_PRINTER Printer;

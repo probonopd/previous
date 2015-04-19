@@ -257,6 +257,14 @@ static const struct Config_Tag configs_MO[] =
 	{ NULL , Error_Tag, NULL }
 };
 
+/* Used to load/save Ethernet options */
+static const struct Config_Tag configs_Ethernet[] =
+{
+    { "bEthernetConnected", Bool_Tag, &ConfigureParams.Ethernet.bEthernetConnected },
+    
+    { NULL , Error_Tag, NULL }
+};
+
 /* Used to load/save ROM options */
 static const struct Config_Tag configs_Rom[] =
 {
@@ -400,6 +408,9 @@ void Configuration_SetDefault(void)
         ConfigureParams.MO.drive[drive].bDiskInserted = false;
         ConfigureParams.MO.drive[drive].bWriteProtected = false;
     }
+    
+    /* Set defaults for Ethernet */
+    ConfigureParams.Ethernet.bEthernetConnected = false;
     
 	/* Set defaults for Keyboard */
 	ConfigureParams.Keyboard.bDisableKeyRepeat = false;
@@ -619,9 +630,13 @@ void Configuration_Apply(bool bReset)
     File_MakeAbsoluteName(ConfigureParams.Rom.szRom040FileName);
     File_MakeAbsoluteName(ConfigureParams.Rom.szRomTurboFileName);
     
-    int target;
-    for (target = 0; target < ESP_MAX_DEVS; target++) {
-        File_MakeAbsoluteName(ConfigureParams.SCSI.target[target].szImageName);
+    int i;
+    for (i = 0; i < ESP_MAX_DEVS; i++) {
+        File_MakeAbsoluteName(ConfigureParams.SCSI.target[i].szImageName);
+    }
+    
+    for (i = 0; i < 2; i++) {
+        File_MakeAbsoluteName(ConfigureParams.MO.drive[i].szImageName);
     }
     
 	File_MakeAbsoluteName(ConfigureParams.Memory.szMemoryCaptureFileName);
@@ -808,6 +823,7 @@ void Configuration_Load(const char *psFileName)
     Configuration_LoadSection(psFileName, configs_Boot, "[Boot]");
 	Configuration_LoadSection(psFileName, configs_SCSI, "[HardDisk]");
     Configuration_LoadSection(psFileName, configs_MO, "[MagnetoOptical]");
+    Configuration_LoadSection(psFileName, configs_Ethernet, "[Ethernet]");
 	Configuration_LoadSection(psFileName, configs_Rom, "[ROM]");
 	Configuration_LoadSection(psFileName, configs_Rs232, "[RS232]");
 	Configuration_LoadSection(psFileName, configs_Printer, "[Printer]");
@@ -858,6 +874,7 @@ void Configuration_Save(void)
     Configuration_SaveSection(sConfigFileName, configs_Boot, "[Boot]");
 	Configuration_SaveSection(sConfigFileName, configs_SCSI, "[HardDisk]");
     Configuration_SaveSection(sConfigFileName, configs_MO, "[MagnetoOptical]");
+    Configuration_SaveSection(sConfigFileName, configs_Ethernet, "[Ethernet]");
 	Configuration_SaveSection(sConfigFileName, configs_Rom, "[ROM]");
 	Configuration_SaveSection(sConfigFileName, configs_Rs232, "[RS232]");
 	Configuration_SaveSection(sConfigFileName, configs_Printer, "[Printer]");
@@ -899,6 +916,9 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
         MemorySnapShot_Store(&ConfigureParams.MO.drive[drive].bDiskInserted, sizeof(ConfigureParams.MO.drive[drive].bDiskInserted));
         MemorySnapShot_Store(&ConfigureParams.MO.drive[drive].bWriteProtected, sizeof(ConfigureParams.MO.drive[drive].bWriteProtected));
     }
+    
+    /* Ethernet options */
+    MemorySnapShot_Store(&ConfigureParams.Ethernet.bEthernetConnected, sizeof(ConfigureParams.Ethernet.bEthernetConnected));
 
     /* Monitor options */
 	MemorySnapShot_Store(&ConfigureParams.Screen.nMonitorType, sizeof(ConfigureParams.Screen.nMonitorType));
