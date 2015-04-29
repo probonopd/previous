@@ -20,7 +20,7 @@ const char DlgMain_fileid[] = "Hatari dlgMain.c : " __DATE__ " " __TIME__;
 #define MAINDLG_ROM      4
 #define MAINDLG_MEMORY   5
 #define MAINDLG_BOOT     6
-#define MAINDLG_HARDDISK 7
+#define MAINDLG_SCSI     7
 #define MAINDLG_MO       8
 #define MAINDLG_WINDOW   9
 #define MAINDLG_ENET     10
@@ -107,8 +107,8 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 		 case MAINDLG_ENET:
 			DlgEthernet_Main();
 			break;
-		 case MAINDLG_HARDDISK:
-			DlgHardDisk_Main();
+		 case MAINDLG_SCSI:
+			DlgSCSI_Main();
 			break;
 		 case MAINDLG_ROM:
 			DlgRom_Main();

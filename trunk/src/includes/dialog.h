@@ -17,7 +17,7 @@ extern int DlgAlert_Notice(const char *text);
 extern int DlgAlert_Query(const char *text);
 extern void Dialog_DeviceDlg(void);
 extern void DlgFloppy_Main(void);
-extern void DlgHardDisk_Main(void);
+extern void DlgSCSI_Main(void);
 extern void DlgOptical_Main(void);
 extern void DlgEthernet_Main(void);
 extern void Dialog_JoyDlg(void);

@@ -3,6 +3,9 @@
 #include "enet_slirp.h"
 
 #include <SDL.h>
+#ifndef _WIN32
+#include <signal.h>
+#endif
 
 
 /****************/

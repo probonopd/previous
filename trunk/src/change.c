@@ -149,15 +149,13 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
     /* Did we change SCSI disk? */
     int target;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
-        if (current->SCSI.target[target].bCDROM == changed->SCSI.target[target].bCDROM) {
-            if (changed->SCSI.target[target].bCDROM ||
-                ((current->SCSI.target[target].bAttached == changed->SCSI.target[target].bAttached) &&
-                 !strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName))) {
-                    continue;
-            }
+        if (current->SCSI.target[target].nDeviceType != changed->SCSI.target[target].nDeviceType ||
+            current->SCSI.target[target].bWriteProtected != changed->SCSI.target[target].bWriteProtected ||
+            (current->SCSI.target[target].nDeviceType==DEVTYPE_HARDDISK &&
+             strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName))) {
+            printf("scsi disk reset\n");
+            return true;
         }
-        printf("scsi disk reset\n");
-        return true;
     }
     
     /* Did we change MO drive? */
@@ -202,7 +200,9 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
     /* Do we need to change SCSI disks? */
     int target;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
-        if (!NeedReset && (current->SCSI.target[target].bAttached != changed->SCSI.target[target].bAttached || strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName))) {
+        if (!NeedReset &&
+            (current->SCSI.target[target].bDiskInserted != changed->SCSI.target[target].bDiskInserted ||
+             strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName))) {
             bReInitSCSIEmu = true;
             break;
         }

@@ -128,7 +128,9 @@ void Dialog_CheckFiles(void) {
     /* Check if SCSI disk images exist. Present a dialog to select missing files. */
     int target;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
-        while (ConfigureParams.SCSI.target[target].bAttached && !File_Exists(ConfigureParams.SCSI.target[target].szImageName)) {
+        while ((ConfigureParams.SCSI.target[target].nDeviceType!=DEVTYPE_NONE) &&
+               ConfigureParams.SCSI.target[target].bDiskInserted
+               && !File_Exists(ConfigureParams.SCSI.target[target].szImageName)) {
             DlgMissing_SCSIdisk(target);
             if (bQuitProgram) {
                 Main_RequestQuit();
