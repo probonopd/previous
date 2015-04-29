@@ -209,36 +209,41 @@ static const struct Config_Tag configs_Boot[] =
 static const struct Config_Tag configs_SCSI[] =
 {
     { "szImageName0", String_Tag, ConfigureParams.SCSI.target[0].szImageName },
-    { "bAttached0", Bool_Tag, &ConfigureParams.SCSI.target[0].bAttached },
-    { "bCDROM0", Bool_Tag, &ConfigureParams.SCSI.target[0].bCDROM },
+    { "nDeviceType0", Int_Tag, &ConfigureParams.SCSI.target[0].nDeviceType },
+    { "bDiskInserted0", Bool_Tag, &ConfigureParams.SCSI.target[0].bDiskInserted },
+    { "bWriteProtected0", Bool_Tag, &ConfigureParams.SCSI.target[0].bWriteProtected },
     
     { "szImageName1", String_Tag, ConfigureParams.SCSI.target[1].szImageName },
-    { "bAttached1", Bool_Tag, &ConfigureParams.SCSI.target[1].bAttached },
-    { "bCDROM1", Bool_Tag, &ConfigureParams.SCSI.target[1].bCDROM },
+    { "nDeviceType1", Int_Tag, &ConfigureParams.SCSI.target[1].nDeviceType },
+    { "bDiskInserted1", Bool_Tag, &ConfigureParams.SCSI.target[1].bDiskInserted },
+    { "bWriteProtected1", Bool_Tag, &ConfigureParams.SCSI.target[1].bWriteProtected },
 
     { "szImageName2", String_Tag, ConfigureParams.SCSI.target[2].szImageName },
-    { "bAttached2", Bool_Tag, &ConfigureParams.SCSI.target[2].bAttached },
-    { "bCDROM2", Bool_Tag, &ConfigureParams.SCSI.target[2].bCDROM },
+    { "nDeviceType2", Int_Tag, &ConfigureParams.SCSI.target[2].nDeviceType },
+    { "bDiskInserted2", Bool_Tag, &ConfigureParams.SCSI.target[2].bDiskInserted },
+    { "bWriteProtected2", Bool_Tag, &ConfigureParams.SCSI.target[2].bWriteProtected },
 
     { "szImageName3", String_Tag, ConfigureParams.SCSI.target[3].szImageName },
-    { "bAttached3", Bool_Tag, &ConfigureParams.SCSI.target[3].bAttached },
-    { "bCDROM3", Bool_Tag, &ConfigureParams.SCSI.target[3].bCDROM },
+    { "nDeviceType3", Int_Tag, &ConfigureParams.SCSI.target[3].nDeviceType },
+    { "bDiskInserted3", Bool_Tag, &ConfigureParams.SCSI.target[3].bDiskInserted },
+    { "bWriteProtected3", Bool_Tag, &ConfigureParams.SCSI.target[3].bWriteProtected },
 
     { "szImageName4", String_Tag, ConfigureParams.SCSI.target[4].szImageName },
-    { "bAttached4", Bool_Tag, &ConfigureParams.SCSI.target[4].bAttached },
-    { "bCDROM4", Bool_Tag, &ConfigureParams.SCSI.target[4].bCDROM },
+    { "nDeviceType4", Int_Tag, &ConfigureParams.SCSI.target[4].nDeviceType },
+    { "bDiskInserted4", Bool_Tag, &ConfigureParams.SCSI.target[4].bDiskInserted },
+    { "bWriteProtected4", Bool_Tag, &ConfigureParams.SCSI.target[4].bWriteProtected },
 
     { "szImageName5", String_Tag, ConfigureParams.SCSI.target[5].szImageName },
-    { "bAttached5", Bool_Tag, &ConfigureParams.SCSI.target[5].bAttached },
-    { "bCDROM5", Bool_Tag, &ConfigureParams.SCSI.target[5].bCDROM },
+    { "nDeviceType5", Int_Tag, &ConfigureParams.SCSI.target[5].nDeviceType },
+    { "bDiskInserted5", Bool_Tag, &ConfigureParams.SCSI.target[5].bDiskInserted },
+    { "bWriteProtected5", Bool_Tag, &ConfigureParams.SCSI.target[5].bWriteProtected },
 
     { "szImageName6", String_Tag, ConfigureParams.SCSI.target[6].szImageName },
-    { "bAttached6", Bool_Tag, &ConfigureParams.SCSI.target[6].bAttached },
-    { "bCDROM6", Bool_Tag, &ConfigureParams.SCSI.target[6].bCDROM },
+    { "nDeviceType6", Int_Tag, &ConfigureParams.SCSI.target[6].nDeviceType },
+    { "bDiskInserted6", Bool_Tag, &ConfigureParams.SCSI.target[6].bDiskInserted },
+    { "bWriteProtected6", Bool_Tag, &ConfigureParams.SCSI.target[6].bWriteProtected },
 
-	{ "bBootFromHardDisk", Bool_Tag, &ConfigureParams.SCSI.bBootFromHardDisk },
-	{ "nWriteProtection", Int_Tag, &ConfigureParams.SCSI.nWriteProtection },
-	{ NULL , Error_Tag, NULL }
+    { NULL , Error_Tag, NULL }
 };
 
 /* Used to load/save MO options */
@@ -396,8 +401,9 @@ void Configuration_SetDefault(void)
     int target;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
         strcpy(ConfigureParams.SCSI.target[target].szImageName, psWorkingDir);
-        ConfigureParams.SCSI.target[target].bAttached = false;
-        ConfigureParams.SCSI.target[target].bCDROM = false;
+        ConfigureParams.SCSI.target[target].nDeviceType = DEVTYPE_NONE;
+        ConfigureParams.SCSI.target[target].bDiskInserted = false;
+        ConfigureParams.SCSI.target[target].bWriteProtected = false;
     }
     
     /* Set defaults for MO drives */
@@ -904,8 +910,10 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
     int target;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
         MemorySnapShot_Store(ConfigureParams.SCSI.target[target].szImageName, sizeof(ConfigureParams.SCSI.target[target].szImageName));
-        MemorySnapShot_Store(&ConfigureParams.SCSI.target[target].bAttached, sizeof(ConfigureParams.SCSI.target[target].bAttached));
-        MemorySnapShot_Store(&ConfigureParams.SCSI.target[target].bCDROM, sizeof(ConfigureParams.SCSI.target[target].bCDROM));
+        MemorySnapShot_Store(&ConfigureParams.SCSI.target[target].nDeviceType, sizeof(ConfigureParams.SCSI.target[target].nDeviceType));
+        MemorySnapShot_Store(&ConfigureParams.SCSI.target[target].bDiskInserted, sizeof(ConfigureParams.SCSI.target[target].bDiskInserted));
+        MemorySnapShot_Store(&ConfigureParams.SCSI.target[target].bWriteProtected, sizeof(ConfigureParams.SCSI.target[target].bWriteProtected));
+
     }
     
     /* MO drives */

@@ -120,9 +120,9 @@ void scsi_write_sector(void);
 
 /* SCSI disk */
 struct {
+    SCSI_DEVTYPE devtype;
     FILE* dsk;
     Uint32 size;
-    bool cdrom;
     Uint8 lun;
     Uint8 status;
     Uint8 message;
@@ -158,32 +158,34 @@ void SCSI_Init(void) {
     Log_Printf(LOG_WARN, "Loading SCSI disks:\n");
     
     /* Check if files exist. Present dialog to re-select missing files. */        
-    int target;
-    for (target = 0; target < ESP_MAX_DEVS; target++) {
-        if (File_Exists(ConfigureParams.SCSI.target[target].szImageName) && ConfigureParams.SCSI.target[target].bAttached) {
-            SCSIdisk[target].size = File_Length(ConfigureParams.SCSI.target[target].szImageName);
-            SCSIdisk[target].dsk = ConfigureParams.SCSI.target[target].bCDROM == true ? File_Open(ConfigureParams.SCSI.target[target].szImageName, "rb") : File_Open(ConfigureParams.SCSI.target[target].szImageName, "rb+");
+    int i;
+    for (i = 0; i < ESP_MAX_DEVS; i++) {
+        if (File_Exists(ConfigureParams.SCSI.target[i].szImageName) && ConfigureParams.SCSI.target[i].bDiskInserted) {
+            SCSIdisk[i].size = File_Length(ConfigureParams.SCSI.target[i].szImageName);
+            SCSIdisk[i].dsk = ConfigureParams.SCSI.target[i].nDeviceType == DEVTYPE_CD ?
+            File_Open(ConfigureParams.SCSI.target[i].szImageName, "rb") :
+            File_Open(ConfigureParams.SCSI.target[i].szImageName, "rb+");
         } else {
-            SCSIdisk[target].size = 0;
-            SCSIdisk[target].dsk = NULL;
+            SCSIdisk[i].size = 0;
+            SCSIdisk[i].dsk = NULL;
         }
-        SCSIdisk[target].cdrom = ConfigureParams.SCSI.target[target].bCDROM;
+        SCSIdisk[i].devtype = ConfigureParams.SCSI.target[i].nDeviceType;
         
-        SCSIdisk[target].lun = SCSIdisk[target].status = SCSIdisk[target].message = 0;
-        SCSIdisk[target].sense.code = SCSIdisk[target].sense.key = SCSIdisk[target].sense.info = 0;
-        SCSIdisk[target].sense.valid = false;
-        SCSIdisk[target].lba = SCSIdisk[target].blockcounter = 0;
+        SCSIdisk[i].lun = SCSIdisk[i].status = SCSIdisk[i].message = 0;
+        SCSIdisk[i].sense.code = SCSIdisk[i].sense.key = SCSIdisk[i].sense.info = 0;
+        SCSIdisk[i].sense.valid = false;
+        SCSIdisk[i].lba = SCSIdisk[i].blockcounter = 0;
 
-        Log_Printf(LOG_WARN, "SCSI Disk%i: %s\n",target,ConfigureParams.SCSI.target[target].szImageName);
+        Log_Printf(LOG_WARN, "SCSI Disk%i: %s\n",i,ConfigureParams.SCSI.target[i].szImageName);
     }
 }
 
 void SCSI_Uninit(void) {
-    int target;
-    for (target = 0; target < ESP_MAX_DEVS; target++) {
-        if (SCSIdisk[target].dsk) {
-    		File_Close(SCSIdisk[target].dsk);
-            SCSIdisk[target].dsk = NULL;
+    int i;
+    for (i = 0; i < ESP_MAX_DEVS; i++) {
+        if (SCSIdisk[i].dsk) {
+    		File_Close(SCSIdisk[i].dsk);
+            SCSIdisk[i].dsk = NULL;
         }
     }
 }
@@ -194,7 +196,7 @@ void SCSI_Reset(void) {
 }
 
 void SCSI_Eject(Uint8 target) {
-    ConfigureParams.SCSI.target[target].bAttached = false;
+    ConfigureParams.SCSI.target[target].bDiskInserted = false;
     ConfigureParams.SCSI.target[target].szImageName[0] = '\0';
     SCSI_Reset();
 }
@@ -242,7 +244,7 @@ Uint8 SCSIdisk_Send_Message(void) {
 bool SCSIdisk_Select(Uint8 target) {
 
     /* If there is no disk drive present, return timeout true */
-    if (SCSIdisk[target].dsk==NULL && !SCSIdisk[target].cdrom) {
+    if (SCSIdisk[target].devtype==DEVTYPE_NONE) {
         Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Selection timeout, target = %i", target);
         SCSIbus.phase = PHASE_ST;
         return true;
@@ -521,7 +523,9 @@ MODEPAGE SCSI_GetModePage(Uint8 pagecode) {
 void SCSI_TestUnitReady(Uint8 *cdb) {
     Uint8 target = SCSIbus.target;
     
-    if (SCSIdisk[target].cdrom && SCSIdisk[target].dsk==NULL) { /* Empty CD-ROM drive */
+    if (SCSIdisk[target].devtype!=DEVTYPE_NONE &&
+        SCSIdisk[target].devtype!=DEVTYPE_HARDDISK &&
+        SCSIdisk[target].dsk==NULL) { /* Empty drive */
         SCSIdisk[target].status = STAT_CHECK_COND;
         SCSIdisk[target].sense.code = SC_NOT_READY;
         SCSIbus.phase = PHASE_ST;
@@ -566,7 +570,7 @@ void SCSI_WriteSector(Uint8 *cdb) {
     SCSIdisk[target].lba = SCSI_GetOffset(cdb[0], cdb);
     SCSIdisk[target].blockcounter = SCSI_GetCount(cdb[0], cdb);
     
-    if (SCSIdisk[target].cdrom) {
+    if (SCSIdisk[target].devtype==DEVTYPE_CD) { /* FIXME: implement protected floppy */
         Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Write sector: Disk is write protected! Check condition.");
         SCSIdisk[target].status = STAT_CHECK_COND;
         SCSIdisk[target].sense.code = SC_WRITE_PROTECT;
@@ -703,24 +707,43 @@ Uint8 SCSIdisk_Send_Data(void) {
 void SCSI_Inquiry (Uint8 *cdb) {
     Uint8 target = SCSIbus.target;
     
-    if (SCSIdisk[target].cdrom) {
-        inquiry_bytes[0] = DEVTYPE_READONLY;
-        inquiry_bytes[1] |= 0x80;
-        inquiry_bytes[16] = 'C';
-        inquiry_bytes[18] = '-';
-        inquiry_bytes[19] = 'R';
-        inquiry_bytes[20] = 'O';
-        inquiry_bytes[21] = 'M';
-        Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is CD-ROM\n");
-    } else {
-        inquiry_bytes[0] = DEVTYPE_DISK;
-        inquiry_bytes[1] &= ~0x80;
-        inquiry_bytes[16] = 'H';
-        inquiry_bytes[18] = 'D';
-        inquiry_bytes[19] = ' ';
-        inquiry_bytes[20] = ' ';
-        inquiry_bytes[21] = ' ';
-        Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is HDD\n");
+    switch (SCSIdisk[target].devtype) {
+        case DEVTYPE_HARDDISK:
+            inquiry_bytes[0] = DEVTYPE_DISK;
+            inquiry_bytes[1] &= ~0x80;
+            inquiry_bytes[16] = 'H';
+            inquiry_bytes[17] = 'D';
+            inquiry_bytes[18] = 'D';
+            inquiry_bytes[19] = ' ';
+            inquiry_bytes[20] = ' ';
+            inquiry_bytes[21] = ' ';
+            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is HDD\n");
+            break;
+        case DEVTYPE_CD:
+            inquiry_bytes[0] = DEVTYPE_READONLY;
+            inquiry_bytes[1] |= 0x80;
+            inquiry_bytes[16] = 'C';
+            inquiry_bytes[17] = 'D';
+            inquiry_bytes[18] = '-';
+            inquiry_bytes[19] = 'R';
+            inquiry_bytes[20] = 'O';
+            inquiry_bytes[21] = 'M';
+            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is CD-ROM\n");
+            break;
+        case DEVTYPE_FLOPPY:
+            inquiry_bytes[0] = DEVTYPE_DISK;
+            inquiry_bytes[1] |= 0x80;
+            inquiry_bytes[16] = 'F';
+            inquiry_bytes[17] = 'L';
+            inquiry_bytes[18] = 'O';
+            inquiry_bytes[19] = 'P';
+            inquiry_bytes[20] = 'P';
+            inquiry_bytes[21] = 'Y';
+            Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Disk is Floppy\n");
+            break;
+
+        default:
+            break;
     }
     
     if (SCSIdisk[target].lun!=LUN_DISK) {
@@ -758,9 +781,9 @@ void SCSI_StartStop(Uint8 *cdb) {
             break;
         case 2:
             Log_Printf(LOG_WARN, "[SCSI] Eject disk %i", target);
-            if (SCSIdisk[target].cdrom) {
+            if (SCSIdisk[target].devtype!=DEVTYPE_HARDDISK) {
                 SCSI_Eject(target);
-                Statusbar_AddMessage("Ejecting SCSI CD-ROM.", 0);
+                Statusbar_AddMessage("Ejecting SCSI media.", 0);
             }
             break;
         default:
@@ -856,7 +879,7 @@ void SCSI_ModeSense(Uint8 *cdb) {
     /* Header */
     retbuf[0] = 0x00; // length of following data
     retbuf[1] = 0x00; // medium type (always 0)
-    retbuf[2] = SCSIdisk[target].cdrom == true ? 0x80 : 0x00; // if media is read-only 0x80, else 0x00
+    retbuf[2] = SCSIdisk[target].devtype == DEVTYPE_CD ? 0x80 : 0x00; // if media is read-only 0x80, else 0x00
     retbuf[3] = 0x08; // block descriptor length
     
     /* Block descriptor data */
@@ -872,7 +895,7 @@ void SCSI_ModeSense(Uint8 *cdb) {
         retbuf[11] = BLOCKSIZE & 0xFF;     // Block size in bytes, low
         header_size = 12;
         Log_Printf(LOG_WARN, "[SCSI] Mode Sense: Block descriptor data: %s, size = %i blocks, blocksize = %i byte\n",
-                   SCSIdisk[target].cdrom == true ? "disk is read-only" : "disk is read/write" , sectors, BLOCKSIZE);
+                   SCSIdisk[target].devtype == DEVTYPE_CD ? "disk is read-only" : "disk is read/write" , sectors, BLOCKSIZE);
     }
     retbuf[0] = header_size - 1;
     

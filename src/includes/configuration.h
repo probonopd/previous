@@ -195,18 +195,23 @@ typedef struct
 
 /* Hard drives configuration */
 #define ESP_MAX_DEVS 7
+typedef enum {
+    DEVTYPE_NONE,
+    DEVTYPE_HARDDISK,
+    DEVTYPE_CD,
+    DEVTYPE_FLOPPY,
+    NUM_DEVTYPES
+} SCSI_DEVTYPE;
+
 typedef struct {
-  char szImageName[FILENAME_MAX];
-  bool bAttached;
-  bool bCDROM;
+    char szImageName[FILENAME_MAX];
+    SCSI_DEVTYPE nDeviceType;
+    bool bDiskInserted;
+    bool bWriteProtected;
 } SCSIDISK;
 
-typedef struct
-{
-  SCSIDISK target[ESP_MAX_DEVS];    
-  
-  WRITEPROTECTION nWriteProtection;
-  bool bBootFromHardDisk;
+typedef struct {
+    SCSIDISK target[ESP_MAX_DEVS];
 } CNF_SCSI;
 
 

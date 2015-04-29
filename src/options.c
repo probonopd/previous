@@ -780,7 +780,7 @@ static bool Opt_HandleArgument(const char *path)
 //			       &ConfigureParams.HardDisk.bUseHardDiskDirectories)
 //		    && ConfigureParams.HardDisk.bUseHardDiskDirectories)
 		{
-			ConfigureParams.SCSI.bBootFromHardDisk = true;
+//			ConfigureParams.SCSI.bBootFromHardDisk = true;
 		}
 		bLoadAutoSave = false;
 		if (dir) {
@@ -1190,13 +1190,13 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 
 		case OPT_WRITEPROT_HD:
 			i += 1;
-			if (strcasecmp(argv[i], "off") == 0)
-				ConfigureParams.SCSI.nWriteProtection = WRITEPROT_OFF;
-			else if (strcasecmp(argv[i], "on") == 0)
-				ConfigureParams.SCSI.nWriteProtection = WRITEPROT_ON;
-			else if (strcasecmp(argv[i], "auto") == 0)
-				ConfigureParams.SCSI.nWriteProtection = WRITEPROT_AUTO;
-			else
+//			if (strcasecmp(argv[i], "off") == 0)
+//				ConfigureParams.SCSI.nWriteProtection = WRITEPROT_OFF;
+//			else if (strcasecmp(argv[i], "on") == 0)
+//				ConfigureParams.SCSI.nWriteProtection = WRITEPROT_ON;
+//			else if (strcasecmp(argv[i], "auto") == 0)
+//				ConfigureParams.SCSI.nWriteProtection = WRITEPROT_AUTO;
+//			else
 				return Opt_ShowError(OPT_WRITEPROT_HD, argv[i], "Unknown option value");
 			break;
 
@@ -1207,7 +1207,7 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 //					&ConfigureParams.HardDisk.bUseHardDiskDirectories);
 //			if (ok && ConfigureParams.HardDisk.bUseHardDiskDirectories)
 			{
-				ConfigureParams.SCSI.bBootFromHardDisk = true;
+//				ConfigureParams.SCSI.bBootFromHardDisk = true;
 			}
 			bLoadAutoSave = false;
 			break;

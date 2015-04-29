@@ -66,7 +66,7 @@ static SGOBJ missingscsidlg[] =
     
     { SGBOX, 0, 0, 1,7, 50,4, NULL },
     { SGBUTTON, 0, 0, 2,8, 10,1, "Browse" },
-    { SGCHECKBOX, 0, 0, 15,8, 8,1, "CD-ROM" },
+    { SGTEXT, 0, 0, 15,8, 8,1, " " },
     { SGTEXT, 0, 0, 2,9, 46,1, NULL },
     
     { SGBUTTON, SG_DEFAULT, 0, 4,13, 10,1, "Select" },
@@ -237,17 +237,13 @@ void DlgMissing_SCSIdisk(int target)
 	SDLGui_CenterDlg(missingscsidlg);
     
 	/* Set up dialog to actual values: */
-    sprintf(missingscsi_alert, "SCSI disk %i: disk image not found!", target);
+    sprintf(missingscsi_alert, "SCSI device %i: disk image not found!", target);
     missingscsidlg[DLGMISSINGSCSI_ALERT].txt = missingscsi_alert;
     
-    sprintf(missingscsi_target, "SCSI disk %i:", target);
+    sprintf(missingscsi_target, "SCSI device %i:", target);
     missingscsidlg[DLGMISSINGSCSI_TARGET].txt = missingscsi_target;
     
     File_ShrinkName(dlgname_missingscsi, ConfigureParams.SCSI.target[target].szImageName, missingscsidlg[DLGMISSINGSCSI_NAME].w);
-    if (ConfigureParams.SCSI.target[target].bCDROM)
-        missingscsidlg[DLGMISSINGSCSI_CDROM].state |= SG_SELECTED;
-    else
-        missingscsidlg[DLGMISSINGSCSI_CDROM].state &= ~SG_SELECTED;
     
 	missingscsidlg[DLGMISSINGSCSI_NAME].txt = dlgname_missingscsi;
         
@@ -259,7 +255,10 @@ void DlgMissing_SCSIdisk(int target)
 		switch (but)
 		{
             case DLGMISSINGSCSI_EJECT:
-                ConfigureParams.SCSI.target[target].bAttached = false;
+                ConfigureParams.SCSI.target[target].bDiskInserted = false;
+                if (ConfigureParams.SCSI.target[target].nDeviceType==DEVTYPE_HARDDISK) {
+                    ConfigureParams.SCSI.target[target].nDeviceType = DEVTYPE_NONE;
+                }
                 ConfigureParams.SCSI.target[target].szImageName[0] = '\0';
                 dlgname_missingscsi[0] = '\0';
                 break;
@@ -267,7 +266,7 @@ void DlgMissing_SCSIdisk(int target)
                 if (SDLGui_FileConfSelect(dlgname_missingscsi,
                                           ConfigureParams.SCSI.target[target].szImageName,
                                           missingscsidlg[DLGMISSINGSCSI_NAME].w, false))
-                    ConfigureParams.SCSI.target[target].bAttached = true;
+                    ConfigureParams.SCSI.target[target].bDiskInserted = true;
                 break;
             case DLGMISSINGSCSI_QUIT:
                 bQuitProgram = true;
@@ -276,9 +275,6 @@ void DlgMissing_SCSIdisk(int target)
 	}
 	while (but != DLGMISSINGSCSI_SELECT && but != DLGMISSINGSCSI_EJECT && but != SDLGUI_QUIT
            && but != SDLGUI_ERROR && !bQuitProgram);
-    
-    /* Read values from dialog: */
-    ConfigureParams.SCSI.target[target].bCDROM = (missingscsidlg[DLGMISSINGSCSI_CDROM].state & SG_SELECTED);
 }
 
 
