@@ -1,10 +1,10 @@
 /*
-  Hatari - dlgFloppy.c
-
-  This file is distributed under the GNU Public License, version 2 or at
-  your option any later version. Read the file gpl.txt for details.
-*/
-const char DlgFloppy_fileid[] = "Hatari dlgFloppy.c : " __DATE__ " " __TIME__;
+ Previous - dlgFloppy.c
+ 
+ This file is distributed under the GNU Public License, version 2 or at
+ your option any later version. Read the file gpl.txt for details.
+ */
+const char DlgFloppy_fileid[] = "Previous dlgFloppy.c : " __DATE__ " " __TIME__;
 
 #include <assert.h>
 #include "main.h"
@@ -12,262 +12,255 @@ const char DlgFloppy_fileid[] = "Hatari dlgFloppy.c : " __DATE__ " " __TIME__;
 #include "dialog.h"
 #include "sdlgui.h"
 #include "file.h"
+#include "floppy.h"
 
 
-#define FLOPPYDLG_EJECTA      3
-#define FLOPPYDLG_BROWSEA     4
-#define FLOPPYDLG_DISKA       5
-#define FLOPPYDLG_EJECTB      7
-#define FLOPPYDLG_BROWSEB     8
-#define FLOPPYDLG_DISKB       9
-#define FLOPPYDLG_IMGDIR      11
-#define FLOPPYDLG_BROWSEIMG   12
-#define FLOPPYDLG_AUTOB       13
-#define FLOPPYDLG_SLOWFLOPPY  14
-#define FLOPPYDLG_CREATEIMG   15
-#define FLOPPYDLG_PROTOFF     17
-#define FLOPPYDLG_PROTON      18
-#define FLOPPYDLG_PROTAUTO    19
-#define FLOPPYDLG_EXIT        20
+#define DUAL_FLOPPY_DRIVE 0 /* Real NeXT hardware only supports one drive */
+
+#define FLPDLG_CONNECTED0       3
+#define FLPDLG_INSERT0          6
+#define FLPDLG_READONLY0        7
+#define FLPDLG_DISKNAME0        8
+#if DUAL_FLOPPY_DRIVE
+#define FLPDLG_CONNECTED1       10
+#define FLPDLG_INSERT1          13
+#define FLPDLG_READONLY1        14
+#define FLPDLG_DISKNAME1        15
+
+#define FLPDLG_EXIT             17
+#else
+#define FLPDLG_EXIT             10
+#endif
+
+/* Constant strings */
+#define FLPDLG_EJECT_WARNING     "WARNING: Don't eject manually if a guest system is running. Risk of data loss. Eject now?"
+#define FLPDLG_BADSIZE_ERROR     "ERROR: Can't insert floppy disk. Bad disk size. Must be 720K, 1440K or 2880K."
+
+/* Variable strings */
+char insrtejct0[16] = "Insert";
+char insrtejct1[16] = "Insert";
 
 
-/* The floppy disks dialog: */
-static SGOBJ floppydlg[] =
+/* The floppy drive dialog: */
+static SGOBJ flpdlg[] =
 {
-	{ SGBOX, 0, 0, 0,0, 64,20, NULL },
-	{ SGTEXT, 0, 0, 25,1, 12,1, "Floppy disks" },
-	{ SGTEXT, 0, 0, 2,3, 8,1, "Drive A:" },
-	{ SGBUTTON, 0, 0, 46,3, 7,1, "Eject" },
-	{ SGBUTTON, 0, 0, 54,3, 8,1, "Browse" },
-	{ SGTEXT, 0, 0, 3,4, 58,1, NULL },
-	{ SGTEXT, 0, 0, 2,6, 8,1, "Drive B:" },
-	{ SGBUTTON, 0, 0, 46,6, 7,1, "Eject" },
-	{ SGBUTTON, 0, 0, 54,6, 8,1, "Browse" },
-	{ SGTEXT, 0, 0, 3,7, 58,1, NULL },
-	{ SGTEXT, 0, 0, 2,9, 32,1, "Default floppy images directory:" },
-	{ SGTEXT, 0, 0, 3,10, 58,1, NULL },
-	{ SGBUTTON, 0, 0, 54,9, 8,1, "Browse" },
-	{ SGCHECKBOX, 0, 0, 2,12, 16,1, "Auto insert B" },
-	{ SGCHECKBOX, 0, 0, 2,14, 21,1, "Slow floppy access" },
-	{ SGBUTTON, 0, 0, 42,14, 20,1, "Create blank image" },
-	{ SGTEXT, 0, 0, 2,16, 17,1, "Write protection:" },
-	{ SGRADIOBUT, 0, 0, 21,16, 5,1, "Off" },
-	{ SGRADIOBUT, 0, 0, 28,16, 5,1, "On" },
-	{ SGRADIOBUT, 0, 0, 34,16, 6,1, "Auto" },
-	{ SGBUTTON, SG_DEFAULT, 0, 22,18, 20,1, "Back to main menu" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
+#if DUAL_FLOPPY_DRIVE
+    { SGBOX, 0, 0, 0,0, 64,30, NULL },
+#else
+    { SGBOX, 0, 0, 0,0, 64,20, NULL },
+#endif
+    { SGTEXT, 0, 0, 23,1, 10,1, "Floppy disk drives" },
+    
+    { SGTEXT, 0, 0, 2,4, 16,1, "Floppy Drive 0:" },
+    { SGCHECKBOX, 0, 0, 20, 4, 11, 1, "Connected" },
+    
+    { SGBOX, 0, 0, 2,6, 60,6, NULL },
+    { SGTEXT, 0, 0, 4,7, 14,1, "Floppy disk:" },
+    { SGBUTTON, 0, 0, 20,7, 10,1, insrtejct0 },
+    { SGTEXT, 0, 0, 32,7, 17,1, NULL },
+    { SGTEXT, 0, 0, 4,9, 56,1, NULL },
+#if DUAL_FLOPPY_DRIVE
+    { SGTEXT, 0, 0, 2,14, 16,1, "Floppy Drive 1:" },
+    { SGCHECKBOX, 0, 0, 20, 14, 11, 1, "Connected" },
+    
+    { SGBOX, 0, 0, 2,16, 60,6, NULL },
+    { SGTEXT, 0, 0, 4,17, 14,1, "Floppy disk:" },
+    { SGBUTTON, 0, 0, 20,17, 10,1, insrtejct1 },
+    { SGTEXT, 0, 0, 32,17, 17,1, NULL },
+    { SGTEXT, 0, 0, 4,19, 56,1, NULL },
+    
+    { SGTEXT, 0, 0, 2,24, 14,1, "Note: Floppy disk drives do not work with 68030 based Cubes." },
+    
+    { SGBUTTON, SG_DEFAULT, 0, 22,27, 20,1, "Back to main menu" },
+#else
+    { SGTEXT, 0, 0, 2,14, 14,1, "Note: Floppy disk drives do not work with 68030 based Cubes." },
+    
+    { SGBUTTON, SG_DEFAULT, 0, 22,17, 20,1, "Back to main menu" },
+#endif
+    
+    { -1, 0, 0, 0,0, 0,0, NULL }
 };
-
-
-#define DLGMOUNT_A       2
-#define DLGMOUNT_B       3
-#define DLGMOUNT_CANCEL  4
-
-/* The "Alert"-dialog: */
-static SGOBJ alertdlg[] =
-{
-	{ SGBOX, 0, 0, 0,0, 40,6, NULL },
-	{ SGTEXT, 0, 0, 3,1, 30,1, "Insert last created disk to?" },
-	{ SGBUTTON, 0, 0, 3,4, 10,1, "Drive A:" },
-	{ SGBUTTON, 0, 0, 15,4, 10,1, "Drive B:" },
-	{ SGBUTTON, SG_CANCEL, 0, 27,4, 10,1, "Cancel" },
-	{ -1, 0, 0, 0,0, 0,0, NULL }
-};
-
-
-/**
- * Let user browse given disk, insert disk if one selected.
- */
-static void DlgDisk_BrowseDisk(char *dlgname, int drive, int diskid)
-{
-	char *selname, *zip_path;
-	const char *tmpname, *realname;
-
-	assert(drive >= 0 && drive < MAX_FLOPPYDRIVES);
-	if (ConfigureParams.DiskImage.szDiskFileName[drive][0])
-		tmpname = ConfigureParams.DiskImage.szDiskFileName[drive];
-	else
-		tmpname = ConfigureParams.DiskImage.szDiskImageDirectory;
-
-	selname = SDLGui_FileSelect(tmpname, &zip_path, false);
-	if (!selname)
-		return;
-
-	if (File_Exists(selname))
-	{
-		realname = Floppy_SetDiskFileName(drive, selname, zip_path);
-		if (realname)
-			File_ShrinkName(dlgname, realname, floppydlg[diskid].w);
-	}
-	else
-	{
-		Floppy_SetDiskFileNameNone(drive);
-		dlgname[0] = '\0';
-	}
-	if (zip_path)
-		free(zip_path);
-	free(selname);
-}
 
 
 /**
  * Let user browse given directory, set directory if one selected.
+ * return false if none selected, otherwise return true.
  */
-static void DlgDisk_BrowseDir(char *dlgname, char *confname, int maxlen)
-{
+/*static bool DlgDisk_BrowseDir(char *dlgname, char *confname, int maxlen)
+ {
 	char *str, *selname;
-
+ 
 	selname = SDLGui_FileSelect(confname, NULL, false);
-	if (!selname)
-		return;
-
-	strcpy(confname, selname);
-	free(selname);
-
-	str = strrchr(confname, PATHSEP);
-	if (str != NULL)
-		str[1] = 0;
-	File_CleanFileName(confname);
-	File_ShrinkName(dlgname, confname, maxlen);
-}
-
-
-/**
- * Ask whether new disk should be inserted to A: or B: and if yes, insert.
- */
-static void DlgFloppy_QueryInsert(char *namea, int ida, char *nameb, int idb, const char *path)
-{
-	const char *realname;
-	int diskid, dlgid;
-	char *dlgname;
-
-	SDLGui_CenterDlg(alertdlg);
-	switch (SDLGui_DoDialog(alertdlg, NULL))
+	if (selname)
 	{
-		case DLGMOUNT_A:
-			dlgname = namea;
-			dlgid = ida;
-			diskid = 0;
-			break;
-		case DLGMOUNT_B:
-			dlgname = nameb;
-			dlgid = idb;
-			diskid = 1;
-			break;
-		default:
-			return;
+ strcpy(confname, selname);
+ free(selname);
+ 
+ str = strrchr(confname, PATHSEP);
+ if (str != NULL)
+ str[1] = 0;
+ File_CleanFileName(confname);
+ File_ShrinkName(dlgname, confname, maxlen);
+ return true;
 	}
-
-	realname = Floppy_SetDiskFileName(diskid, path, NULL);
-	if (realname)
-		File_ShrinkName(dlgname, realname, floppydlg[dlgid].w);
-}
+	return false;
+ }*/
 
 
 /**
- * Show and process the floppy disk image dialog.
+ * Show and process the hard disk dialog.
  */
 void DlgFloppy_Main(void)
 {
-	int but, i;
-	char *newdisk;
-	char dlgname[MAX_FLOPPYDRIVES][64], dlgdiskdir[64];
+    int but;
+    char dlgname_flp[FLP_MAX_DRIVES][64];
+    
+    SDLGui_CenterDlg(flpdlg);
+    
+    /* Set up dialog to actual values: */
+    
+    /* Floppy disk image: */
+    if (ConfigureParams.Floppy.drive[0].bDriveConnected && ConfigureParams.Floppy.drive[0].bDiskInserted) {
+        File_ShrinkName(dlgname_flp[0], ConfigureParams.Floppy.drive[0].szImageName,
+                        flpdlg[FLPDLG_DISKNAME0].w);
+        sprintf(insrtejct0, "Eject");
+    } else {
+        dlgname_flp[0][0] = '\0';
+        sprintf(insrtejct0, "Insert");
+    }
+    flpdlg[FLPDLG_DISKNAME0].txt = dlgname_flp[0];
+#if DUAL_FLOPPY_DRIVE
+    if (ConfigureParams.Floppy.drive[1].bDriveConnected && ConfigureParams.Floppy.drive[1].bDiskInserted) {
+        File_ShrinkName(dlgname_flp[1], ConfigureParams.Floppy.drive[1].szImageName,
+                        flpdlg[FLPDLG_DISKNAME1].w);
+        sprintf(insrtejct1, "Eject");
+    } else {
+        dlgname_flp[1][0] = '\0';
+        sprintf(insrtejct1, "Insert");
+    }
+    flpdlg[FLPDLG_DISKNAME1].txt = dlgname_flp[1];
+#endif
+    
+    /* Drive connected true or false? */
+    if (ConfigureParams.Floppy.drive[0].bDriveConnected)
+        flpdlg[FLPDLG_CONNECTED0].state |= SG_SELECTED;
+    else
+        flpdlg[FLPDLG_CONNECTED0].state &= ~SG_SELECTED;
+#if DUAL_FLOPPY_DRIVE
+    if (ConfigureParams.Floppy.drive[1].bDriveConnected)
+        flpdlg[FLPDLG_CONNECTED1].state |= SG_SELECTED;
+    else
+        flpdlg[FLPDLG_CONNECTED1].state &= ~SG_SELECTED;
+#endif
+    
+    /* Draw and process the dialog */
+    do
+    {
+        /* Write protection true or false? */
+        if (ConfigureParams.Floppy.drive[0].bWriteProtected)
+            flpdlg[FLPDLG_READONLY0].txt = "read-only";
+        else
+            flpdlg[FLPDLG_READONLY0].txt = "";
+#if DUAL_FLOPPY_DRIVE
+        if (ConfigureParams.Floppy.drive[1].bWriteProtected)
+            flpdlg[FLPDLG_READONLY1].txt = "read-only";
+        else
+            flpdlg[FLPDLG_READONLY1].txt = "";
+#endif
 
-	SDLGui_CenterDlg(floppydlg);
-
-	/* Set up dialog to actual values: */
-
-	/* Disk name A: */
-	if (EmulationDrives[0].bDiskInserted)
-		File_ShrinkName(dlgname[0], ConfigureParams.DiskImage.szDiskFileName[0],
-		                floppydlg[FLOPPYDLG_DISKA].w);
-	else
-		dlgname[0][0] = '\0';
-	floppydlg[FLOPPYDLG_DISKA].txt = dlgname[0];
-
-	/* Disk name B: */
-	if (EmulationDrives[1].bDiskInserted)
-		File_ShrinkName(dlgname[1], ConfigureParams.DiskImage.szDiskFileName[1],
-		                floppydlg[FLOPPYDLG_DISKB].w);
-	else
-		dlgname[1][0] = '\0';
-	floppydlg[FLOPPYDLG_DISKB].txt = dlgname[1];
-
-	/* Default image directory: */
-	File_ShrinkName(dlgdiskdir, ConfigureParams.DiskImage.szDiskImageDirectory,
-	                floppydlg[FLOPPYDLG_IMGDIR].w);
-	floppydlg[FLOPPYDLG_IMGDIR].txt = dlgdiskdir;
-
-	/* Auto insert disk B: */
-	if (ConfigureParams.DiskImage.bAutoInsertDiskB)
-		floppydlg[FLOPPYDLG_AUTOB].state |= SG_SELECTED;
-	else
-		floppydlg[FLOPPYDLG_AUTOB].state &= ~SG_SELECTED;
-
-	/* Write protection */
-	for (i = FLOPPYDLG_PROTOFF; i <= FLOPPYDLG_PROTAUTO; i++)
-	{
-		floppydlg[i].state &= ~SG_SELECTED;
-	}
-	floppydlg[FLOPPYDLG_PROTOFF+ConfigureParams.DiskImage.nWriteProtection].state |= SG_SELECTED;
-
-	/* Slow floppy access */
-	if (ConfigureParams.DiskImage.bSlowFloppy)
-		floppydlg[FLOPPYDLG_SLOWFLOPPY].state |= SG_SELECTED;
-	else
-		floppydlg[FLOPPYDLG_SLOWFLOPPY].state &= ~SG_SELECTED;
-
-	/* Draw and process the dialog */
-	do
-	{
-		but = SDLGui_DoDialog(floppydlg, NULL);
-		switch (but)
-		{
-		 case FLOPPYDLG_EJECTA:                         /* Eject disk in drive A: */
-			Floppy_SetDiskFileNameNone(0);
-			dlgname[0][0] = '\0';
-			break;
-		 case FLOPPYDLG_BROWSEA:                        /* Choose a new disk A: */
-			DlgDisk_BrowseDisk(dlgname[0], 0, FLOPPYDLG_DISKA);
-			break;
-		 case FLOPPYDLG_EJECTB:                         /* Eject disk in drive B: */
-			Floppy_SetDiskFileNameNone(1);
-			dlgname[1][0] = '\0';
-			break;
-		case FLOPPYDLG_BROWSEB:                         /* Choose a new disk B: */
-			DlgDisk_BrowseDisk(dlgname[1], 1, FLOPPYDLG_DISKB);
-			break;
-		 case FLOPPYDLG_BROWSEIMG:
-			DlgDisk_BrowseDir(dlgdiskdir,
-			                 ConfigureParams.DiskImage.szDiskImageDirectory,
-			                 floppydlg[FLOPPYDLG_IMGDIR].w);
-			break;
-		 case FLOPPYDLG_CREATEIMG:
-			newdisk = DlgNewDisk_Main();
-			if (newdisk)
-			{
-				DlgFloppy_QueryInsert(dlgname[0], FLOPPYDLG_DISKA,
-						      dlgname[1], FLOPPYDLG_DISKB,
-						      newdisk);
-				free(newdisk);
-			}
-			break;
-		}
-	}
-	while (but != FLOPPYDLG_EXIT && but != SDLGUI_QUIT
-	        && but != SDLGUI_ERROR && !bQuitProgram);
-
-	/* Read values from dialog: */
-
-	for (i = FLOPPYDLG_PROTOFF; i <= FLOPPYDLG_PROTAUTO; i++)
-	{
-		if (floppydlg[i].state & SG_SELECTED)
-		{
-			ConfigureParams.DiskImage.nWriteProtection = i-FLOPPYDLG_PROTOFF;
-			break;
-		}
-	}
-
-	ConfigureParams.DiskImage.bAutoInsertDiskB = (floppydlg[FLOPPYDLG_AUTOB].state & SG_SELECTED);
-	ConfigureParams.DiskImage.bSlowFloppy = (floppydlg[FLOPPYDLG_SLOWFLOPPY].state & SG_SELECTED);
+        but = SDLGui_DoDialog(flpdlg, NULL);
+        
+        switch (but)
+        {
+            case FLPDLG_INSERT0:
+                if (!ConfigureParams.Floppy.drive[0].bDiskInserted) {
+                    if (SDLGui_DiskSelect(dlgname_flp[0], ConfigureParams.Floppy.drive[0].szImageName,
+                                          flpdlg[FLPDLG_DISKNAME0].w, &ConfigureParams.Floppy.drive[0].bWriteProtected)) {
+                        if (Floppy_Insert(0)) {
+                            DlgAlert_Notice(FLPDLG_BADSIZE_ERROR);
+                            ConfigureParams.Floppy.drive[0].bWriteProtected = false;
+                            ConfigureParams.Floppy.drive[0].szImageName[0] = '\0';
+                            dlgname_flp[0][0] = '\0';
+                            break;
+                        }
+                        ConfigureParams.Floppy.drive[0].bDiskInserted = true;
+                        sprintf(insrtejct0, "Eject");
+                        if (!ConfigureParams.Floppy.drive[0].bDriveConnected) {
+                            ConfigureParams.Floppy.drive[0].bDriveConnected = true;
+                            flpdlg[FLPDLG_CONNECTED0].state |= SG_SELECTED;
+                        }
+                    }
+                } else {
+                    if (DlgAlert_Query(FLPDLG_EJECT_WARNING)) {
+                        ConfigureParams.Floppy.drive[0].bDiskInserted = false;
+                        ConfigureParams.Floppy.drive[0].bWriteProtected = false;
+                        sprintf(insrtejct0, "Insert");
+                        ConfigureParams.Floppy.drive[0].szImageName[0] = '\0';
+                        dlgname_flp[0][0] = '\0';
+                        Floppy_Eject(0);
+                    }
+                }
+                break;
+            case FLPDLG_CONNECTED0:
+                if (ConfigureParams.Floppy.drive[0].bDriveConnected) {
+                    ConfigureParams.Floppy.drive[0].bDriveConnected = false;
+                    ConfigureParams.Floppy.drive[0].bDiskInserted = false;
+                    sprintf(insrtejct0, "Insert");
+                    ConfigureParams.Floppy.drive[0].bWriteProtected = false;
+                    ConfigureParams.Floppy.drive[0].szImageName[0] = '\0';
+                    dlgname_flp[0][0] = '\0';
+                } else {
+                    ConfigureParams.Floppy.drive[0].bDriveConnected = true;
+                }
+                break;
+#if DUAL_FLOPPY_DRIVE
+            case FLPDLG_INSERT1:
+                if (!ConfigureParams.Floppy.drive[1].bDiskInserted) {
+                    if (SDLGui_DiskSelect(dlgname_flp[1], ConfigureParams.Floppy.drive[1].szImageName,
+                                          flpdlg[FLPDLG_DISKNAME1].w, &ConfigureParams.Floppy.drive[1].bWriteProtected)) {
+                        if (Floppy_Insert(1)) {
+                            DlgAlert_Notice(FLPDLG_BADSIZE_ERROR);
+                            ConfigureParams.Floppy.drive[1].bWriteProtected = false;
+                            ConfigureParams.Floppy.drive[1].szImageName[0] = '\0';
+                            dlgname_flp[1][0] = '\0';
+                            break;
+                        }
+                        ConfigureParams.Floppy.drive[1].bDiskInserted = true;
+                        sprintf(insrtejct1, "Eject");
+                        if (!ConfigureParams.Floppy.drive[1].bDriveConnected) {
+                            ConfigureParams.Floppy.drive[1].bDriveConnected = true;
+                            flpdlg[FLPDLG_CONNECTED1].state |= SG_SELECTED;
+                        }
+                    }
+                } else {
+                    if (DlgAlert_Query(FLPDLG_EJECT_WARNING)) {
+                        ConfigureParams.Floppy.drive[1].bDiskInserted = false;
+                        ConfigureParams.Floppy.drive[1].bWriteProtected = false;
+                        sprintf(insrtejct1, "Insert");
+                        ConfigureParams.Floppy.drive[1].szImageName[0] = '\0';
+                        dlgname_flp[1][0] = '\0';
+                        Floppy_Eject(1);
+                    }
+                }
+                break;
+            case FLPDLG_CONNECTED1:
+                if (ConfigureParams.Floppy.drive[1].bDriveConnected) {
+                    ConfigureParams.Floppy.drive[1].bDriveConnected = false;
+                    ConfigureParams.Floppy.drive[1].bDiskInserted = false;
+                    sprintf(insrtejct1, "Insert");
+                    ConfigureParams.Floppy.drive[1].bWriteProtected = false;
+                    ConfigureParams.Floppy.drive[1].szImageName[0] = '\0';
+                    dlgname_flp[1][0] = '\0';
+                } else {
+                    ConfigureParams.Floppy.drive[1].bDriveConnected = true;
+                }
+                break;
+#endif
+            default:
+                break;
+        }
+    }
+    while (but != FLPDLG_EXIT && but != SDLGUI_QUIT
+           && but != SDLGUI_ERROR && !bQuitProgram);
 }
+

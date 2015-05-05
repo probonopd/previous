@@ -603,11 +603,11 @@ static const int nSoundFreqs[] =
 - (void)setAllControls
 {
 	// Import the floppy paths into their controls.
-	IMPORT_TEXTFIELD(floppyImageA, ConfigureParams.DiskImage.szDiskFileName[0]); 
-	IMPORT_TEXTFIELD(floppyImageB, ConfigureParams.DiskImage.szDiskFileName[1]); 
+//	IMPORT_TEXTFIELD(floppyImageA, ConfigureParams.DiskImage.szDiskFileName[0]);
+//	IMPORT_TEXTFIELD(floppyImageB, ConfigureParams.DiskImage.szDiskFileName[1]);
 	
 	// Import all the preferences into their controls
-	IMPORT_SWITCH(autoInsertB, ConfigureParams.DiskImage.bAutoInsertDiskB);
+//	IMPORT_SWITCH(autoInsertB, ConfigureParams.DiskImage.bAutoInsertDiskB);
     IMPORT_SWITCH(blitter, ConfigureParams.System.bBlitter);
 //	IMPORT_SWITCH(bootFromHD, ConfigureParams.SCSI.bBootFromHardDisk);
 //    IMPORT_SWITCH(captureOnChange, ConfigureParams.Screen.bCrop);
@@ -616,7 +616,7 @@ static const int nSoundFreqs[] =
     IMPORT_SWITCH(compatibleCpu, ConfigureParams.System.bCompatibleCpu);
     IMPORT_RADIO(cpuClock, ConfigureParams.System.nCpuFreq);
     IMPORT_RADIO(cpuType, ConfigureParams.System.nCpuLevel);
-	IMPORT_TEXTFIELD(defaultImagesLocation, ConfigureParams.DiskImage.szDiskImageDirectory);
+//	IMPORT_TEXTFIELD(defaultImagesLocation, ConfigureParams.DiskImage.szDiskImageDirectory);
     IMPORT_SWITCH(enableMidi, ConfigureParams.Midi.bEnableMidi);
     IMPORT_SWITCH(enablePrinter, ConfigureParams.Printer.bEnablePrinting);
     IMPORT_SWITCH(enableRS232, ConfigureParams.RS232.bEnableRS232);
@@ -631,12 +631,12 @@ static const int nSoundFreqs[] =
 //    IMPORT_RADIO(ramSize, ConfigureParams.Memory.nMemorySize);
     IMPORT_TEXTFIELD(readRS232FromFile, ConfigureParams.RS232.szInFileName);
     IMPORT_SWITCH(realTime, ConfigureParams.System.bRealTimeClock);
-    IMPORT_SWITCH(slowFDC, ConfigureParams.DiskImage.bSlowFloppy);
+//    IMPORT_SWITCH(slowFDC, ConfigureParams.DiskImage.bSlowFloppy);
 //    IMPORT_TEXTFIELD(tosImage, ConfigureParams.Rom.szTosImageFileName);
     IMPORT_SWITCH(useBorders, ConfigureParams.Screen.bAllowOverscan);
     IMPORT_SWITCH(useVDIResolution, ConfigureParams.Screen.bUseExtVdiResolutions);
     IMPORT_TEXTFIELD(writeMidiToFile, ConfigureParams.Midi.sMidiOutFileName);
-	IMPORT_RADIO(writeProtection, ConfigureParams.DiskImage.nWriteProtection);
+//	IMPORT_RADIO(writeProtection, ConfigureParams.DiskImage.nWriteProtection);
     IMPORT_TEXTFIELD(writeRS232ToFile, ConfigureParams.RS232.szOutFileName);
     // IMPORT_SWITCH(zoomSTLowRes, ConfigureParams.Screen.bZoomLowRes);
 	IMPORT_SWITCH(showStatusBar, ConfigureParams.Screen.bShowStatusbar);
@@ -818,7 +818,7 @@ static const int nSoundFreqs[] =
 - (void)saveAllControls
 {
 	// Export the preference controls into their vars
-	EXPORT_SWITCH(autoInsertB, ConfigureParams.DiskImage.bAutoInsertDiskB);
+//	EXPORT_SWITCH(autoInsertB, ConfigureParams.DiskImage.bAutoInsertDiskB);
     EXPORT_SWITCH(blitter, ConfigureParams.System.bBlitter);
 //	EXPORT_SWITCH(bootFromHD, ConfigureParams.SCSI.bBootFromHardDisk);
 //    EXPORT_SWITCH(captureOnChange, ConfigureParams.Screen.bCrop);
@@ -827,7 +827,7 @@ static const int nSoundFreqs[] =
     EXPORT_SWITCH(compatibleCpu, ConfigureParams.System.bCompatibleCpu);
     EXPORT_RADIO(cpuClock, ConfigureParams.System.nCpuFreq);
     EXPORT_RADIO(cpuType, ConfigureParams.System.nCpuLevel);
-	EXPORT_TEXTFIELD(defaultImagesLocation, ConfigureParams.DiskImage.szDiskImageDirectory);
+//	EXPORT_TEXTFIELD(defaultImagesLocation, ConfigureParams.DiskImage.szDiskImageDirectory);
     EXPORT_SWITCH(enableMidi, ConfigureParams.Midi.bEnableMidi);
     EXPORT_SWITCH(enablePrinter, ConfigureParams.Printer.bEnablePrinting);
     EXPORT_SWITCH(enableRS232, ConfigureParams.RS232.bEnableRS232);
@@ -842,12 +842,12 @@ static const int nSoundFreqs[] =
 //    EXPORT_RADIO(ramSize, ConfigureParams.Memory.nMemorySize);
     EXPORT_TEXTFIELD(readRS232FromFile, ConfigureParams.RS232.szInFileName);
     EXPORT_SWITCH(realTime, ConfigureParams.System.bRealTimeClock);
-    EXPORT_SWITCH(slowFDC, ConfigureParams.DiskImage.bSlowFloppy);
+//    EXPORT_SWITCH(slowFDC, ConfigureParams.DiskImage.bSlowFloppy);
 //    EXPORT_TEXTFIELD(tosImage, ConfigureParams.Rom.szTosImageFileName);
     EXPORT_SWITCH(useBorders, ConfigureParams.Screen.bAllowOverscan);
     EXPORT_SWITCH(useVDIResolution, ConfigureParams.Screen.bUseExtVdiResolutions);
     EXPORT_TEXTFIELD(writeMidiToFile, ConfigureParams.Midi.sMidiOutFileName);
-	EXPORT_RADIO(writeProtection, ConfigureParams.DiskImage.nWriteProtection);
+//	EXPORT_RADIO(writeProtection, ConfigureParams.DiskImage.nWriteProtection);
     EXPORT_TEXTFIELD(writeRS232ToFile, ConfigureParams.RS232.szOutFileName);
     // EXPORT_SWITCH(zoomSTLowRes, ConfigureParams.Screen.bZoomLowRes);
 	EXPORT_SWITCH(showStatusBar,ConfigureParams.Screen.bShowStatusbar);

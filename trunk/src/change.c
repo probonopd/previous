@@ -150,12 +150,12 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
     int target;
     for (target = 0; target < ESP_MAX_DEVS; target++) {
         if (current->SCSI.target[target].nDeviceType != changed->SCSI.target[target].nDeviceType ||
-            current->SCSI.target[target].bWriteProtected != changed->SCSI.target[target].bWriteProtected ||
             (current->SCSI.target[target].nDeviceType==DEVTYPE_HARDDISK &&
-             strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName))) {
-            printf("scsi disk reset\n");
-            return true;
-        }
+             (current->SCSI.target[target].bWriteProtected != changed->SCSI.target[target].bWriteProtected ||
+              strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName)))) {
+                 printf("scsi disk reset\n");
+                 return true;
+             }
     }
     
     /* Did we change MO drive? */
@@ -180,14 +180,12 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *changed, bool bForceReset)
 {
 	bool NeedReset;
-	bool bReInitGemdosDrive = false;
 	bool bReInitSCSIEmu = false;
     bool bReInitMOEmu = false;
+    bool bReInitFloppyEmu = false;
 	bool bReInitEnetEmu = false;
 	bool bReInitIoMem = false;
 	bool bScreenModeChange = false;
-	bool bReInitMidi = false;
-	bool bFloppyInsert[MAX_FLOPPYDRIVES];
 	int i;
 
 	Dprintf("Changes for:\n");
@@ -198,21 +196,20 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 		NeedReset = Change_DoNeedReset(current, changed);
     
     /* Do we need to change SCSI disks? */
-    int target;
-    for (target = 0; target < ESP_MAX_DEVS; target++) {
+    for (i = 0; i < ESP_MAX_DEVS; i++) {
         if (!NeedReset &&
-            (current->SCSI.target[target].bDiskInserted != changed->SCSI.target[target].bDiskInserted ||
-             strcmp(current->SCSI.target[target].szImageName, changed->SCSI.target[target].szImageName))) {
+            (current->SCSI.target[i].bDiskInserted != changed->SCSI.target[i].bDiskInserted ||
+             current->SCSI.target[i].bWriteProtected != changed->SCSI.target[i].bWriteProtected ||
+             strcmp(current->SCSI.target[i].szImageName, changed->SCSI.target[i].szImageName))) {
             bReInitSCSIEmu = true;
             break;
         }
     }
     
     /* Do we need to change MO disks? */
-    int drive;
-    for (drive = 0; drive < MO_MAX_DRIVES; drive++) {
+    for (i = 0; i < MO_MAX_DRIVES; i++) {
         if (!NeedReset &&
-            (current->MO.drive[drive].bDriveConnected != changed->MO.drive[drive].bDriveConnected)) {
+            (current->MO.drive[i].bDriveConnected != changed->MO.drive[i].bDriveConnected)) {
             bReInitMOEmu = true;
             break;
         }
