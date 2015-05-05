@@ -30,6 +30,7 @@
 	[savePanel setAllowedFileTypes:allowedFileTypes];
 	
 	// Get the default images directory
+#if 0
 	NSString* defaultDir = [NSString stringWithCString:ConfigureParams.DiskImage.szDiskImageDirectory encoding:NSASCIIStringEncoding];
 
 	// Run the SavePanel, then check if the user clicked OK
@@ -65,6 +66,7 @@
 		}
 			
 	}
+#endif
 }
 
 - (void)awakeFromNib

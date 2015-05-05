@@ -1173,18 +1173,18 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 //			break;
 
 		case OPT_SLOWFLOPPY:
-			ok = Opt_Bool(argv[++i], OPT_SLOWFLOPPY, &ConfigureParams.DiskImage.bSlowFloppy);
+//			ok = Opt_Bool(argv[++i], OPT_SLOWFLOPPY, &ConfigureParams.DiskImage.bSlowFloppy);
 			break;
 
 		case OPT_WRITEPROT_FLOPPY:
 			i += 1;
 			if (strcasecmp(argv[i], "off") == 0)
-				ConfigureParams.DiskImage.nWriteProtection = WRITEPROT_OFF;
-			else if (strcasecmp(argv[i], "on") == 0)
-				ConfigureParams.DiskImage.nWriteProtection = WRITEPROT_ON;
-			else if (strcasecmp(argv[i], "auto") == 0)
-				ConfigureParams.DiskImage.nWriteProtection = WRITEPROT_AUTO;
-			else
+//				ConfigureParams.DiskImage.nWriteProtection = WRITEPROT_OFF;
+//			else if (strcasecmp(argv[i], "on") == 0)
+//				ConfigureParams.DiskImage.nWriteProtection = WRITEPROT_ON;
+//			else if (strcasecmp(argv[i], "auto") == 0)
+//				ConfigureParams.DiskImage.nWriteProtection = WRITEPROT_AUTO;
+//			else
 				return Opt_ShowError(OPT_WRITEPROT_FLOPPY, argv[i], "Unknown option value");
 			break;
 

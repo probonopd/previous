@@ -34,8 +34,7 @@ extern void Dialog_AdvancedDlg(void);
 extern void DlgRom_Main(void);
 extern void DlgBoot_Main(void);
 extern void DlgMissing_Rom(void);
-extern void DlgMissing_SCSIdisk(int target);
-extern void DlgMissing_MOdisk(int drive);
+extern void DlgMissing_Disk(char type[], int num, char *name, bool *ins, bool *wp);
 /* and dialog.c */
 extern bool Dialog_DoProperty(void);
 extern void Dialog_CheckFiles(void);

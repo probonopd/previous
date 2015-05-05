@@ -83,6 +83,7 @@ bool Dialog_DoProperty(void)
 
 void Dialog_CheckFiles(void) {
     bool bOldMouseVisibility;
+    int i;
     bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
     SDL_ShowCursor(SDL_ENABLE);
     
@@ -126,12 +127,18 @@ void Dialog_CheckFiles(void) {
     }
     
     /* Check if SCSI disk images exist. Present a dialog to select missing files. */
-    int target;
-    for (target = 0; target < ESP_MAX_DEVS; target++) {
-        while ((ConfigureParams.SCSI.target[target].nDeviceType!=DEVTYPE_NONE) &&
-               ConfigureParams.SCSI.target[target].bDiskInserted
-               && !File_Exists(ConfigureParams.SCSI.target[target].szImageName)) {
-            DlgMissing_SCSIdisk(target);
+    for (i = 0; i < ESP_MAX_DEVS; i++) {
+        while ((ConfigureParams.SCSI.target[i].nDeviceType!=DEVTYPE_NONE) &&
+               ConfigureParams.SCSI.target[i].bDiskInserted &&
+               !File_Exists(ConfigureParams.SCSI.target[i].szImageName)) {
+            DlgMissing_Disk("SCSI disk", i,
+                            ConfigureParams.SCSI.target[i].szImageName,
+                            &ConfigureParams.SCSI.target[i].bDiskInserted,
+                            &ConfigureParams.SCSI.target[i].bWriteProtected);
+            if (ConfigureParams.SCSI.target[i].nDeviceType==DEVTYPE_HARDDISK &&
+                !ConfigureParams.SCSI.target[i].bDiskInserted) {
+                ConfigureParams.SCSI.target[i].nDeviceType=DEVTYPE_NONE;
+            }
             if (bQuitProgram) {
                 Main_RequestQuit();
                 if (bQuitProgram)
@@ -141,12 +148,14 @@ void Dialog_CheckFiles(void) {
     }
     
     /* Check if MO disk images exist. Present a dialog to select missing files. */
-    int drive;
-    for (drive = 0; drive < MO_MAX_DRIVES; drive++) {
-        while (ConfigureParams.MO.drive[drive].bDiskInserted &&
-               ConfigureParams.MO.drive[drive].bDriveConnected &&
-               !File_Exists(ConfigureParams.MO.drive[drive].szImageName)) {
-            DlgMissing_MOdisk(drive);
+    for (i = 0; i < MO_MAX_DRIVES; i++) {
+        while (ConfigureParams.MO.drive[i].bDriveConnected &&
+               ConfigureParams.MO.drive[i].bDiskInserted &&
+               !File_Exists(ConfigureParams.MO.drive[i].szImageName)) {
+            DlgMissing_Disk("MO disk", i,
+                            ConfigureParams.MO.drive[i].szImageName,
+                            &ConfigureParams.MO.drive[i].bDiskInserted,
+                            &ConfigureParams.MO.drive[i].bWriteProtected);
             if (bQuitProgram) {
                 Main_RequestQuit();
                 if (bQuitProgram)

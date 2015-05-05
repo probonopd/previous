@@ -44,68 +44,34 @@ static SGOBJ missingromdlg[] =
 };
 
 
-/* Missing SCSI dialog */
-#define DLGMISSINGSCSI_ALERT     1
-#define DLGMISSINGSCSI_TARGET    3
+/* Missing Disk dialog */
+#define DLGMISDSK_ALERT     1
 
-#define DLGMISSINGSCSI_BROWSE    5
-#define DLGMISSINGSCSI_CDROM     6
-#define DLGMISSINGSCSI_NAME      7
+#define DLGMISDSK_DRIVE     4
+#define DLGMISDSK_BROWSE    5
+#define DLGMISDSK_PROTECT   6
+#define DLGMISDSK_NAME      7
 
-#define DLGMISSINGSCSI_SELECT    8
-#define DLGMISSINGSCSI_EJECT     9
-#define DLGMISSINGSCSI_QUIT      10
+#define DLGMISDSK_SELECT    8
+#define DLGMISDSK_REMOVE    9
+#define DLGMISDSK_QUIT      10
 
 
-static SGOBJ missingscsidlg[] =
+static SGOBJ missingdiskdlg[] =
 {
     { SGBOX, 0, 0, 0,0, 52,15, NULL },
-    { SGTEXT, 0, 0, 9,1, 9,1, NULL },
-    { SGTEXT, 0, 0, 2,4, 9,1, "Please eject or select a valid disk image for" },
-    { SGTEXT, 0, 0, 2,5, 9,1, NULL },
+    { SGTEXT, 0, 0, 6,1, 38,1, NULL },
+    { SGTEXT, 0, 0, 2,4, 43,1, "Please remove or select a valid disk image:" },
     
-    { SGBOX, 0, 0, 1,7, 50,4, NULL },
-    { SGBUTTON, 0, 0, 2,8, 10,1, "Browse" },
-    { SGTEXT, 0, 0, 15,8, 8,1, " " },
-    { SGTEXT, 0, 0, 2,9, 46,1, NULL },
+    { SGBOX, 0, 0, 1,6, 50,4, NULL },
+    { SGTEXT, 0, 0, 2,7, 15,1, NULL },
+    { SGBUTTON, 0, 0, 39,7, 10,1, "Browse" },
+    { SGTEXT, 0, 0, 15,7, 10,1, NULL },
+    { SGTEXT, 0, 0, 2,8, 46,1, NULL },
     
-    { SGBUTTON, SG_DEFAULT, 0, 4,13, 10,1, "Select" },
-    { SGBUTTON, 0, 0, 18,13, 9,1, "Eject" },
-    { SGBUTTON, 0, 0, 38,13, 10,1, "Quit" },
-    { -1, 0, 0, 0,0, 0,0, NULL }
-};
-
-
-/* Missing MO dialog */
-#define DLGMISSINGMO_ALERT      1
-#define DLGMISSINGMO_DRIVE      3
-
-#define DLGMISSINGMO_BROWSE     5
-#define DLGMISSINGMO_PROTECT    6
-#define DLGMISSINGMO_NAME       7
-
-#define DLGMISSINGMO_SELECT     8
-#define DLGMISSINGMO_EJECT      9
-#define DLGMISSINGMO_DISCONNECT 10
-#define DLGMISSINGMO_QUIT       11
-
-
-static SGOBJ missingmodlg[] =
-{
-    { SGBOX, 0, 0, 0,0, 52,15, NULL },
-    { SGTEXT, 0, 0, 9,1, 9,1, NULL },
-    { SGTEXT, 0, 0, 2,4, 9,1, "Please eject or select a valid disk image for" },
-    { SGTEXT, 0, 0, 2,5, 9,1, NULL },
-    
-    { SGBOX, 0, 0, 1,7, 50,4, NULL },
-    { SGBUTTON, 0, 0, 2,8, 10,1, "Browse" },
-    { SGCHECKBOX, 0, 0, 15,8, 17,1, "Write protected" },
-    { SGTEXT, 0, 0, 2,9, 46,1, NULL },
-    
-    { SGBUTTON, SG_DEFAULT, 0, 4,13, 10,1, "Select" },
-    { SGBUTTON, 0, 0, 16,13, 9,1, "Eject" },
-    { SGBUTTON, 0, 0, 27,13, 9,1, "Discon." },
-    { SGBUTTON, 0, 0, 38,13, 10,1, "Quit" },
+    { SGBUTTON, SG_DEFAULT, 0, 4,12, 10,1, "Select" },
+    { SGBUTTON, 0, 0, 16,12, 10,1, "Remove" },
+    { SGBUTTON, 0, 0, 38,12, 10,1, "Quit" },
     { -1, 0, 0, 0,0, 0,0, NULL }
 };
 
@@ -224,122 +190,58 @@ void DlgMissing_Rom(void) {
 
 /*-----------------------------------------------------------------------*/
 /**
- * Show and process the Missing SCSI disk dialog.
+ * Show and process the Missing Disk dialog.
  */
-void DlgMissing_SCSIdisk(int target)
-{
-    int but;
-
-    char dlgname_missingscsi[47];
-    char missingscsi_alert[64];
-    char missingscsi_target[64];
-    
-	SDLGui_CenterDlg(missingscsidlg);
-    
-	/* Set up dialog to actual values: */
-    sprintf(missingscsi_alert, "SCSI device %i: disk image not found!", target);
-    missingscsidlg[DLGMISSINGSCSI_ALERT].txt = missingscsi_alert;
-    
-    sprintf(missingscsi_target, "SCSI device %i:", target);
-    missingscsidlg[DLGMISSINGSCSI_TARGET].txt = missingscsi_target;
-    
-    File_ShrinkName(dlgname_missingscsi, ConfigureParams.SCSI.target[target].szImageName, missingscsidlg[DLGMISSINGSCSI_NAME].w);
-    
-	missingscsidlg[DLGMISSINGSCSI_NAME].txt = dlgname_missingscsi;
-        
-    
-	/* Draw and process the dialog */
-	do
-	{
-		but = SDLGui_DoDialog(missingscsidlg, NULL);
-		switch (but)
-		{
-            case DLGMISSINGSCSI_EJECT:
-                ConfigureParams.SCSI.target[target].bDiskInserted = false;
-                if (ConfigureParams.SCSI.target[target].nDeviceType==DEVTYPE_HARDDISK) {
-                    ConfigureParams.SCSI.target[target].nDeviceType = DEVTYPE_NONE;
-                }
-                ConfigureParams.SCSI.target[target].szImageName[0] = '\0';
-                dlgname_missingscsi[0] = '\0';
-                break;
-            case DLGMISSINGSCSI_BROWSE:
-                if (SDLGui_FileConfSelect(dlgname_missingscsi,
-                                          ConfigureParams.SCSI.target[target].szImageName,
-                                          missingscsidlg[DLGMISSINGSCSI_NAME].w, false))
-                    ConfigureParams.SCSI.target[target].bDiskInserted = true;
-                break;
-            case DLGMISSINGSCSI_QUIT:
-                bQuitProgram = true;
-                break;
-		}
-	}
-	while (but != DLGMISSINGSCSI_SELECT && but != DLGMISSINGSCSI_EJECT && but != SDLGUI_QUIT
-           && but != SDLGUI_ERROR && !bQuitProgram);
-}
-
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * Show and process the Missing MO disk dialog.
- */
-void DlgMissing_MOdisk(int drive)
+void DlgMissing_Disk(char type[], int num, char *imgname, bool *inserted, bool *wp)
 {
     int but;
     
-    char dlgname_missingmo[47];
-    char missingmo_alert[64];
-    char missingmo_disk[64];
+    char dlgname_missingdisk[64];
+    char missingdisk_alert[64];
+    char missingdisk_disk[64];
+
+    SDLGui_CenterDlg(missingdiskdlg);
     
-	SDLGui_CenterDlg(missingmodlg);
+    /* Set up dialog to actual values: */
+    sprintf(missingdisk_alert, "%s drive %i: disk image not found!", type, num);
+    missingdiskdlg[DLGMISDSK_ALERT].txt = missingdisk_alert;
     
-	/* Set up dialog to actual values: */
-    sprintf(missingmo_alert, "MO drive %i: disk image not found!", drive);
-    missingmodlg[DLGMISSINGMO_ALERT].txt = missingmo_alert;
+    sprintf(missingdisk_disk, "%s %i:", type, num);
+    missingdiskdlg[DLGMISDSK_DRIVE].txt = missingdisk_disk;
     
-    sprintf(missingmo_disk, "MO disk %i:", drive);
-    missingmodlg[DLGMISSINGMO_DRIVE].txt = missingmo_disk;
+    File_ShrinkName(dlgname_missingdisk, imgname, missingdiskdlg[DLGMISDSK_NAME].w);
     
-    File_ShrinkName(dlgname_missingmo, ConfigureParams.MO.drive[drive].szImageName, missingmodlg[DLGMISSINGMO_NAME].w);
-    if (ConfigureParams.MO.drive[drive].bWriteProtected)
-        missingmodlg[DLGMISSINGMO_PROTECT].state |= SG_SELECTED;
-    else
-        missingmodlg[DLGMISSINGMO_PROTECT].state &= ~SG_SELECTED;
-    
-	missingmodlg[DLGMISSINGMO_NAME].txt = dlgname_missingmo;
+    missingdiskdlg[DLGMISDSK_NAME].txt = dlgname_missingdisk;
     
     
-	/* Draw and process the dialog */
-	do
-	{
-		but = SDLGui_DoDialog(missingmodlg, NULL);
-		switch (but)
-		{
+    /* Draw and process the dialog */
+    do
+    {
+        if (*wp)
+            missingdiskdlg[DLGMISDSK_PROTECT].txt = "read-only";
+        else
+            missingdiskdlg[DLGMISDSK_PROTECT].txt = "";
+
+        but = SDLGui_DoDialog(missingdiskdlg, NULL);
+        switch (but)
+        {
                 
-            case DLGMISSINGMO_BROWSE:
-                if (SDLGui_FileConfSelect(dlgname_missingmo, ConfigureParams.MO.drive[drive].szImageName, missingmodlg[DLGMISSINGMO_NAME].w, false)) {
-                        ConfigureParams.MO.drive[drive].bDiskInserted = true;
-                    }
+            case DLGMISDSK_BROWSE:
+                SDLGui_DiskSelect(dlgname_missingdisk, imgname, missingdiskdlg[DLGMISDSK_NAME].w, wp);
                 break;
-            case DLGMISSINGMO_DISCONNECT:
-                ConfigureParams.MO.drive[drive].bDriveConnected = false;
-                missingmodlg[DLGMISSINGMO_PROTECT].state &= ~SG_SELECTED;
-            case DLGMISSINGMO_EJECT:
-                ConfigureParams.MO.drive[drive].bDiskInserted = false;
-                ConfigureParams.MO.drive[drive].szImageName[0] = '\0';
-                dlgname_missingmo[0] = '\0';
+            case DLGMISDSK_REMOVE:
+                *inserted = false;
+                *wp = false;
+                *imgname = '\0';
                 break;
-            case DLGMISSINGMO_QUIT:
+            case DLGMISDSK_QUIT:
                 bQuitProgram = true;
                 break;
                 
             default:
                 break;
-		}
-	}
-	while (but != DLGMISSINGMO_SELECT && but != DLGMISSINGMO_EJECT && but != DLGMISSINGMO_DISCONNECT
-           && but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
-    
-    /* Read values from dialog: */
-    ConfigureParams.MO.drive[drive].bWriteProtected = (missingmodlg[DLGMISSINGMO_PROTECT].state & SG_SELECTED);
+        }
+    }
+    while (but != DLGMISDSK_SELECT && but != DLGMISDSK_REMOVE &&
+           but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
 }

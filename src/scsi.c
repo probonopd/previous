@@ -123,6 +123,7 @@ struct {
     SCSI_DEVTYPE devtype;
     FILE* dsk;
     Uint32 size;
+    bool readonly;
     Uint8 lun;
     Uint8 status;
     Uint8 message;
@@ -162,7 +163,7 @@ void SCSI_Init(void) {
     for (i = 0; i < ESP_MAX_DEVS; i++) {
         if (File_Exists(ConfigureParams.SCSI.target[i].szImageName) && ConfigureParams.SCSI.target[i].bDiskInserted) {
             SCSIdisk[i].size = File_Length(ConfigureParams.SCSI.target[i].szImageName);
-            SCSIdisk[i].dsk = ConfigureParams.SCSI.target[i].nDeviceType == DEVTYPE_CD ?
+            SCSIdisk[i].dsk = ConfigureParams.SCSI.target[i].bWriteProtected ?
             File_Open(ConfigureParams.SCSI.target[i].szImageName, "rb") :
             File_Open(ConfigureParams.SCSI.target[i].szImageName, "rb+");
         } else {
@@ -170,6 +171,8 @@ void SCSI_Init(void) {
             SCSIdisk[i].dsk = NULL;
         }
         SCSIdisk[i].devtype = ConfigureParams.SCSI.target[i].nDeviceType;
+        SCSIdisk[i].readonly = (ConfigureParams.SCSI.target[i].nDeviceType==DEVTYPE_CD) ?
+        true : ConfigureParams.SCSI.target[i].bWriteProtected;
         
         SCSIdisk[i].lun = SCSIdisk[i].status = SCSIdisk[i].message = 0;
         SCSIdisk[i].sense.code = SCSIdisk[i].sense.key = SCSIdisk[i].sense.info = 0;
@@ -570,7 +573,7 @@ void SCSI_WriteSector(Uint8 *cdb) {
     SCSIdisk[target].lba = SCSI_GetOffset(cdb[0], cdb);
     SCSIdisk[target].blockcounter = SCSI_GetCount(cdb[0], cdb);
     
-    if (SCSIdisk[target].devtype==DEVTYPE_CD) { /* FIXME: implement protected floppy */
+    if (SCSIdisk[target].readonly) {
         Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Write sector: Disk is write protected! Check condition.");
         SCSIdisk[target].status = STAT_CHECK_COND;
         SCSIdisk[target].sense.code = SC_WRITE_PROTECT;
@@ -879,7 +882,7 @@ void SCSI_ModeSense(Uint8 *cdb) {
     /* Header */
     retbuf[0] = 0x00; // length of following data
     retbuf[1] = 0x00; // medium type (always 0)
-    retbuf[2] = SCSIdisk[target].devtype == DEVTYPE_CD ? 0x80 : 0x00; // if media is read-only 0x80, else 0x00
+    retbuf[2] = SCSIdisk[target].readonly ? 0x80 : 0x00; // if media is read-only 0x80, else 0x00
     retbuf[3] = 0x08; // block descriptor length
     
     /* Block descriptor data */
@@ -895,7 +898,7 @@ void SCSI_ModeSense(Uint8 *cdb) {
         retbuf[11] = BLOCKSIZE & 0xFF;     // Block size in bytes, low
         header_size = 12;
         Log_Printf(LOG_WARN, "[SCSI] Mode Sense: Block descriptor data: %s, size = %i blocks, blocksize = %i byte\n",
-                   SCSIdisk[target].devtype == DEVTYPE_CD ? "disk is read-only" : "disk is read/write" , sectors, BLOCKSIZE);
+                   SCSIdisk[target].readonly ? "disk is read-only" : "disk is read/write" , sectors, BLOCKSIZE);
     }
     retbuf[0] = header_size - 1;
     
