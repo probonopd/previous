@@ -308,13 +308,13 @@ bool enet_packet_for_me(Uint8 *packet) {
         case RX_NOPACKETS:
             return false;
             
-        case RX_NORMAL:
+        case RX_LIMITED:
             if (recv_broadcast(packet) || recv_me(packet) || recv_local_multicast(packet))
                 return true;
             else
                 return false;
             
-        case RX_LIMITED:
+        case RX_NORMAL:
             if (recv_broadcast(packet) || recv_me(packet) || recv_multicast(packet))
                 return true;
             else
@@ -339,15 +339,14 @@ bool enet_packet_from_me(Uint8 *packet) {
         return false;
 }
 
-#define MIN_PACKET_LEN 60  /* Hack for short packets */
-
 void enet_receive(Uint8 *pkt, int len) {
     if (enet_packet_for_me(pkt)) {
-        if (len<MIN_PACKET_LEN) {
+#if 1   /* Hack for short packets from SLIRP */
+        if (len<60) {
             Log_Printf(LOG_WARN, "[EN] HACK: short packet received (%i byte). Fixed.", len);
-            len = MIN_PACKET_LEN;
+            len = 60;
         }
-        
+#endif
         memcpy(enet_rx_buffer.data,pkt,len);
         enet_rx_buffer.size=enet_rx_buffer.limit=len;
     } else {
@@ -373,24 +372,21 @@ void print_buf(Uint8 *buf, Uint32 size) {
 #define ENET_FRAMESIZE_MAX  1518    /* 1500 byte data and 14 byte header, 4 byte CRC */
 
 /* Ethernet periodic check */
-#define ENET_IO_DELAY   50000
-#define ENET_IO_SHORT   250
+#define ENET_IO_DELAY   40000   /* use 2000 for NeXT hardware test, 500 for status test */
+#define ENET_IO_SHORT   500     /* use 400 for 68030 hardware test */
 
 enum {
     RECV_STATE_WAITING,
     RECV_STATE_RECEIVING
 } receiver_state;
 
-enum {
-    TMIT_STATE_WAITING,
-    TMIT_STATE_TRANSMITTING
-} transmitter_state;
-
-/* TODO: Add support for DMA chaining of packets */
+bool tx_done;
+bool rx_chain;
+int old_size;
 
 void ENET_IO_Handler(void) {
     CycInt_AcknowledgeInterrupt();
-
+    
     if (enet.reset&EN_RESET) {
         Log_Printf(LOG_WARN, "Stopping Ethernet Transmitter/Receiver");
         enet_stopped=true;
@@ -405,14 +401,21 @@ void ENET_IO_Handler(void) {
     switch (receiver_state) {
         case RECV_STATE_WAITING:
             if (enet_rx_buffer.size>0) {
+                Statusbar_BlinkLed(DEVICE_LED_ENET);
                 Log_Printf(LOG_EN_LEVEL, "[EN] Receiving packet from %02X:%02X:%02X:%02X:%02X:%02X",
                            enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
                            enet_rx_buffer.data[9], enet_rx_buffer.data[10], enet_rx_buffer.data[11]);
                 print_buf(enet_rx_buffer.data, enet_rx_buffer.size);
                 enet_rx_buffer.size+=4;
                 enet_rx_buffer.limit+=4;
-                receiver_state = RECV_STATE_RECEIVING;
-                /* Fall through to receiving state */
+                enet.rx_status&=~RXSTAT_PKT_OK;
+                if (enet_rx_buffer.size<ENET_FRAMESIZE_MIN && !(enet.rx_mode&RXMODE_ENA_SHORT)) {
+                    Log_Printf(LOG_WARN, "[EN] Received packet is short (%i byte)",enet_rx_buffer.size);
+                    enet_rx_interrupt(RXSTAT_SHORT_PKT);
+                    enet_rx_buffer.size = 0;
+                    break; /* Keep on waiting for a good packet */
+                } else /* Fall through to receiving state */
+                    receiver_state = RECV_STATE_RECEIVING;
             } else if (enet.tx_mode&TXMODE_DIS_LOOP) {
                 /* Receive from real world network */
                 if (ConfigureParams.Ethernet.bEthernetConnected) {
@@ -422,40 +425,52 @@ void ENET_IO_Handler(void) {
             } else
                 break;
         case RECV_STATE_RECEIVING:
-            Statusbar_BlinkLed(DEVICE_LED_ENET);
-            enet.rx_status&=~RXSTAT_PKT_OK;
-            if (enet_rx_buffer.size>=ENET_FRAMESIZE_MIN || enet.rx_mode&RXMODE_ENA_SHORT) {
-                dma_enet_write_memory();
+            if (enet_rx_buffer.size>0) {
+                old_size = enet_rx_buffer.size;
+                dma_enet_write_memory(rx_chain);
+                if (enet_rx_buffer.size==old_size) {
+                    Log_Printf(LOG_WARN, "[EN] Receiving packet: Error! Receiver overflow (DMA disabled)!");
+                    enet_rx_interrupt(RXSTAT_OVERFLOW);
+                    rx_chain = false;
+                    enet_rx_buffer.size=0;
+                    receiver_state = RECV_STATE_WAITING;
+                    break; /* Go back to waiting state */
+                }
                 if (enet_rx_buffer.size>0) {
                     Log_Printf(LOG_WARN, "[EN] Receiving packet: Transfer not complete!");
-                    abort();
-                    enet_rx_buffer.size=0;                  /* HACK: */
-                    receiver_state = RECV_STATE_WAITING;    /* HACK: prevent loop until chaining is implemented */
+                    rx_chain = true;
                     break; /* Loop in receiving state */
-                } else {
+                } else { /* done */
                     Log_Printf(LOG_EN_LEVEL, "[EN] Receiving packet: Transfer complete.");
+                    rx_chain = false;
                     enet_rx_interrupt(RXSTAT_PKT_OK);
                     if (enet_packet_from_me(enet_rx_buffer.data)) {
                         enet_tx_interrupt(TXSTAT_TX_RECVD);
                     }
+                    receiver_state = RECV_STATE_WAITING;
                 }
-            } else {
-                Log_Printf(LOG_WARN, "[EN] Received packet is short (%i byte)",enet_rx_buffer.size);
-                enet_rx_buffer.size = 0;
-                enet_rx_interrupt(RXSTAT_SHORT_PKT);
             }
-            receiver_state = RECV_STATE_WAITING;
             break;
+            
         default:
             break;
     }
-
+    
     /* Send packet */
     if (enet.tx_status&TXSTAT_READY) {
-        dma_enet_read_memory();
+        old_size = enet_tx_buffer.size;
+        tx_done=dma_enet_read_memory();
         if (enet_tx_buffer.size>15) {
+            if (enet_tx_buffer.size==old_size && !tx_done) {
+                Log_Printf(LOG_WARN, "[EN] Sending packet: Error! Transmitter underflow (no EOP)!");
+                enet_tx_interrupt(TXSTAT_UNDERFLOW);
+                enet_tx_buffer.size=0;
+            } else {
+                enet_tx_buffer.size-=15;
+            }
+        }
+        if (tx_done) {
             Statusbar_BlinkLed(DEVICE_LED_ENET);
-            enet_tx_buffer.size-=15;
             Log_Printf(LOG_EN_LEVEL, "[EN] Sending packet to %02X:%02X:%02X:%02X:%02X:%02X",
                        enet_tx_buffer.data[0], enet_tx_buffer.data[1], enet_tx_buffer.data[2],
                        enet_tx_buffer.data[3], enet_tx_buffer.data[4], enet_tx_buffer.data[5]);
@@ -496,7 +511,7 @@ void Ethernet_Reset(bool hard) {
         enet.reset=EN_RESET;
         enet_stopped=true;
         enet_rx_buffer.size=enet_tx_buffer.size=0;
-        enet_rx_buffer.limit=enet_tx_buffer.limit=2048;
+        enet_rx_buffer.limit=enet_tx_buffer.limit=64*1024;
         /* Stop SLIRP */
         enet_slirp_stop();
     } else {

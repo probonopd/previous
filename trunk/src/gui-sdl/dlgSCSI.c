@@ -93,7 +93,7 @@ static SGOBJ scsidlg[] =
     { SGBUTTON, 0, 0, 54,21, 8,1, "Browse" },
     { SGTEXT, 0, 0, 3,22, 58,1, NULL },
 
-    { SGBUTTON, SG_DEFAULT, 0, 22,26, 20,1, "Back to main menu" },
+    { SGBUTTON, SG_DEFAULT, 0, 21,26, 21,1, "Back to main menu" },
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 

@@ -171,28 +171,6 @@ typedef struct
 } CNF_BOOT;
 
 
-/* Disk image configuration */
-
-typedef enum
-{
-  WRITEPROT_OFF,
-  WRITEPROT_ON,
-  WRITEPROT_AUTO
-} WRITEPROTECTION;
-
-#define MAX_FLOPPYDRIVES 2
-
-typedef struct
-{
-  bool bAutoInsertDiskB;
-  bool bSlowFloppy;                  /* true to slow down FDC emulation */
-  WRITEPROTECTION nWriteProtection;
-  char szDiskZipPath[MAX_FLOPPYDRIVES][FILENAME_MAX];
-  char szDiskFileName[MAX_FLOPPYDRIVES][FILENAME_MAX];
-  char szDiskImageDirectory[FILENAME_MAX];
-} CNF_DISKIMAGE;
-
-
 /* Hard drives configuration */
 #define ESP_MAX_DEVS 7
 typedef enum {
@@ -227,6 +205,20 @@ typedef struct {
 typedef struct {
     MODISK drive[MO_MAX_DRIVES];
 } CNF_MO;
+
+
+/* Floppy disk drives configuration */
+#define FLP_MAX_DRIVES   2
+typedef struct {
+    char szImageName[FILENAME_MAX];
+    bool bDriveConnected;
+    bool bDiskInserted;
+    bool bWriteProtected;
+} FLPDISK;
+
+typedef struct {
+    FLPDISK drive[FLP_MAX_DRIVES];
+} CNF_FLOPPY;
 
 
 /* Ethernet configuration */
@@ -376,10 +368,10 @@ typedef struct
   CNF_MOUSE Mouse;
   CNF_SOUND Sound;
   CNF_MEMORY Memory;
-  CNF_DISKIMAGE DiskImage;
   CNF_BOOT Boot;
   CNF_SCSI SCSI;
   CNF_MO MO;
+  CNF_FLOPPY Floppy;
   CNF_ENET Ethernet;
   CNF_ROM Rom;
   CNF_RS232 RS232;

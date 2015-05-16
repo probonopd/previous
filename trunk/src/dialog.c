@@ -163,6 +163,23 @@ void Dialog_CheckFiles(void) {
             }
         }
     }
-    
+
+    /* Check if Floppy disk images exist. Present a dialog to select missing files. */
+    for (i = 0; i < FLP_MAX_DRIVES; i++) {
+        while (ConfigureParams.Floppy.drive[i].bDriveConnected &&
+               ConfigureParams.Floppy.drive[i].bDiskInserted &&
+               !File_Exists(ConfigureParams.Floppy.drive[i].szImageName)) {
+            DlgMissing_Disk("Floppy", i,
+                            ConfigureParams.Floppy.drive[i].szImageName,
+                            &ConfigureParams.Floppy.drive[i].bDiskInserted,
+                            &ConfigureParams.Floppy.drive[i].bWriteProtected);
+            if (bQuitProgram) {
+                Main_RequestQuit();
+                if (bQuitProgram)
+                    return;
+            }
+        }
+    }
+
     SDL_ShowCursor(bOldMouseVisibility);
 }

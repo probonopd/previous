@@ -1,6 +1,6 @@
 
 
-                                 Previous 0.6
+                                 Previous 0.7
 
 
                     http://previous.alternative-system.com/
@@ -104,7 +104,7 @@ CPU		good
 MMU		good
 FPU		good
 DSP		missing
-DMA		partial
+DMA		good (channels missing)
 NeXTbus		missing
 Memory		good
 2-bit graphics	good
@@ -113,7 +113,7 @@ RTC		good
 Timers		buggy
 SCSI drive	good
 MO drive	good (single drive)
-Floppy drive	missing
+Floppy drive	good
 Ethernet	good
 Serial		missing
 Printer		missing
@@ -127,7 +127,7 @@ There are remaining problems with the host to emulated machine interface for
 input devices, mainly keyboard.
 
 
-Known issues (version 0.5):
+Known issues (version 0.7):
 - Un-emulated hardware may cause problems in certain situations (see above).
 - The kernel sometimes hangs during the boot process after printing "root on"
   (this is called "root on hang"). NeXTstep 3.0 and later are affected.
@@ -137,9 +137,9 @@ Known issues (version 0.5):
 - The clock does not tick accurately. Real time clock power-on test may fail
   sporadically on fast host systems.
 - FPU only works on x86 hosts.
+- Slirp: In certain conditions when doing large network transfers Slirp may crash.
 - Mac OS X: When minimizing and maximizing the application window the mouse
   gets unlocked and sometimes is clicking is ignored (SDL bug).
-- Mac OS X: The native GUI is still showing Hatari's preferences.
 
 
  5) Running Previous

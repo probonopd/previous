@@ -24,6 +24,7 @@
 #include "mo.h"
 #include "sysReg.h"
 #include "dma.h"
+#include "floppy.h"
 #include "file.h"
 #include "rs.h"
 #include "statusbar.h"
@@ -83,7 +84,7 @@ struct {
     bool protected;
     bool inserted;
     bool connected;
-} modrv[2];
+} modrv[MO_MAX_DRIVES];
 
 int dnum;
 
@@ -163,7 +164,7 @@ int dnum;
 /* Disk layout */
 #define MO_SEC_PER_TRACK    16
 #define MO_TRACK_OFFSET     4096 /* offset to first logical sector of kernel driver is 4149 */
-#define MO_TRACK_LIMIT      19819-(MO_TRACK_OFFSET) /* no more tracks beyond this offset */
+#define MO_TRACK_LIMIT      (19819-(MO_TRACK_OFFSET)) /* no more tracks beyond this offset */
 
 #define MO_SECTORSIZE_DISK  1296 /* size of encoded sector, like stored on disk */
 #define MO_SECTORSIZE_DATA  1024 /* size of decoded sector, like handled by software */
@@ -304,8 +305,8 @@ void MO_IntStatus_Write(void) {
     if ((mo.intstatus&mo.intmask)==0) {
         set_interrupt(INT_DISK, RELEASE_INT);
     }
-    if (val&MOINT_GPO) {
-        Log_Printf(LOG_WARN,"[OSP] General purpose output (unimplemented)\n");
+    if (ConfigureParams.System.nMachineType==NEXT_CUBE030) {
+        set_floppy_select(val&MOINT_GPO, true);
     }
     if (val&MOINT_RESET) {
         Log_Printf(LOG_MO_CMD_LEVEL,"[MO] Hard reset\n");
@@ -976,7 +977,7 @@ void ECC_IO_Handler(void) {
                 return;
             }
             if (ecc_buffer[eccout].size==0) {
-                dma_mo_flush_buffer(); /* Flush buffer, FIXME: find better way */
+                dma_mo_write_memory(); /* Flush buffer */
                 ecc_sequence_done();
                 return;
             }
@@ -1271,7 +1272,7 @@ void mo_drive_cmd(void) {
                 break;
         }
     }
-    Statusbar_BlinkLed(DEVICE_LED_ODFD);
+    Statusbar_BlinkLed(DEVICE_LED_OD);
 }
 
 
@@ -1541,7 +1542,7 @@ void mo_spiraling_operation(void) {
     }
     
     int i;
-    for (i=0; i<2; i++) {
+    for (i=0; i<MO_MAX_DRIVES; i++) {
         if (modrv[i].spiraling && !modrv[i].seeking) {
             
             /* If the drive is selected, connect to formatter */
@@ -1575,7 +1576,7 @@ void mo_unimplemented_cmd(void) {
 
 void mo_reset(void) {
     int i;
-    for (i=0; i<2; i++) {
+    for (i=0; i<MO_MAX_DRIVES; i++) {
         if (modrv[i].connected) {
             modrv[i].head=NO_HEAD;
             modrv[i].head_pos=modrv[i].ho_head_pos=0;
@@ -1675,7 +1676,7 @@ void MO_Init(void) {
     Log_Printf(LOG_WARN, "Loading magneto-optical disks:");
     int i;
     
-    for (i=0; i<2; i++) {
+    for (i=0; i<MO_MAX_DRIVES; i++) {
         modrv[i].spinning=false;
         modrv[i].spiraling=false;
         /* Check if files exist. */

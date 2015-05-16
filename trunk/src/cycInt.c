@@ -60,6 +60,7 @@ const char CycInt_fileid[] = "Hatari cycInt.c : " __DATE__ " " __TIME__;
 #include "mo.h"
 #include "ethernet.h"
 #include "dma.h"
+#include "floppy.h"
 
 
 void (*PendingInterruptFunction)(void);
@@ -81,7 +82,8 @@ static void (* const pIntHandlerFunctions[MAX_INTERRUPTS])(void) =
     MO_InterruptHandler,
     MO_IO_Handler,
     ECC_IO_Handler,
-    ENET_IO_Handler
+    ENET_IO_Handler,
+    FLP_IO_Handler
 };
 
 /* Event timer structure - keeps next timer to occur in structure so don't need

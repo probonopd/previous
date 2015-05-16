@@ -23,6 +23,7 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
 #include "rtcnvram.h"
 #include "scc.h"
 #include "ethernet.h"
+#include "floppy.h"
 
 
 /*-----------------------------------------------------------------------*/
@@ -46,6 +47,7 @@ static const char* Reset_ST(bool bCold)
     nvram_init();                 /* Reset NVRAM */
     SCSI_Reset();                 /* Reset SCSI disks */
     MO_Reset();                   /* Reset MO disks */
+    Floppy_Reset();               /* Reset Floppy disks */
     SCC_Reset();                  /* Reset SCC */
     Ethernet_Reset(true);         /* Reset Ethernet */
 	Screen_Reset();               /* Reset screen */

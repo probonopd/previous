@@ -6,7 +6,7 @@
 
 */
 
-const char DlgSystem_fileid[] = "Hatari dlgSystem.c : " __DATE__ " " __TIME__;
+const char DlgSystem_fileid[] = "Previous dlgSystem.c : " __DATE__ " " __TIME__;
 
 #include "main.h"
 #include "configuration.h"
@@ -41,25 +41,41 @@ void update_system_selection(void);
 void get_default_values(void);
 
 
-
+#define GUI_TURBO 0
 
 static SGOBJ systemdlg[] =
 {
- 	{ SGBOX, 0, 0, 0,0, 60,27, NULL },
- 	{ SGTEXT, 0, 0, 23,1, 14,1, "System options" },
-  
- 	{ SGBOX, 0, 0, 2,3, 26,17, NULL },
+#if GUI_TURBO
+    { SGBOX, 0, 0, 0,0, 58,27, NULL },
+ 	{ SGTEXT, 0, 0, 22,1, 14,1, "System options" },
+    
+ 	{ SGBOX, 0, 0, 2,3, 25,17, NULL },
  	{ SGTEXT, 0, 0, 3,4, 14,1, "Machine type" },
  	{ SGRADIOBUT, 0, 0, 5,6, 15,1, "NeXT Computer" },
-    { SGRADIOBUT, 0, 0, 5,8, 13,1, "NeXTcube" },
+    { SGRADIOBUT, 0, 0, 5,8, 10,1, "NeXTcube" },
     { SGCHECKBOX, 0, 0, 7,9, 7,1, "Turbo" },
  	{ SGRADIOBUT, 0, 0, 5,11, 13,1, "NeXTstation" },
     { SGCHECKBOX, 0, 0, 7,12, 7,1, "Turbo" },
     { SGCHECKBOX, 0, 0, 7,13, 7,1, "Color" },
     
-    { SGBUTTON, SG_DEFAULT, 0, 5,16, 20,1, "Customize" },
-    { SGBUTTON, SG_DEFAULT, 0, 5,18, 20,1, "System defaults" },
-        
+    { SGBUTTON, SG_DEFAULT, 0, 5,16, 19,1, "Customize" },
+    { SGBUTTON, SG_DEFAULT, 0, 5,18, 19,1, "System defaults" },
+#else
+    { SGBOX, 0, 0, 0,0, 58,25, NULL },
+    { SGTEXT, 0, 0, 22,1, 14,1, "System options" },
+    
+    { SGBOX, 0, 0, 2,3, 25,15, NULL },
+    { SGTEXT, 0, 0, 3,4, 14,1, "Machine type" },
+    { SGRADIOBUT, 0, 0, 5,6, 15,1, "NeXT Computer" },
+    { SGRADIOBUT, 0, 0, 5,8, 10,1, "NeXTcube" },
+    { SGTEXT, 0, 0, 7,9, 7,1, "" },
+    { SGRADIOBUT, 0, 0, 5,10, 13,1, "NeXTstation" },
+    { SGTEXT, 0, 0, 7,12, 7,1, "" },
+    { SGCHECKBOX, 0, 0, 7,11, 7,1, "Color" },
+    
+    { SGBUTTON, 0, 0, 5,14, 19,1, "Customize" },
+    { SGBUTTON, 0, 0, 5,16, 19,1, "System defaults" },
+#endif
  	{ SGTEXT, 0, 0, 30,4, 13,1, "System overview:" },
     { SGTEXT, 0, 0, 30,6, 13,1, "CPU type:" },
     { SGTEXT, 0, 0, 44,6, 13,1, cpu_type },
@@ -74,10 +90,15 @@ static SGOBJ systemdlg[] =
     { SGTEXT, 0, 0, 30,11, 13,1, "RTC chip:" },
     { SGTEXT, 0, 0, 44,11, 13,1, rtc_chip },
     { SGTEXT, 0, 0, 30,13, 13,1, emulate_adb },
-    
+#if GUI_TURBO
     { SGTEXT, 0, 0, 4,21, 13,1, "Changing machine type resets all advanced options." },
     
- 	{ SGBUTTON, SG_DEFAULT, 0, 21,24, 20,1, "Back to main menu" },
+ 	{ SGBUTTON, SG_DEFAULT, 0, 18,24, 21,1, "Back to main menu" },
+#else
+    { SGTEXT, 0, 0, 4,19, 13,1, "Changing machine type resets all advanced options." },
+    
+    { SGBUTTON, SG_DEFAULT, 0, 18,22, 21,1, "Back to main menu" },
+#endif
  	{ -1, 0, 0, 0,0, 0,0, NULL }
  };
 
@@ -113,7 +134,7 @@ void print_system_overview(void) {
         case FPU_68882:
             sprintf(fpu_type, "68882"); break;
         case FPU_CPU:
-            sprintf(fpu_type, "68040 internal"); break;
+            sprintf(fpu_type, "68040"); break;
         default: break;
     }
     

@@ -18,6 +18,7 @@
 #include "dma.h"
 #include "configuration.h"
 #include "ethernet.h"
+#include "floppy.h"
 #include "mmu_common.h"
 
 
@@ -44,7 +45,7 @@ enum {
 int get_channel(Uint32 address);
 int get_interrupt_type(int channel);
 void dma_interrupt(int channel);
-void dma_initialize_buffer(int channel);
+void dma_initialize_buffer(int channel, Uint8 offset);
 
 
 struct {
@@ -71,9 +72,6 @@ Uint8 espdma_buf[DMA_BURST_SIZE];
 int modma_buf_size = 0;
 int modma_buf_limit = 0;
 Uint8 modma_buf[DMA_BURST_SIZE];
-int enrxdma_buf_size = 0;
-int enrxdma_buf_limit = 0;
-Uint8 enrxdma_buf[DMA_BURST_SIZE];
 
 
 /* Read and write CSR bits for 68030 based NeXT Computer. */
@@ -225,7 +223,7 @@ void DMA_CSR_Write(void) {
         dma[channel].csr &= ~(DMA_COMPLETE | DMA_SUPDATE | DMA_ENABLE);
     }
     if (writecsr&DMA_INITBUF) {
-        dma_initialize_buffer(channel);
+        dma_initialize_buffer(channel, 0);
     }
     if (writecsr&DMA_SETSUPDATE) {
         dma[channel].csr |= DMA_SUPDATE;
@@ -359,23 +357,25 @@ void DMA_Init_Read(void) { // 0x02004210
 void DMA_Init_Write(void) {
     int channel = get_channel(IoAccessCurrentAddress-0x4200);
     dma[channel].next = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-    dma_initialize_buffer(channel);
+    dma_initialize_buffer(channel, dma[channel].next&0xF);
     Log_Printf(LOG_DMA_LEVEL,"DMA Init write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma[channel].next, m68k_getpc());
 }
 
 /* Initialize DMA internal buffer */
 
-void dma_initialize_buffer(int channel) {
+void dma_initialize_buffer(int channel, Uint8 offset) {
+    if (offset>0) {
+        Log_Printf(LOG_WARN, "DMA Initializing buffer with offset %i", offset);
+    }
     switch (channel) {
         case CHANNEL_SCSI:
             esp_dma.status = 0x00; /* just a guess */
-            espdma_buf_size = espdma_buf_limit = 0;
+            espdma_buf_size = 0;
+            espdma_buf_limit = offset;
             break;
         case CHANNEL_DISK:
-            modma_buf_size = modma_buf_limit = 0;
-            break;
-        case CHANNEL_EN_RX:
-            enrxdma_buf_size = enrxdma_buf_limit = 0;
+            modma_buf_size = 0;
+            modma_buf_limit = offset;
             break;
         default:
             break;
@@ -406,28 +406,6 @@ void dma_interrupt(int channel) {
     }
 }
 
-void dma_enet_interrupt(int channel) {
-    int interrupt = get_interrupt_type(channel);
-    
-    /* If we have reached limit, generate an interrupt and set the flags */
-    dma[channel].csr |= DMA_COMPLETE;
-    
-    if (dma[channel].csr & DMA_SUPDATE) { /* if we are in chaining mode */
-        /* Save pointers */
-        dma[channel].saved_limit = dma[channel].next;
-        dma[channel].saved_next = dma[channel].start;   /* ? */
-        dma[channel].saved_start = dma[channel].start;  /* ? */
-        dma[channel].saved_stop = dma[channel].stop;    /* ? */
-        /* Update pointers */
-        dma[channel].next = dma[channel].start;
-        dma[channel].limit = dma[channel].stop;
-        /* Set bits in CSR */
-        dma[channel].csr &= ~DMA_SUPDATE; /* 1st done */
-    } else {
-        dma[channel].csr &= ~DMA_ENABLE; /* all done */
-    }
-    set_interrupt(interrupt, SET_INT);
-}
 
 /* Functions for delayed interrupts */
 
@@ -444,11 +422,11 @@ void R2MDMA_InterruptHandler(void) {
 
 /* DMA Read and Write Memory Functions */
 
-/* Channel SCSI */
+/* Channel SCSI (shared with floppy drive) */
 void dma_esp_write_memory(void) {
     Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Write to memory at $%08x, %i bytes (ESP counter %i)",
                dma[CHANNEL_SCSI].next,dma[CHANNEL_SCSI].limit-dma[CHANNEL_SCSI].next,esp_counter);
-
+    
     if (!(dma[CHANNEL_SCSI].csr&DMA_ENABLE)) {
         Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Error! DMA not enabled!");
         return;
@@ -459,56 +437,49 @@ void dma_esp_write_memory(void) {
         abort();
     }
 
-    /* TODO: Find out how we should handle non burst-size aligned start address. 
-     * End address is always burst-size aligned. For now we use a hack. */
-    
     TRY(prb) {
         if (espdma_buf_size>0) {
-            Log_Printf(LOG_WARN, "[DMA] Channel SCSI: %i residual bytes in DMA buffer.", espdma_buf_size);
-            while (espdma_buf_size>0) {
-                NEXTMemory_WriteLong(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
-                dma[CHANNEL_SCSI].next+=4;
-                espdma_buf_size-=4;
-            }
+            Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Starting with %i residual bytes in DMA buffer.", espdma_buf_size);
         }
 
-        /* This is a hack to handle non-burstsize-aligned DMA start */
-        if (dma[CHANNEL_SCSI].next%DMA_BURST_SIZE) {
-            Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Start memory address is not 16 byte aligned ($%08X).",
-                       dma[CHANNEL_SCSI].next);
-            while ((dma[CHANNEL_SCSI].next+espdma_buf_size)%DMA_BURST_SIZE && esp_counter>0 && SCSIbus.phase==PHASE_DI) {
-                espdma_buf[espdma_buf_size]=SCSIdisk_Send_Data();
-                esp_counter--;
-                espdma_buf_size++;
+        while (dma[CHANNEL_SCSI].next<=dma[CHANNEL_SCSI].limit) {
+            /* Fill DMA channel FIFO (only if limit < FIFO size) */
+            if (espdma_buf_limit<DMA_BURST_SIZE) {
+                if (floppy_select) {
+                    while (espdma_buf_limit<DMA_BURST_SIZE && flp_buffer.size>0) {
+                        espdma_buf[espdma_buf_limit]=flp_buffer.data[flp_buffer.limit-flp_buffer.size];
+                        flp_buffer.size--;
+                        espdma_buf_limit++;
+                        espdma_buf_size++;
+                    }
+                } else {
+                    while (espdma_buf_limit<DMA_BURST_SIZE && esp_counter>0 && SCSIbus.phase==PHASE_DI) {
+                        espdma_buf[espdma_buf_limit]=SCSIdisk_Send_Data();
+                        esp_counter--;
+                        espdma_buf_limit++;
+                        espdma_buf_size++;
+                    }
+                }
             }
-            espdma_buf_limit=espdma_buf_size;
-            while (espdma_buf_size>0) {
-                NEXTMemory_WriteLong(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
-                dma[CHANNEL_SCSI].next+=4;
-                espdma_buf_size-=4;
-            }
-        }
-
-        while (dma[CHANNEL_SCSI].next<=dma[CHANNEL_SCSI].limit && !(espdma_buf_size%DMA_BURST_SIZE)) {
-            /* Fill DMA internal buffer */
-            while (espdma_buf_size<DMA_BURST_SIZE && esp_counter>0 && SCSIbus.phase==PHASE_DI) {
-                espdma_buf[espdma_buf_size]=SCSIdisk_Send_Data();
-                esp_counter--;
-                espdma_buf_size++;
-            }
-            ESP_DMA_set_status();
             
-            /* If buffer is full, burst write to memory */
-            if (espdma_buf_size==DMA_BURST_SIZE && dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit) {
-                while (espdma_buf_size>0) {
+            if (espdma_buf_limit<DMA_BURST_SIZE) { /* Not complete, stop */
+                Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: No more data. Stopping with %i residual bytes.",
+                           espdma_buf_size);
+                break;
+            } else { /* Empty DMA channel FIFO (only if limit reached FIFO size) */
+                ESP_DMA_set_status();
+
+                while (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit && espdma_buf_size>0) {
                     NEXTMemory_WriteLong(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, DMA_BURST_SIZE-espdma_buf_size));
                     dma[CHANNEL_SCSI].next+=4;
                     espdma_buf_size-=4;
                 }
-            } else { /* else do not write the bytes to memory but keep them inside the buffer */ 
-                Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Residual bytes in DMA buffer: %i bytes",espdma_buf_size);
-                espdma_buf_limit=espdma_buf_size;
-                break;
+                if (espdma_buf_size>0) { /* Not complete, stop */
+                    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Channel limit reached. Stopping with %i residual bytes.",
+                               espdma_buf_size);
+                    break;
+                }
+                espdma_buf_limit = espdma_buf_size; /* Should be 0 */
             }
         }
     } CATCH(prb) {
@@ -521,25 +492,37 @@ void dma_esp_write_memory(void) {
 }
 
 void dma_esp_flush_buffer(void) {
+    if (!(dma[CHANNEL_SCSI].csr&DMA_ENABLE)) {
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Not flushing buffer. DMA not enabled.");
+        return;
+    }
+    if (dma[CHANNEL_SCSI].direction!=DMA_DEV2M) {
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Not flushing buffer. Bad direction!");
+        return;
+    }
 
     TRY(prb) {
-        if (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit && espdma_buf_size>0) {
+        if (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit) {
             Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Flush buffer to memory at $%08x, 4 bytes",dma[CHANNEL_SCSI].next);
-
-            /* Write one long word to memory */
-            NEXTMemory_WriteLong(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
+            if (espdma_buf_size>0) {
+                /* Write one long word to memory */
+                NEXTMemory_WriteLong(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
+                espdma_buf_size-=4;
+            }
             dma[CHANNEL_SCSI].next+=4;
-            espdma_buf_size-=4;
-        } else if (espdma_buf_size==0) {
-            Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Not flushing buffer (empty)");
+        } else {
+            Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Not flushing buffer. DMA done.");
         }
     } CATCH(prb) {
+        Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Bus error while flushing to %08x",dma[CHANNEL_SCSI].next);
         dma[CHANNEL_SCSI].csr &= ~DMA_ENABLE;
         dma[CHANNEL_SCSI].csr |= (DMA_COMPLETE|DMA_BUSEXC);
     } ENDTRY
+    
+    dma_interrupt(CHANNEL_SCSI);
 }
 
-void dma_esp_read_memory(void) {    
+void dma_esp_read_memory(void) {
     Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Read from memory at $%08x, %i bytes (ESP counter %i)",
                dma[CHANNEL_SCSI].next,dma[CHANNEL_SCSI].limit-dma[CHANNEL_SCSI].next,esp_counter);
     
@@ -553,62 +536,57 @@ void dma_esp_read_memory(void) {
         abort();
     }
     
-    /* TODO: Find out how we should handle non burst-size aligned start address.
-     * End address should be always burst-size aligned. For now we use a hack. */
-    
     TRY(prb) {
         if (espdma_buf_size>0) {
-            Log_Printf(LOG_WARN, "[DMA] Channel SCSI: %i residual bytes in DMA buffer.", espdma_buf_size);
-            while (espdma_buf_size>0) {
-                SCSIdisk_Receive_Data(espdma_buf[espdma_buf_limit-espdma_buf_size]);
-                esp_counter--;
-                espdma_buf_size--;
-            }
+            Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Starting with %i residual bytes in DMA buffer.", espdma_buf_size);
         }
+        
+        while (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit) {
+            /* Read data from memory to DMA channel FIFO (only if limit < FIFO size) */
+            if (espdma_buf_limit<DMA_BURST_SIZE) {
+                while (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit && espdma_buf_limit<DMA_BURST_SIZE) {
+                    dma_putlong(NEXTMemory_ReadLong(dma[CHANNEL_SCSI].next), espdma_buf, espdma_buf_limit);
+                    dma[CHANNEL_SCSI].next+=4;
+                    espdma_buf_limit+=4;
+                    espdma_buf_size+=4;
+                }
+            }
+            
+            if (espdma_buf_limit<DMA_BURST_SIZE) { /* Not complete, stop */
+                Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Channel limit reached. Stopping with %i residual bytes.",
+                           espdma_buf_size);
+                break;
+            } else { /* Empty DMA channel FIFO (only if limit reached FIFO size) */
+                ESP_DMA_set_status();
 
-        /* This is a hack to handle non-burstsize-aligned DMA start */
-        if (dma[CHANNEL_SCSI].next%DMA_BURST_SIZE) {
-            Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Start memory address is not 16 byte aligned ($%08X).",
-                       dma[CHANNEL_SCSI].next);
-            while (dma[CHANNEL_SCSI].next%DMA_BURST_SIZE) {
-                dma_putlong(NEXTMemory_ReadLong(dma[CHANNEL_SCSI].next), espdma_buf, espdma_buf_size);
-                dma[CHANNEL_SCSI].next+=4;
-                espdma_buf_size+=4;
+                if (floppy_select) {
+                    while (espdma_buf_size>0 && flp_buffer.size<flp_buffer.limit) {
+                        flp_buffer.data[flp_buffer.size]=espdma_buf[espdma_buf_limit-espdma_buf_size];
+                        flp_buffer.size++;
+                        espdma_buf_size--;
+                    }
+                } else {
+                    while (espdma_buf_size>0 && esp_counter>0 && SCSIbus.phase==PHASE_DO) {
+                        SCSIdisk_Receive_Data(espdma_buf[espdma_buf_limit-espdma_buf_size]);
+                        esp_counter--;
+                        espdma_buf_size--;
+                    }
+                }
+                if (espdma_buf_size>0) { /* Not complete, stop */
+                    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: No more data. Stopping with %i residual bytes.",
+                               espdma_buf_size);
+                    break;
+                }
+                espdma_buf_limit = espdma_buf_size; /* Should be 0 */
             }
-            espdma_buf_limit=espdma_buf_size;
-            while (espdma_buf_size>0 && esp_counter>0 && SCSIbus.phase==PHASE_DO) {
-                SCSIdisk_Receive_Data(espdma_buf[espdma_buf_limit-espdma_buf_size]);
-                esp_counter--;
-                espdma_buf_size--;
-            }
-        }
-
-        while (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit && espdma_buf_size==0) {
-            /* Read data from memory to internal DMA buffer */
-            while (espdma_buf_size<DMA_BURST_SIZE) {
-                dma_putlong(NEXTMemory_ReadLong(dma[CHANNEL_SCSI].next), espdma_buf, espdma_buf_size);
-                dma[CHANNEL_SCSI].next+=4;
-                espdma_buf_size+=4;
-            }
-            /* Empty DMA internal buffer */
-            while (espdma_buf_size>0 && esp_counter>0 && SCSIbus.phase==PHASE_DO) {
-                SCSIdisk_Receive_Data(espdma_buf[DMA_BURST_SIZE-espdma_buf_size]);
-                esp_counter--;
-                espdma_buf_size--;
-            }
-            ESP_DMA_set_status();
         }
     } CATCH(prb) {
-        Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Bus error while writing to %08x",dma[CHANNEL_SCSI].next+espdma_buf_size);
+        Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Bus error while reading from %08x",dma[CHANNEL_SCSI].next);
         dma[CHANNEL_SCSI].csr &= ~DMA_ENABLE;
         dma[CHANNEL_SCSI].csr |= (DMA_COMPLETE|DMA_BUSEXC);
     } ENDTRY
     
-    if (espdma_buf_size!=0) {
-        espdma_buf_limit=espdma_buf_size;
-        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Residual bytes in DMA buffer: %i bytes",espdma_buf_size);
-    }
-    if (SCSIbus.phase==PHASE_DO) {
+    if ((floppy_select && flp_buffer.size<flp_buffer.limit) || SCSIbus.phase==PHASE_DO) {
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Warning! Data not yet written to disk.");
         if (espdma_buf_size!=0) {
             Log_Printf(LOG_WARN, "[DMA] Channel SCSI: WARNING: Loss of data in DMA buffer possible!");
@@ -633,55 +611,39 @@ void dma_mo_write_memory(void) {
                    dma[CHANNEL_DISK].next, dma[CHANNEL_DISK].limit);
         abort();
     }
-    /* TODO: Find out how we should handle non burst-size aligned start address.
-     * End address is always burst-size aligned. For now we use a hack. */
     
     TRY(prb) {
         if (modma_buf_size>0) {
-            Log_Printf(LOG_WARN, "[DMA] Channel MO: %i residual bytes in DMA buffer.", modma_buf_size);
-            while (modma_buf_size>=4) {
-                NEXTMemory_WriteLong(dma[CHANNEL_DISK].next, dma_getlong(modma_buf, modma_buf_limit-modma_buf_size));
-                dma[CHANNEL_DISK].next+=4;
-                modma_buf_size-=4;
-            }
+            Log_Printf(LOG_WARN, "[DMA] Channel MO: Starting with %i residual bytes in DMA buffer.", modma_buf_size);
         }
         
-        /* This is a hack to handle non-burstsize-aligned DMA start */
-        if (dma[CHANNEL_DISK].next%DMA_BURST_SIZE) {
-            Log_Printf(LOG_WARN, "[DMA] Channel MO: Start memory address is not 16 byte aligned ($%08X).",
-                       dma[CHANNEL_DISK].next);
-            while ((dma[CHANNEL_DISK].next+modma_buf_size)%DMA_BURST_SIZE && ecc_buffer[eccout].size>0) {
-                modma_buf[modma_buf_size]=ecc_buffer[eccout].data[ecc_buffer[eccout].limit-ecc_buffer[eccout].size];
-                ecc_buffer[eccout].size--;
-                modma_buf_size++;
+        while (dma[CHANNEL_DISK].next<=dma[CHANNEL_DISK].limit) {
+            /* Fill DMA channel FIFO (only if limit < FIFO size) */
+            if (modma_buf_limit<DMA_BURST_SIZE) {
+                while (modma_buf_limit<DMA_BURST_SIZE && ecc_buffer[eccout].size>0) {
+                    modma_buf[modma_buf_limit]=ecc_buffer[eccout].data[ecc_buffer[eccout].limit-ecc_buffer[eccout].size];
+                    ecc_buffer[eccout].size--;
+                    modma_buf_limit++;
+                    modma_buf_size++;
+                }
             }
-            modma_buf_limit=modma_buf_size;
-            while (modma_buf_size>=4) {
-                NEXTMemory_WriteLong(dma[CHANNEL_DISK].next, dma_getlong(modma_buf, modma_buf_limit-modma_buf_size));
-                dma[CHANNEL_DISK].next+=4;
-                modma_buf_size-=4;
-            }
-        }
-        
-        while (dma[CHANNEL_DISK].next<=dma[CHANNEL_DISK].limit && !(modma_buf_size%DMA_BURST_SIZE)) {
-            /* Fill DMA internal buffer */
-            while (modma_buf_size<DMA_BURST_SIZE && ecc_buffer[eccout].size>0) {
-                modma_buf[modma_buf_size]=ecc_buffer[eccout].data[ecc_buffer[eccout].limit-ecc_buffer[eccout].size];
-                ecc_buffer[eccout].size--;
-                modma_buf_size++;
-            }
-                        
-            /* If buffer is full, burst write to memory */
-            if (modma_buf_size==DMA_BURST_SIZE && dma[CHANNEL_DISK].next<dma[CHANNEL_DISK].limit) {
-                while (modma_buf_size>0) {
+            
+            if (modma_buf_limit<DMA_BURST_SIZE) { /* Not complete, stop */
+                Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: No more data. Stopping with %i residual bytes.",
+                           modma_buf_size);
+                break;
+            } else { /* Empty DMA channel FIFO (only if limit reached FIFO size) */
+                while (dma[CHANNEL_DISK].next<dma[CHANNEL_DISK].limit && modma_buf_size>0) {
                     NEXTMemory_WriteLong(dma[CHANNEL_DISK].next, dma_getlong(modma_buf, DMA_BURST_SIZE-modma_buf_size));
                     dma[CHANNEL_DISK].next+=4;
                     modma_buf_size-=4;
                 }
-            } else { /* else do not write the bytes to memory but keep them inside the buffer */
-                Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: Residual bytes in DMA buffer: %i bytes",modma_buf_size);
-                modma_buf_limit=modma_buf_size;
-                break;
+                if (modma_buf_size>0) { /* Not complete, stop */
+                    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: Channel limit reached. Stopping with %i residual bytes.",
+                               modma_buf_size);
+                    break;
+                }
+                modma_buf_limit = modma_buf_size; /* Should be 0 */
             }
         }
     } CATCH(prb) {
@@ -690,19 +652,6 @@ void dma_mo_write_memory(void) {
         dma[CHANNEL_DISK].csr |= (DMA_COMPLETE|DMA_BUSEXC);
     } ENDTRY
     
-    dma_interrupt(CHANNEL_DISK);
-}
-
-void dma_mo_flush_buffer(void) {
-    if (dma[CHANNEL_DISK].next<dma[CHANNEL_DISK].limit && modma_buf_size==DMA_BURST_SIZE) {
-        Log_Printf(LOG_WARN, "[DMA] Channel MO: Flush buffer to memory at $%08x",dma[CHANNEL_DISK].next);
-        while (modma_buf_size>0) {
-            NEXTMemory_WriteLong(dma[CHANNEL_DISK].next, dma_getlong(modma_buf, DMA_BURST_SIZE-modma_buf_size));
-            dma[CHANNEL_DISK].next+=4;
-            modma_buf_size-=4;
-        }
-    }
-
     dma_interrupt(CHANNEL_DISK);
 }
 
@@ -720,71 +669,89 @@ void dma_mo_read_memory(void) {
         abort();
     }
     
-    /* TODO: Find out how we should handle non burst-size aligned start address.
-     * End address should be always burst-size aligned. For now we use a hack. */
-    
     TRY(prb) {
         if (modma_buf_size>0) {
-            Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: %i residual bytes in DMA buffer.", modma_buf_size);
-            while (modma_buf_size>0) {
-                ecc_buffer[eccin].data[ecc_buffer[eccin].size]=modma_buf[modma_buf_limit-modma_buf_size];
-                ecc_buffer[eccin].size++;
-                modma_buf_size--;
-            }
+            Log_Printf(LOG_WARN, "[DMA] Channel MO: Starting with %i residual bytes in DMA buffer.", modma_buf_size);
         }
-
-        /* This is a hack to handle non-burstsize-aligned DMA start */
-        if (dma[CHANNEL_DISK].next%DMA_BURST_SIZE) {
-            Log_Printf(LOG_WARN, "[DMA] Channel MO: Start memory address is not 16 byte aligned ($%08X).",
-                       dma[CHANNEL_DISK].next);
-            while (dma[CHANNEL_DISK].next%DMA_BURST_SIZE && modma_buf_size<DMA_BURST_SIZE) {
-                dma_putlong(NEXTMemory_ReadLong(dma[CHANNEL_DISK].next), modma_buf, modma_buf_size);
-                dma[CHANNEL_DISK].next+=4;
-                modma_buf_size+=4;
+        
+        while (dma[CHANNEL_DISK].next<dma[CHANNEL_DISK].limit) {
+            /* Read data from memory to DMA channel FIFO (only if limit < FIFO size) */
+            if (modma_buf_limit<DMA_BURST_SIZE) {
+                while (dma[CHANNEL_DISK].next<dma[CHANNEL_DISK].limit && modma_buf_limit<DMA_BURST_SIZE) {
+                    dma_putlong(NEXTMemory_ReadLong(dma[CHANNEL_DISK].next), modma_buf, modma_buf_limit);
+                    dma[CHANNEL_DISK].next+=4;
+                    modma_buf_limit+=4;
+                    modma_buf_size+=4;
+                }
             }
-            modma_buf_limit=modma_buf_size;
-            while (modma_buf_size>0) {
-                ecc_buffer[eccin].data[ecc_buffer[eccin].size]=modma_buf[modma_buf_limit-modma_buf_size];
-                ecc_buffer[eccin].size++;
-                modma_buf_size--;
-            }
-        }
-
-        while (dma[CHANNEL_DISK].next<dma[CHANNEL_DISK].limit && modma_buf_size==0) {
-            /* Read data from memory to internal DMA buffer */
-            while (modma_buf_size<DMA_BURST_SIZE) {
-                dma_putlong(NEXTMemory_ReadLong(dma[CHANNEL_DISK].next), modma_buf, modma_buf_size);
-                dma[CHANNEL_DISK].next+=4;
-                modma_buf_size+=4;
-            }
-            /* Empty DMA internal buffer */
-            while (modma_buf_size>0 && ecc_buffer[eccin].size<ecc_buffer[eccin].limit) {
-                ecc_buffer[eccin].data[ecc_buffer[eccin].size]=modma_buf[DMA_BURST_SIZE-modma_buf_size];
-                ecc_buffer[eccin].size++;
-                modma_buf_size--;
+            
+            if (modma_buf_limit<DMA_BURST_SIZE) { /* Not complete, stop */
+                Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: Channel limit reached. Stopping with %i residual bytes.",
+                           modma_buf_size);
+                break;
+            } else { /* Empty DMA channel FIFO (only if limit reached FIFO size) */
+                while (modma_buf_size>0 && ecc_buffer[eccin].size<ecc_buffer[eccin].limit) {
+                    ecc_buffer[eccin].data[ecc_buffer[eccin].size]=modma_buf[modma_buf_limit-modma_buf_size];
+                    ecc_buffer[eccin].size++;
+                    modma_buf_size--;
+                }
+                if (modma_buf_size>0) { /* Not complete, stop */
+                    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: No more data. Stopping with %i residual bytes.",
+                               modma_buf_size);
+                    break;
+                }
+                modma_buf_limit = modma_buf_size; /* Should be 0 */
             }
         }
     } CATCH(prb) {
-        Log_Printf(LOG_WARN, "[DMA] Channel MO: Bus error while writing to %08x",dma[CHANNEL_DISK].next);
+        Log_Printf(LOG_WARN, "[DMA] Channel MO: Bus error while reading from %08x",dma[CHANNEL_DISK].next);
         dma[CHANNEL_DISK].csr &= ~DMA_ENABLE;
         dma[CHANNEL_DISK].csr |= (DMA_COMPLETE|DMA_BUSEXC);
     } ENDTRY
     
-    if (modma_buf_size!=0) {
-        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: Residual bytes in DMA buffer: %i bytes",modma_buf_size);
-        modma_buf_limit=modma_buf_size;
+    if (ecc_buffer[eccin].size<ecc_buffer[eccin].limit) {
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: Warning! Data not yet written to disk.");
+        if (modma_buf_size!=0) {
+            Log_Printf(LOG_WARN, "[DMA] Channel MO: WARNING: Loss of data in DMA buffer possible!");
+        }
     }
-
+    
     dma_interrupt(CHANNEL_DISK);
 }
 
 
-/* Channel Ethernet */
+/* Channel Ethernet (this channel does not use DMA buffering) */
 #define EN_EOP      0x80000000 /* end of packet */
 #define EN_BOP      0x40000000 /* beginning of packet */
 #define ENADDR(x)   ((x)&~(EN_EOP|EN_BOP))
 
-void dma_enet_write_memory(void) {
+void dma_enet_interrupt(int channel) {
+    int interrupt = get_interrupt_type(channel);
+    
+    dma[channel].csr |= DMA_COMPLETE;
+    
+    if (dma[channel].csr & DMA_SUPDATE) { /* if we are in chaining mode */
+        /* Update pointers */
+        dma[channel].next = dma[channel].start;
+        dma[channel].limit = dma[channel].stop;
+        /* Set bits in CSR */
+        dma[channel].csr &= ~DMA_SUPDATE; /* 1st done */
+    } else {
+        dma[channel].csr &= ~DMA_ENABLE; /* all done */
+    }
+    set_interrupt(interrupt, SET_INT);
+}
+
+/* This is done by hardware on ethernet transmitter error (coll, short, etc) */
+/* TODO: check if this is true and call from transmitter */
+void dma_enet_read_retry(void) {
+    dma[CHANNEL_EN_TX].next = dma[CHANNEL_EN_TX].saved_next;
+    dma[CHANNEL_EN_TX].limit = dma[CHANNEL_EN_TX].saved_limit;
+    dma[CHANNEL_EN_TX].start = dma[CHANNEL_EN_TX].saved_start;
+    dma[CHANNEL_EN_TX].stop = dma[CHANNEL_EN_TX].saved_stop;
+}
+
+void dma_enet_write_memory(bool eop) {
     Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Ethernet Receive: Write to memory at $%08x, %i bytes",
                dma[CHANNEL_EN_RX].next,dma[CHANNEL_EN_RX].limit-dma[CHANNEL_EN_RX].next);
     
@@ -797,52 +764,12 @@ void dma_enet_write_memory(void) {
                    dma[CHANNEL_EN_RX].next, dma[CHANNEL_EN_RX].limit);
         abort();
     }
-    /* TODO: Find out how we should handle non burst-size aligned start address.
-     * End address is always burst-size aligned. For now we use a hack. */
-
+    
     TRY(prb) {
-        if (enrxdma_buf_size>0) {
-            Log_Printf(LOG_WARN, "[DMA] Channel Ethernet Receive: %i residual bytes in DMA buffer.", enrxdma_buf_size);
-#if 1 /* FIXME: How to process residual bytes for ethernet channel? */
-            while (enrxdma_buf_size>0) {
-                NEXTMemory_WriteByte(dma[CHANNEL_EN_RX].next, enrxdma_buf[enrxdma_buf_limit-enrxdma_buf_size]);
-                dma[CHANNEL_EN_RX].next++;
-                enrxdma_buf_size--;
-            }
-#else
-            Log_Printf(LOG_WARN, "[DMA] Channel Ethernet Receive: Discarding in DMA buffer!");
-            enrxdma_buf_size=enrxdma_buf_limit=0;
-#endif
-        }
-
-        while (dma[CHANNEL_EN_RX].next</*=*/dma[CHANNEL_EN_RX].limit && !(enrxdma_buf_size%DMA_BURST_SIZE)) {
-            /* Fill DMA internal buffer */
-            while (enrxdma_buf_size<DMA_BURST_SIZE && enet_rx_buffer.size>0) {
-                enrxdma_buf[enrxdma_buf_size]=enet_rx_buffer.data[enet_rx_buffer.limit-enet_rx_buffer.size];
-                enet_rx_buffer.size--;
-                enrxdma_buf_size++;
-            }
-            
-            /* If buffer is full, burst write to memory */
-            if (enrxdma_buf_size==DMA_BURST_SIZE && dma[CHANNEL_EN_RX].next<dma[CHANNEL_EN_RX].limit) {
-                while (enrxdma_buf_size>0) {
-                    NEXTMemory_WriteLong(dma[CHANNEL_EN_RX].next, dma_getlong(enrxdma_buf, DMA_BURST_SIZE-enrxdma_buf_size));
-                    dma[CHANNEL_EN_RX].next+=4;
-                    enrxdma_buf_size-=4;
-                }
-            } else { /* else do not write the bytes to memory but keep them inside the buffer */
-#if 1
-                Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Ethernet Receive: Auto-flushing residual bytes in DMA buffer: %i bytes",enrxdma_buf_size);
-                enrxdma_buf_limit=enrxdma_buf_size;
-                while (enrxdma_buf_size>0 && dma[CHANNEL_EN_RX].next<dma[CHANNEL_EN_RX].limit) {
-                    NEXTMemory_WriteByte(dma[CHANNEL_EN_RX].next, enrxdma_buf[enrxdma_buf_limit-enrxdma_buf_size]);
-                    dma[CHANNEL_EN_RX].next++;
-                    enrxdma_buf_size--;
-                }
-                enrxdma_buf_limit=enrxdma_buf_size;
-#endif
-                break;
-            }
+        while (dma[CHANNEL_EN_RX].next<dma[CHANNEL_EN_RX].limit && enet_rx_buffer.size>0) {
+            NEXTMemory_WriteByte(dma[CHANNEL_EN_RX].next, enet_rx_buffer.data[enet_rx_buffer.limit-enet_rx_buffer.size]);
+            enet_rx_buffer.size--;
+            dma[CHANNEL_EN_RX].next++;
         }
     } CATCH(prb) {
         Log_Printf(LOG_WARN, "[DMA] Channel Ethernet Receive: Bus error while writing to %08x",dma[CHANNEL_EN_RX].next);
@@ -850,13 +777,18 @@ void dma_enet_write_memory(void) {
         dma[CHANNEL_EN_RX].csr |= (DMA_COMPLETE|DMA_BUSEXC);
     } ENDTRY
     
-    /* FIXME: DMA controller sets EN_BOP flag in next register on last byte 
-     * of packet under certain conditions when chaining */
+    if (enet_rx_buffer.size==0) {
+        if (eop) { /* TODO: check if this is correct */
+            Log_Printf(LOG_WARN, "[DMA] Channel Ethernet Receive: Last buffer of chain done.");
+            dma[CHANNEL_EN_RX].next|=EN_BOP;
+        }
+        dma[CHANNEL_EN_RX].saved_limit = dma[CHANNEL_EN_RX].next;
+    }
 
     dma_enet_interrupt(CHANNEL_EN_RX);
 }
 
-void dma_enet_read_memory(void) { /* This channel does not use DMA buffering */
+bool dma_enet_read_memory(void) {
     if (dma[CHANNEL_EN_TX].csr&DMA_ENABLE) {
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Ethernet Transmit: Read from memory at $%08x, %i bytes",
                    dma[CHANNEL_EN_TX].next,ENADDR(dma[CHANNEL_EN_TX].limit)-dma[CHANNEL_EN_TX].next);
@@ -873,12 +805,14 @@ void dma_enet_read_memory(void) { /* This channel does not use DMA buffering */
             dma[CHANNEL_EN_TX].csr |= (DMA_COMPLETE|DMA_BUSEXC);
         } ENDTRY
         
-        if (!(dma[CHANNEL_EN_TX].limit&EN_EOP)) {
-            abort();
+        if (dma[CHANNEL_EN_TX].limit&EN_EOP) {
+            Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Ethernet Transmit: Packet done.");
+            dma_enet_interrupt(CHANNEL_EN_TX);
+            return true;
         }
-        
         dma_enet_interrupt(CHANNEL_EN_TX);
     }
+    return false;
 }
 
 
