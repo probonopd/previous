@@ -124,14 +124,14 @@ void SCR_Reset(void) {
     Uint8 cpu_speed;
     Uint8 memory_speed;
     
-    if (ConfigureParams.System.nCpuFreq<25) {
+    if (ConfigureParams.System.nCpuFreq<20) {
+        cpu_speed = 0;
+    } else if (ConfigureParams.System.nCpuFreq<25) {
         cpu_speed = 1;
     } else if (ConfigureParams.System.nCpuFreq<33) {
         cpu_speed = 2;
-    } else if (ConfigureParams.System.nCpuFreq<40) {
-        cpu_speed = 3;
     } else {
-        cpu_speed = 0;
+        cpu_speed = 3;
     }
     
     switch (ConfigureParams.Memory.nMemorySpeed) {
@@ -415,10 +415,8 @@ void IntRegMaskWrite(void) {
         Log_Printf(LOG_WARN,"Interrupt mask: %08x", intMask);
 }
 
-/*
- * Hardclock internal interrupt
- *
- */
+
+/* Hardclock internal interrupt */
 
 #define HARDCLOCK_ENABLE 0x80
 #define HARDCLOCK_LATCH  0x40
@@ -485,3 +483,48 @@ void HardclockReadCSR(void) {
 }
 
 
+/* Event counter register */
+#define EVENTC_DEBUG 0
+Uint32 lasteventc; /* debugging code */
+
+Uint32 eventcounter;
+
+#if USE_FREQ_DIVIDER
+void System_Timer_Read(void) { /* tuned for power-on test */
+#if EVENTC_DEBUG
+    lasteventc = eventcounter; /* for debugging */
+#endif
+    if (ConfigureParams.System.nCpuLevel == 3) {
+        if (NEXTRom[0xFFAB]==0x04) { // HACK for ROM version 0.8.31 power-on test, WARNING: this causes slowdown of emulation
+            eventcounter = (nCyclesMainCounter/(240/nCpuFreqDivider))&0xFFFFF;
+        } else {
+            eventcounter = (nCyclesMainCounter/(48/nCpuFreqDivider))&0xFFFFF;
+        }
+    } else { // System has 68040 CPU
+        eventcounter = (nCyclesMainCounter/(72/nCpuFreqDivider))&0xFFFFF;
+    }
+    IoMem_WriteLong(IoAccessCurrentAddress&IO_SEG_MASK, eventcounter);
+    
+#if EVENTC_DEBUG
+    Log_Printf(LOG_WARN, "[Eventcounter] Difference = %i (Frequency = %i, Divider = %i)",
+               eventcounter-lasteventc,ConfigureParams.System.nCpuFreq,nCpuFreqDivider);
+#endif
+}
+#else
+void System_Timer_Read(void) { // tuned for power-on test
+//  lasteventc = eventcounter; // debugging code
+    if (ConfigureParams.System.nCpuLevel == 3) {
+        if (NEXTRom[0xFFAB]==0x04) { // HACK for ROM version 0.8.31 power-on test, WARNING: this causes slowdown of emulation
+//          eventcounter = (nCyclesMainCounter/((1280/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF; // debugging code
+            IoMem_WriteLong(IoAccessCurrentAddress&0x1FFFF, (nCyclesMainCounter/((1280/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF);
+        } else {
+//          eventcounter = (nCyclesMainCounter/((128/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF; // debugging code
+            IoMem_WriteLong(IoAccessCurrentAddress&0x1FFFF, (nCyclesMainCounter/((128/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF);
+        }
+    } else { // System has 68040 CPU
+//      eventcounter = (nCyclesMainCounter/((64/ConfigureParams.System.nCpuFreq)*9))&0xFFFFF; // debugging code
+        IoMem_WriteLong(IoAccessCurrentAddress&0x1FFFF, (nCyclesMainCounter/((64/ConfigureParams.System.nCpuFreq)*9))&0xFFFFF);
+    }
+//  printf("DIFFERENCE = %i PC = %08X\n",eventcounter-lasteventc,m68k_getpc());
+}
+#endif

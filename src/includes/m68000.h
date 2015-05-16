@@ -137,6 +137,8 @@ extern Uint32 BusErrorAddress;
 extern Uint32 BusErrorPC;
 extern bool bBusErrorReadWrite;
 extern int nCpuFreqShift;
+extern int nCpuFreqDivider;
+#define USE_FREQ_DIVIDER 1
 extern int nWaitStateCycles;
 extern int BusMode;
 
@@ -155,7 +157,11 @@ extern const char *OpcodeName[];
 static inline void M68000_AddCycles(int cycles)
 {
 	cycles = (cycles + 3) & ~3;
-	cycles = cycles >> nCpuFreqShift;
+#if USE_FREQ_DIVIDER
+    cycles = cycles / nCpuFreqDivider;
+#else
+    cycles = cycles >> nCpuFreqShift;
+#endif
 
 	PendingInterruptCount -= INT_CONVERT_TO_INTERNAL(cycles, INT_CPU_CYCLE);
 	nCyclesMainCounter += cycles;
@@ -246,9 +252,11 @@ static inline void M68000_AddCyclesWithPairing(int cycles)
 		cycles += BusCyclePenalty;		/* >0 if d8(an,ix) was used */
 		cycles = (cycles + 3) & ~3;		/* no pairing, round current instr to 4 cycles */
 	}
-
+#if USE_FREQ_DIVIDER
+    cycles = cycles / nCpuFreqDivider;
+#else
 	cycles = cycles >> nCpuFreqShift;
-
+#endif
 	PendingInterruptCount -= INT_CONVERT_TO_INTERNAL ( cycles , INT_CPU_CYCLE );
 
 	nCyclesMainCounter += cycles;

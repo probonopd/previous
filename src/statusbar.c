@@ -207,7 +207,7 @@ void Statusbar_Init(SDL_Surface *surf)
 	msg_item_t *item;
 	SDL_Rect ledbox, sbarbox;
 	int i, fontw, fonth, offset;
-	const char *text[NUM_DEVICE_LEDS] = { "EN:", "MO:", "HD:" };
+	const char *text[NUM_DEVICE_LEDS] = { "EN:", "MO:", "SD:", "FD:" };
 
 	assert(surf);
 

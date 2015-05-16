@@ -84,3 +84,5 @@ void HardclockWrite1(void);
 
 void HardclockWriteCSR(void);
 void HardclockReadCSR(void);
+
+void System_Timer_Read(void);

@@ -55,7 +55,7 @@ static SGOBJ romdlg[] =
 	{ SGTEXT, 0, 0, 2,19, 46,1, NULL },
     
 	{ SGTEXT, 0, 0, 2,23, 25,1, "A reset is needed after changing these options." },
-	{ SGBUTTON, SG_DEFAULT, 0, 16,25, 20,1, "Back to main menu" },
+	{ SGBUTTON, SG_DEFAULT, 0, 15,25, 21,1, "Back to main menu" },
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 

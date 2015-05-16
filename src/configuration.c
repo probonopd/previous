@@ -176,21 +176,6 @@ static const struct Config_Tag configs_Memory[] =
 	{ NULL , Error_Tag, NULL }
 };
 
-
-/* Used to load/save floppy options */
-static const struct Config_Tag configs_Floppy[] =
-{
-	{ "bAutoInsertDiskB", Bool_Tag, &ConfigureParams.DiskImage.bAutoInsertDiskB },
-	{ "bSlowFloppy", Bool_Tag, &ConfigureParams.DiskImage.bSlowFloppy },
-	{ "nWriteProtection", Int_Tag, &ConfigureParams.DiskImage.nWriteProtection },
-	{ "szDiskAZipPath", String_Tag, ConfigureParams.DiskImage.szDiskZipPath[0] },
-	{ "szDiskAFileName", String_Tag, ConfigureParams.DiskImage.szDiskFileName[0] },
-	{ "szDiskBZipPath", String_Tag, ConfigureParams.DiskImage.szDiskZipPath[1] },
-	{ "szDiskBFileName", String_Tag, ConfigureParams.DiskImage.szDiskFileName[1] },
-	{ "szDiskImageDirectory", String_Tag, ConfigureParams.DiskImage.szDiskImageDirectory },
-	{ NULL , Error_Tag, NULL }
-};
-
 /* Used to load/save boot options */
 static const struct Config_Tag configs_Boot[] =
 {
@@ -260,6 +245,22 @@ static const struct Config_Tag configs_MO[] =
     { "bWriteProtected1", Bool_Tag, &ConfigureParams.MO.drive[1].bWriteProtected },
 
 	{ NULL , Error_Tag, NULL }
+};
+
+/* Used to load/save floppy options */
+static const struct Config_Tag configs_Floppy[] =
+{
+    { "szImageName0", String_Tag, ConfigureParams.Floppy.drive[0].szImageName },
+    { "bDriveConnected0", Bool_Tag, &ConfigureParams.Floppy.drive[0].bDriveConnected },
+    { "bDiskInserted0", Bool_Tag, &ConfigureParams.Floppy.drive[0].bDiskInserted },
+    { "bWriteProtected0", Bool_Tag, &ConfigureParams.Floppy.drive[0].bWriteProtected },
+    
+    { "szImageName1", String_Tag, ConfigureParams.Floppy.drive[1].szImageName },
+    { "bDriveConnected1", Bool_Tag, &ConfigureParams.Floppy.drive[1].bDriveConnected },
+    { "bDiskInserted1", Bool_Tag, &ConfigureParams.Floppy.drive[1].bDiskInserted },
+    { "bWriteProtected1", Bool_Tag, &ConfigureParams.Floppy.drive[1].bWriteProtected },
+    
+    { NULL , Error_Tag, NULL }
 };
 
 /* Used to load/save Ethernet options */
@@ -375,18 +376,6 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Debugger.nDisasmLines = 8;
 	ConfigureParams.Debugger.nMemdumpLines = 8;
 
-	/* Set defaults for floppy disk images */
-	ConfigureParams.DiskImage.bAutoInsertDiskB = true;
-	ConfigureParams.DiskImage.bSlowFloppy = false;
-	ConfigureParams.DiskImage.nWriteProtection = WRITEPROT_OFF;
-	for (i = 0; i < 2; i++)
-	{
-		ConfigureParams.DiskImage.szDiskZipPath[i][0] = '\0';
-		ConfigureParams.DiskImage.szDiskFileName[i][0] = '\0';
-	}
-	strcpy(ConfigureParams.DiskImage.szDiskImageDirectory, psWorkingDir);
-	File_AddSlashToEndFileName(ConfigureParams.DiskImage.szDiskImageDirectory);
-
     /* Set defaults for Boot options */
     ConfigureParams.Boot.nBootDevice = BOOT_ROM;
     ConfigureParams.Boot.bEnableDRAMTest = false;
@@ -413,6 +402,14 @@ void Configuration_SetDefault(void)
         ConfigureParams.MO.drive[drive].bDriveConnected = false;
         ConfigureParams.MO.drive[drive].bDiskInserted = false;
         ConfigureParams.MO.drive[drive].bWriteProtected = false;
+    }
+    
+    /* Set defaults for floppy drives */
+    for (drive = 0; drive < FLP_MAX_DRIVES; drive++) {
+        strcpy(ConfigureParams.Floppy.drive[drive].szImageName, psWorkingDir);
+        ConfigureParams.Floppy.drive[drive].bDriveConnected = false;
+        ConfigureParams.Floppy.drive[drive].bDiskInserted = false;
+        ConfigureParams.Floppy.drive[drive].bWriteProtected = false;
     }
     
     /* Set defaults for Ethernet */
@@ -641,8 +638,12 @@ void Configuration_Apply(bool bReset)
         File_MakeAbsoluteName(ConfigureParams.SCSI.target[i].szImageName);
     }
     
-    for (i = 0; i < 2; i++) {
+    for (i = 0; i < MO_MAX_DRIVES; i++) {
         File_MakeAbsoluteName(ConfigureParams.MO.drive[i].szImageName);
+    }
+    
+    for (i = 0; i < FLP_MAX_DRIVES; i++) {
+        File_MakeAbsoluteName(ConfigureParams.Floppy.drive[i].szImageName);
     }
     
 	File_MakeAbsoluteName(ConfigureParams.Memory.szMemoryCaptureFileName);
@@ -825,10 +826,10 @@ void Configuration_Load(const char *psFileName)
     Configuration_LoadSection(psFileName, configs_Mouse, "[Mouse]");
 	Configuration_LoadSection(psFileName, configs_Sound, "[Sound]");
 	Configuration_LoadSection(psFileName, configs_Memory, "[Memory]");
-	Configuration_LoadSection(psFileName, configs_Floppy, "[Floppy]");
     Configuration_LoadSection(psFileName, configs_Boot, "[Boot]");
 	Configuration_LoadSection(psFileName, configs_SCSI, "[HardDisk]");
     Configuration_LoadSection(psFileName, configs_MO, "[MagnetoOptical]");
+    Configuration_LoadSection(psFileName, configs_Floppy, "[Floppy]");
     Configuration_LoadSection(psFileName, configs_Ethernet, "[Ethernet]");
 	Configuration_LoadSection(psFileName, configs_Rom, "[ROM]");
 	Configuration_LoadSection(psFileName, configs_Rs232, "[RS232]");
@@ -876,10 +877,10 @@ void Configuration_Save(void)
     Configuration_SaveSection(sConfigFileName, configs_Mouse, "[Mouse]");
 	Configuration_SaveSection(sConfigFileName, configs_Sound, "[Sound]");
 	Configuration_SaveSection(sConfigFileName, configs_Memory, "[Memory]");
-	Configuration_SaveSection(sConfigFileName, configs_Floppy, "[Floppy]");
     Configuration_SaveSection(sConfigFileName, configs_Boot, "[Boot]");
 	Configuration_SaveSection(sConfigFileName, configs_SCSI, "[HardDisk]");
     Configuration_SaveSection(sConfigFileName, configs_MO, "[MagnetoOptical]");
+    Configuration_SaveSection(sConfigFileName, configs_Floppy, "[Floppy]");
     Configuration_SaveSection(sConfigFileName, configs_Ethernet, "[Ethernet]");
 	Configuration_SaveSection(sConfigFileName, configs_Rom, "[ROM]");
 	Configuration_SaveSection(sConfigFileName, configs_Rs232, "[RS232]");
@@ -925,6 +926,14 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
         MemorySnapShot_Store(&ConfigureParams.MO.drive[drive].bWriteProtected, sizeof(ConfigureParams.MO.drive[drive].bWriteProtected));
     }
     
+    /* Floppy drives */
+    for (drive = 0; drive < FLP_MAX_DRIVES; drive++) {
+        MemorySnapShot_Store(ConfigureParams.Floppy.drive[drive].szImageName, sizeof(ConfigureParams.Floppy.drive[drive].szImageName));
+        MemorySnapShot_Store(&ConfigureParams.Floppy.drive[drive].bDriveConnected, sizeof(ConfigureParams.Floppy.drive[drive].bDriveConnected));
+        MemorySnapShot_Store(&ConfigureParams.Floppy.drive[drive].bDiskInserted, sizeof(ConfigureParams.Floppy.drive[drive].bDiskInserted));
+        MemorySnapShot_Store(&ConfigureParams.Floppy.drive[drive].bWriteProtected, sizeof(ConfigureParams.Floppy.drive[drive].bWriteProtected));
+    }
+    
     /* Ethernet options */
     MemorySnapShot_Store(&ConfigureParams.Ethernet.bEthernetConnected, sizeof(ConfigureParams.Ethernet.bEthernetConnected));
 
@@ -957,9 +966,6 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
     MemorySnapShot_Store(&ConfigureParams.System.n_FPUType, sizeof(ConfigureParams.System.n_FPUType));
     MemorySnapShot_Store(&ConfigureParams.System.bCompatibleFPU, sizeof(ConfigureParams.System.bCompatibleFPU));
     MemorySnapShot_Store(&ConfigureParams.System.bMMU, sizeof(ConfigureParams.System.bMMU));
-    
-    /* Other */
-	MemorySnapShot_Store(&ConfigureParams.DiskImage.bSlowFloppy, sizeof(ConfigureParams.DiskImage.bSlowFloppy));
 
 	if (!bSave)
 		Configuration_Apply(true);

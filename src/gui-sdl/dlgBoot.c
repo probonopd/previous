@@ -58,7 +58,7 @@ static SGOBJ bootdlg[] =
     
     { SGTEXT, 0, 0, 2,16, 25,1, "For advanced options boot to ROM monitor prompt." },
 
-	{ SGBUTTON, SG_DEFAULT, 0, 17,19, 20,1, "Back to main menu" },
+	{ SGBUTTON, SG_DEFAULT, 0, 15,19, 21,1, "Back to main menu" },
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 

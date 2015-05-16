@@ -1,10 +1,10 @@
 /*
-  Hatari - dlgMemory.c
+  Previous - dlgMemory.c
 
   This file is distributed under the GNU Public License, version 2 or at
   your option any later version. Read the file gpl.txt for details.
 */
-const char DlgMemory_fileid[] = "Hatari dlgMemory.c : " __DATE__ " " __TIME__;
+const char DlgMemory_fileid[] = "Previous dlgMemory.c : " __DATE__ " " __TIME__;
 
 #include "main.h"
 #include "dialog.h"
@@ -13,6 +13,7 @@ const char DlgMemory_fileid[] = "Hatari dlgMemory.c : " __DATE__ " " __TIME__;
 #include "file.h"
 #include "screen.h"
 
+#define GUI_SAVE_MEMORY 0
 
 #define DLGMEM_8MB      4
 #define DLGMEM_16MB     5
@@ -26,13 +27,16 @@ const char DlgMemory_fileid[] = "Hatari dlgMemory.c : " __DATE__ " " __TIME__;
 #define DLGMEM_80NS     14
 #define DLGMEM_60NS     15
 
+#if GUI_SAVE_MEMORY
 #define DLGMEM_FILENAME 19
 #define DLGMEM_SAVE     20
 #define DLGMEM_RESTORE  21
 #define DLGMEM_AUTOSAVE 22
 
 #define DLGMEM_EXIT     23
-
+#else
+#define DLGMEM_EXIT     16
+#endif
 
 void Dialog_MemDlgDraw(void);
 static char dlgSnapShotName[36+1];
@@ -41,7 +45,11 @@ char custom_memsize[16] = "Customize";
 /* The memory dialog: */
 static SGOBJ memorydlg[] =
 {
+#if GUI_SAVE_MEMORY
 	{ SGBOX, 0, 0, 0,0, 41,28, NULL },
+#else
+    { SGBOX, 0, 0, 0,0, 41,18, NULL },
+#endif
     { SGTEXT, 0, 0, 14,1, 12,1, "Memory options" },
 
 	{ SGBOX, 0, 0, 1,3, 19,10, NULL },
@@ -59,7 +67,9 @@ static SGOBJ memorydlg[] =
 	{ SGRADIOBUT, 0, 0, 23,7, 8,1, "100 ns" },
 	{ SGRADIOBUT, 0, 0, 23,8, 7,1, "80 ns" },
 	{ SGRADIOBUT, 0, 0, 23,9, 7,1, "60 ns" },
-
+    
+    { SGBUTTON, SG_DEFAULT, 0, 10,15, 21,1, "Back to main menu" },
+#if GUI_SAVE_MEMORY
 	{ SGBOX, 0, 0, 1,14, 39,10, NULL },
 	{ SGTEXT, 0, 0, 2,15, 17,1, "Load/Save memory state (untested)" },
 	{ SGTEXT, 0, 0, 2,17, 20,1, "Snap-shot file name:" },
@@ -67,8 +77,9 @@ static SGOBJ memorydlg[] =
 	{ SGBUTTON, 0, 0, 8,20, 10,1, "Save" },
 	{ SGBUTTON, 0, 0, 22,20, 10,1, "Restore" },
 	{ SGCHECKBOX, 0, 0, 2,22, 37,1, "Load/save state at start-up/exit" },
-
-	{ SGBUTTON, SG_DEFAULT, 0, 10,26, 20,1, "Back to main menu" },
+    
+    { SGBUTTON, SG_DEFAULT, 0, 10,26, 21,1, "Back to main menu" },
+#endif
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 
@@ -178,6 +189,7 @@ bool Dialog_MemDlg(void)
                 Dialog_MemAdvancedDlg(ConfigureParams.Memory.nMemoryBankSize);
                 Dialog_MemDlgDraw();
                 break;
+#if GUI_SAVE_MEMORY
             case DLGMEM_SAVE:              /* Save memory snap-shot */
                 if (SDLGui_FileConfSelect(dlgSnapShotName,
                                           ConfigureParams.Memory.szMemoryCaptureFileName,
@@ -195,6 +207,7 @@ bool Dialog_MemDlg(void)
                     return true;
                 }
                 break;
+#endif
 		}
 	}
 	while (but != DLGMEM_EXIT && but != SDLGUI_QUIT
@@ -210,9 +223,9 @@ bool Dialog_MemDlg(void)
         ConfigureParams.Memory.nMemorySpeed = MEMORY_80NS;
     else
         ConfigureParams.Memory.nMemorySpeed = MEMORY_60NS;
-    
+#if GUI_SAVE_MEMORY
 	ConfigureParams.Memory.bAutoSave = (memorydlg[DLGMEM_AUTOSAVE].state & SG_SELECTED);
-
+#endif
 	return false;
 }
 
@@ -288,7 +301,7 @@ void Dialog_MemDlgDraw(void) {
             memorydlg[DLGMEM_100NS].state |= SG_SELECTED;
             break;
     }
-    
+#if GUI_SAVE_MEMORY
     File_ShrinkName(dlgSnapShotName, ConfigureParams.Memory.szMemoryCaptureFileName, memorydlg[DLGMEM_FILENAME].w);
     
     
@@ -296,4 +309,5 @@ void Dialog_MemDlgDraw(void) {
         memorydlg[DLGMEM_AUTOSAVE].state |= SG_SELECTED;
     else
         memorydlg[DLGMEM_AUTOSAVE].state &= ~SG_SELECTED;
+#endif
 }

@@ -12,8 +12,9 @@
 
 typedef enum {
 	DEVICE_LED_ENET,
-	DEVICE_LED_ODFD,
+	DEVICE_LED_OD,
 	DEVICE_LED_SCSI,
+    DEVICE_LED_FD,
     NUM_DEVICE_LEDS
 } drive_index_t;
 

@@ -70,11 +70,11 @@ static SGOBJ modlg[] =
     
     { SGTEXT, 0, 0, 2,24, 14,1, "Note: Magneto-optical drives only work with non-turbo Cubes." },
 
-    { SGBUTTON, SG_DEFAULT, 0, 22,27, 20,1, "Back to main menu" },
+    { SGBUTTON, SG_DEFAULT, 0, 21,27, 21,1, "Back to main menu" },
 #else
     { SGTEXT, 0, 0, 2,14, 14,1, "Note: Magneto-optical drives only work with non-turbo Cubes." },
     
-    { SGBUTTON, SG_DEFAULT, 0, 22,17, 20,1, "Back to main menu" },
+    { SGBUTTON, SG_DEFAULT, 0, 21,17, 21,1, "Back to main menu" },
 #endif
 
 	{ -1, 0, 0, 0,0, 0,0, NULL }
