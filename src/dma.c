@@ -19,6 +19,7 @@
 #include "configuration.h"
 #include "ethernet.h"
 #include "floppy.h"
+#include "snd.h"
 #include "mmu_common.h"
 
 
@@ -573,7 +574,7 @@ void dma_esp_read_memory(void) {
                     }
                 }
                 if (espdma_buf_size>0) { /* Not complete, stop */
-                    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: No more data. Stopping with %i residual bytes.",
+                    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: No more data request. Stopping with %i residual bytes.",
                                espdma_buf_size);
                     break;
                 }
@@ -696,7 +697,7 @@ void dma_mo_read_memory(void) {
                     modma_buf_size--;
                 }
                 if (modma_buf_size>0) { /* Not complete, stop */
-                    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: No more data. Stopping with %i residual bytes.",
+                    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel MO: No more data request. Stopping with %i residual bytes.",
                                modma_buf_size);
                     break;
                 }
@@ -717,6 +718,35 @@ void dma_mo_read_memory(void) {
     }
     
     dma_interrupt(CHANNEL_DISK);
+}
+
+
+/* Channel Sound Out (FIXME: is this channel buffered?) */
+void dma_sndout_read_memory(void) {
+    if (dma[CHANNEL_SOUNDOUT].csr&DMA_ENABLE) {
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Sound Out: Read from memory at $%08x, %i bytes",
+                   dma[CHANNEL_SOUNDOUT].next,dma[CHANNEL_SOUNDOUT].limit-dma[CHANNEL_SOUNDOUT].next);
+        
+        if ((dma[CHANNEL_SOUNDOUT].limit%4) || (dma[CHANNEL_SOUNDOUT].next%4)) {
+            Log_Printf(LOG_WARN, "[DMA] Channel Sound Out: Error! Bad alignment! (Next: $%08X, Limit: $%08X)",
+                       dma[CHANNEL_SOUNDOUT].next, dma[CHANNEL_SOUNDOUT].limit);
+            abort();
+        }
+        
+        TRY(prb) {
+            while (dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit && snd_buffer.size<snd_buffer.limit) {
+                snd_buffer.data[snd_buffer.size]=NEXTMemory_ReadByte(dma[CHANNEL_SOUNDOUT].next);
+                snd_buffer.size++;
+                dma[CHANNEL_SOUNDOUT].next++;
+            }
+        } CATCH(prb) {
+            Log_Printf(LOG_WARN, "[DMA] Channel Sound Out: Bus error reading from %08x",dma[CHANNEL_SOUNDOUT].next);
+            dma[CHANNEL_SOUNDOUT].csr &= ~DMA_ENABLE;
+            dma[CHANNEL_SOUNDOUT].csr |= (DMA_COMPLETE|DMA_BUSEXC);
+        } ENDTRY
+        
+        dma_interrupt(CHANNEL_SOUNDOUT);
+    }
 }
 
 
@@ -889,7 +919,7 @@ void dma_video_interrupt(void) {
 }
 
 
-/* FIXME: This is just for passing power-on test. Add real SCC and Sound channels later. */
+/* FIXME: This is just for passing power-on test. Add real SCC channel later. */
 
 void dma_scc_read_memory(void) {
     Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCC: Read from memory at $%08x, %i bytes",
@@ -900,15 +930,4 @@ void dma_scc_read_memory(void) {
     }
     
     dma_interrupt(CHANNEL_SCC);
-}
-
-void dma_sndout_read_memory(void) {
-    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Sound out: Read from memory at $%08x, %i bytes",
-               dma[CHANNEL_SOUNDOUT].next,dma[CHANNEL_SOUNDOUT].limit-dma[CHANNEL_SOUNDOUT].next);
-    while (dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit) {
-        NEXTMemory_ReadByte(dma[CHANNEL_SOUNDOUT].next); /* for now just discard data */
-        dma[CHANNEL_SOUNDOUT].next++;
-    }
-    
-    dma_interrupt(CHANNEL_SOUNDOUT);
 }

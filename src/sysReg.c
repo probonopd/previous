@@ -83,7 +83,7 @@ void SID_Read(void) {
 #define SCR1_SLAB_MONO      0x00011052
 #define SCR1_SLAB_COLOR     0x00013052
 #define SCR1_CUBE           0x00012052
-#define SCR1_TURBO          0xF0004000
+#define SCR1_TURBO          0x00004000
 
 #define SCR1_CONST_MASK     0xFFFFFF00
 
@@ -100,6 +100,7 @@ void SCR_Reset(void) {
 
     if (ConfigureParams.System.bTurbo) {
         scr1 = SCR1_TURBO;
+        scr1 |= (ConfigureParams.System.nMachineType==NEXT_CUBE040)?0:0xF0000000;
         TurboSCR1_Reset();
         return;
     } else {
@@ -138,6 +139,7 @@ void SCR_Reset(void) {
         case MEMORY_120NS: memory_speed = 0x00; break;
         case MEMORY_100NS: memory_speed = 0x50; break;
         case MEMORY_80NS: memory_speed = 0xA0; break;
+        case MEMORY_70NS: memory_speed = 0xA0; break;
         case MEMORY_60NS: memory_speed = 0xF0; break;
         default: Log_Printf(LOG_WARN, "SCR1 error: unknown memory speed\n"); break;
     }
@@ -167,17 +169,17 @@ void SCR1_Read3(void)
 
 
 /* Additional System Control Register for Turbo systems:
- * -------- -------- -------- -----?xx  bits 0:2   --> cpu speed
+ * -------- -------- -------- -----xxx  bits 0:2   --> cpu speed
  * -------- -------- -------- --xx----  bits 4:5   --> main memory speed
  * -------- -------- -------- xx------  bits 6:7   --> video memory speed
  * -------- -------- ----xxxx --------  bits 8:11  --> cpu revision
  * -------- -------- xxxx---- --------  bits 12:15 --> cpu type
  * xxxx---- -------- -------- --------  bits 28:31 --> slot id
- * ----xxxx xxxxxxxx -------- ----x?--  all other bits: 1
+ * ----xxxx xxxxxxxx -------- ----x---  all other bits: 1
  *
  * cpu speed:       7 = 33MHz?
- * main mem speed:  0 = 120ns?, 1 = 100ns?, 2 = 70ns, 3 = 60ns
- * video mem speed: 3 on all Turbo systems (60ns)?
+ * main mem speed:  0 = 60ns, 1 = 70ns, 2 = 80ns, 3 = 100ns
+ * video mem speed: 3 on all Turbo systems (100ns)?
  * cpu revision:    0xF = rev 0
  *                  0xE = rev 1
  *                  0xD = rev 2
@@ -192,11 +194,23 @@ void SCR1_Read3(void)
 void TurboSCR1_Reset(void) {
     Uint8 memory_speed;
     Uint8 cpu_speed = 0x07; // 33 MHz
+    
+    if (ConfigureParams.System.nCpuFreq<20) {
+        cpu_speed = 4;
+    } else if (ConfigureParams.System.nCpuFreq<25) {
+        cpu_speed = 5;
+    } else if (ConfigureParams.System.nCpuFreq<33) {
+        cpu_speed = 6;
+    } else {
+        cpu_speed = 7;
+    }
+
     switch (ConfigureParams.Memory.nMemorySpeed) {
-        case MEMORY_120NS: memory_speed = 0xC0; break;
-        case MEMORY_100NS: memory_speed = 0xD0; break;
-        case MEMORY_80NS: memory_speed = 0xE0; break;
-        case MEMORY_60NS: memory_speed = 0xF0; break;
+        case MEMORY_120NS: memory_speed = 0xF0; break;
+        case MEMORY_100NS: memory_speed = 0xF0; break;
+        case MEMORY_80NS: memory_speed = 0xA0; break;
+        case MEMORY_70NS: memory_speed = 0x50; break;
+        case MEMORY_60NS: memory_speed = 0x00; break;
         default: Log_Printf(LOG_WARN, "Turbo SCR1 error: unknown memory speed\n"); break;
     }
     turboscr1 = ((memory_speed&0xF0)|(cpu_speed&0x07));
@@ -212,11 +226,19 @@ void TurboSCR1_Reset(void) {
 
 void TurboSCR1_Read0(void) {
     Log_Printf(LOG_WARN,"Turbo SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem_WriteWord(IoAccessCurrentAddress&0x1FFFF, (turboscr1&0xFFFF0000)>>16);
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (turboscr1&0xFF000000)>>24;
+}
+void TurboSCR1_Read1(void) {
+    Log_Printf(LOG_WARN,"Turbo SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (turboscr1&0x00FF0000)>>16;
 }
 void TurboSCR1_Read2(void) {
     Log_Printf(LOG_WARN,"Turbo SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem_WriteWord(IoAccessCurrentAddress&0x1FFFF, turboscr1&0x0000FFFF);
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (turboscr1&0x0000FF00)>>8;
+}
+void TurboSCR1_Read3(void) {
+    Log_Printf(LOG_WARN,"Turbo SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
+    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = turboscr1&0x000000FF;
 }
 
 

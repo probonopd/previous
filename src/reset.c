@@ -24,6 +24,7 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
 #include "scc.h"
 #include "ethernet.h"
 #include "floppy.h"
+#include "snd.h"
 
 
 /*-----------------------------------------------------------------------*/
@@ -50,6 +51,7 @@ static const char* Reset_ST(bool bCold)
     Floppy_Reset();               /* Reset Floppy disks */
     SCC_Reset();                  /* Reset SCC */
     Ethernet_Reset(true);         /* Reset Ethernet */
+    Sound_Reset();                /* Reset Sound */
 	Screen_Reset();               /* Reset screen */
 	M68000_Reset(bCold);          /* Reset CPU */
     DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */

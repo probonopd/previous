@@ -17,6 +17,7 @@
 #include "sysReg.h"
 #include "dma.h"
 #include "rtcnvram.h"
+#include "snd.h"
 
 #define LOG_KMS_LEVEL LOG_WARN
 #define IO_SEG_MASK	0x1FFFF
@@ -210,6 +211,7 @@ void KMS_command(Uint8 command, Uint32 data) {
         case KMSCMD_CTRLOUT:
             Log_Printf(LOG_KMS_LEVEL, "[KMS] Access volume control logic");
             Log_Printf(LOG_KMS_LEVEL, "[KMS] Data = %08X",data);
+            snd_gpo_access(data>>24);
             break;
         case KMSCMD_VOLCTRL:
             Log_Printf(LOG_KMS_LEVEL, "[KMS] Access volume control (simple)");
@@ -222,19 +224,20 @@ void KMS_command(Uint8 command, Uint32 data) {
 
                 if (command&SIO_ENABLE) {
                     Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out enable.");
-                    dma_sndout_read_memory(); /* TODO: Add real periodic IO loop here */
+                    if (command&SIO_DBL_SMPL) {
+                        Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out double sample.");
+                        if (command&SIO_ZERO) {
+                            Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out double sample by zero filling.");
+                        } else {
+                            Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out double sample by repetition.");
+                        }
+                    } else {
+                        Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out normal sample.");
+                    }
+                    snd_start_output(command&(SIO_DBL_SMPL|SIO_ZERO));
                 } else {
                     Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out disable.");
-                }
-                if (command&SIO_DBL_SMPL) {
-                    Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out double sample.");
-                } else {
-                    Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out normal sample.");
-                }
-                if (command&SIO_ZERO) {
-                    Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out sample by zero filling.");
-                } else {
-                    Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out sample by repetition.");
+                    snd_stop_output();
                 }
             } else if ((command&KMSCMD_SIO_MASK)==KMSCMD_SND_IN) {
                 Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound in command");

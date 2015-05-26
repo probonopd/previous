@@ -59,7 +59,9 @@ void SCR1_Read3(void);
 
 void TurboSCR1_Reset(void);
 void TurboSCR1_Read0(void);
+void TurboSCR1_Read1(void);
 void TurboSCR1_Read2(void);
+void TurboSCR1_Read3(void);
 
 void SCR2_Read0(void);
 void SCR2_Write0(void);

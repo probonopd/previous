@@ -63,8 +63,10 @@ void DSP_icr_Write (void) {
 const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
 {
     /* These registers are read on turbo machines, they are somehow related to SCR1 */
-    { 0x02000000, SIZE_WORD, TurboSCR1_Read0, IoMem_WriteWithoutInterceptionButTrace },
-    { 0x02000002, SIZE_WORD, TurboSCR1_Read2, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x02000000, SIZE_BYTE, TurboSCR1_Read0, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x02000001, SIZE_BYTE, TurboSCR1_Read1, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x02000002, SIZE_BYTE, TurboSCR1_Read2, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x02000003, SIZE_BYTE, TurboSCR1_Read3, IoMem_WriteWithoutInterceptionButTrace },
     
     /* Brightness */
     { 0x02010000, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
@@ -208,29 +210,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x020001d0, SIZE_LONG, DMA_CSR_Read, DMA_CSR_Write },
     { 0x020001c0, SIZE_LONG, DMA_CSR_Read, DMA_CSR_Write },
     
-    /* Channel Video */
-    { 0x02004184, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
-    { 0x02004188, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
-    
-    /* Channel R2M */
-    { 0x020041c0, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
-    { 0x020041c4, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
-    { 0x020041c8, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
-    { 0x020041cc, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
-    { 0x020043c0, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
-    
-    /* Channel M2R */
-    { 0x020041d0, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
-    { 0x020041d4, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
-    { 0x020041d8, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
-    { 0x020041dc, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
-    { 0x020043d0, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
-    
     /* Channel SCSI */
-    { 0x02004000, SIZE_LONG, DMA_Saved_Next_Read, DMA_Saved_Next_Write },
-    { 0x02004004, SIZE_LONG, DMA_Saved_Limit_Read, DMA_Saved_Limit_Write },
-    { 0x02004008, SIZE_LONG, DMA_Saved_Start_Read, DMA_Saved_Start_Write },
-    { 0x0200400c, SIZE_LONG, DMA_Saved_Stop_Read, DMA_Saved_Stop_Write },
     { 0x02004010, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
     { 0x02004014, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
     { 0x02004018, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
@@ -238,10 +218,6 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x02004210, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
     
     /* Channel Sound out */
-    { 0x02004030, SIZE_LONG, DMA_Saved_Next_Read, DMA_Saved_Next_Write },
-    { 0x02004034, SIZE_LONG, DMA_Saved_Limit_Read, DMA_Saved_Limit_Write },
-    { 0x02004038, SIZE_LONG, DMA_Saved_Start_Read, DMA_Saved_Start_Write },
-    { 0x0200403c, SIZE_LONG, DMA_Saved_Stop_Read, DMA_Saved_Stop_Write },
     { 0x02004040, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
     { 0x02004044, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
     { 0x02004048, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
@@ -255,18 +231,32 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x0200405c, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
     { 0x02004250, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
     
+    /* Channel Sound in */
+    { 0x02004080, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
+    { 0x02004084, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
+    { 0x02004088, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
+    { 0x0200408c, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
+    { 0x02004280, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
+    
+    /* Channel Printer */
+    { 0x02004090, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
+    { 0x02004094, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
+    { 0x02004098, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
+    { 0x0200409c, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
+    { 0x02004290, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
+
     /* Channel SCC */
     { 0x020040c0, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
     { 0x020040c4, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
-//    { 0x020040c8, SIZE_LONG, DMA_Saved_Start_Read, DMA_Saved_Start_Write },
-//    { 0x020040cc, SIZE_LONG, DMA_Saved_Stop_Read, DMA_Saved_Stop_Write },
+    { 0x020040c8, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
+    { 0x020040cc, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
     
-//    { 0x020040d0, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
-//    { 0x020040d4, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
-//    { 0x020040d8, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
-//    { 0x020040dc, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
-//    { 0x020042d0, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
-//    { 0x020042d4, SIZE_LONG, DMA_Size_Read, DMA_Size_Write },
+    /* Channel DSP */
+    { 0x020040d0, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
+    { 0x020040d4, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
+    { 0x020040d8, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
+    { 0x020040dc, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
+    { 0x020042d0, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
     
     /* Channel Ethernet Transmit */
     { 0x02004100, SIZE_LONG, DMA_Saved_Next_Read, DMA_Saved_Next_Write },
@@ -289,6 +279,26 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x02004158, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
     { 0x0200415c, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
     { 0x02004350, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
+    
+    /* Channel Video */
+    { 0x02004180, SIZE_LONG, DMA_Next_Read, DMA_Next_Write }, /* Video scratch pad */
+    { 0x02004184, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
+    { 0x02004188, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
+    { 0x0200418c, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write }, /* Event scratch pad */
+    
+    /* Channel R2M */
+    { 0x020041c0, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
+    { 0x020041c4, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
+    { 0x020041c8, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
+    { 0x020041cc, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
+    { 0x020043c0, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
+    
+    /* Channel M2R */
+    { 0x020041d0, SIZE_LONG, DMA_Next_Read, DMA_Next_Write },
+    { 0x020041d4, SIZE_LONG, DMA_Limit_Read, DMA_Limit_Write },
+    { 0x020041d8, SIZE_LONG, DMA_Start_Read, DMA_Start_Write },
+    { 0x020041dc, SIZE_LONG, DMA_Stop_Read, DMA_Stop_Write },
+    { 0x020043d0, SIZE_LONG, DMA_Init_Read, DMA_Init_Write },
 
     /*-------------------- End of DMA -------------------*/
 

@@ -97,6 +97,10 @@ uae_u8  NEXTVideo[256*1024];
 #define NEXTcolorvideo_mask 0x001FFFFF
 uae_u8 NEXTColorVideo[2*1024*1024];
 
+/* Cache tag memory for turbo systems */
+#define NEXT_CACHE_TAG      0x03E00000
+#define NEXT_CACHE_TAG_SIZE 0x00100000
+
 
 #define IOmem_mask 			0x0001FFFF
 #define	IOmem_size			0x0001C000
@@ -1110,7 +1114,7 @@ const char* memory_init(int *nNewNEXTMemSize)
         map_banks(&ColorVideo_bank, NEXT_TURBOSCREEN>>16, NEXT_COLORSCREEN_SIZE >> 16);
         write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_TURBOSCREEN, NEXT_COLORSCREEN_SIZE/1024);
     } else if (ConfigureParams.System.bTurbo) {
-        map_banks(&ColorVideo_bank, NEXT_TURBOSCREEN>>16, NEXT_SCREEN_SIZE >> 16);
+        map_banks(&Video_bank, NEXT_TURBOSCREEN>>16, NEXT_SCREEN_SIZE >> 16);
         write_log("Mapping Video Memory at $%08x: %ikB\n", NEXT_TURBOSCREEN, NEXT_SCREEN_SIZE/1024);
     } else if (ConfigureParams.System.bColor) {
         map_banks(&ColorVideo_bank, NEXT_COLORSCREEN>>16, NEXT_COLORSCREEN_SIZE >> 16);
@@ -1126,6 +1130,12 @@ const char* memory_init(int *nNewNEXTMemSize)
         write_log("Mapping mirrors of video memory for memory write functions:\n");
         for (i = 0; i<4; i++)
             write_log("Function%i at $%08X\n",i,0x0C000000+0x01000000*i);
+    }
+    
+    /* Map cache tag memory (dummy) */
+    if (ConfigureParams.System.bTurbo) {
+        map_banks(&dummy_bank, NEXT_CACHE_TAG>>16, NEXT_CACHE_TAG_SIZE>>16);
+        write_log("Mapping Cache Tag Memory at $%08x: %ikB\n", NEXT_CACHE_TAG, NEXT_CACHE_TAG_SIZE/1024);
     }
     
     map_banks(&ROMmem_bank, NEXT_EPROM_START >> 16, NEXT_EPROM_SIZE>>16);

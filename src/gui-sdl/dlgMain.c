@@ -53,7 +53,7 @@ static SGOBJ maindlg[] =
 	{ SGBUTTON, 0, 0, 35,4, 13,1, "Ethernet" },
 	{ SGBUTTON, 0, 0, 35,6, 13,1, "(not yet)" },
 	{ SGBUTTON, 0, 0, 35,8, 13,1, "Mouse" },
-	{ SGBUTTON, 0, 0, 35,10, 13,1, "(not yet)" },
+	{ SGBUTTON, 0, 0, 35,10, 13,1, "Sound" },
 	{ SGBUTTON, 0, 0, 7,13, 16,1, "Load config." },
 	{ SGBUTTON, 0, 0, 27,13, 16,1, "Save config." },
 	{ SGRADIOBUT, 0, 0, 3,15, 15,1, "No Reset" },
@@ -140,7 +140,7 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 			Dialog_MouseDlg();
 			break;
 		 case MAINDLG_SOUND:
-//			Dialog_SoundDlg();
+			DlgSound_Main();
 			break;
 		 case MAINDLG_LOADCFG:
 			psNewCfg = SDLGui_FileSelect(sConfigFileName, NULL, false);

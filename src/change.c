@@ -29,6 +29,7 @@ const char Change_fileid[] = "Hatari change.c : " __DATE__ " " __TIME__;
 #include "mo.h"
 #include "floppy.h"
 #include "ethernet.h"
+#include "snd.h"
 
 #define DEBUG 1
 #if DEBUG
@@ -190,6 +191,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	bool NeedReset;
 	bool bReInitSCSIEmu = false;
 	bool bReInitEnetEmu = false;
+    bool bReInitSoundEmu = false;
 	bool bReInitIoMem = false;
 	bool bScreenModeChange = false;
 	int i;
@@ -219,6 +221,12 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
         bReInitEnetEmu = true;
     }
     
+    /* Do we need to change Sound configuration? */
+    if (!NeedReset &&
+        (current->Sound.bEnableSound != changed->Sound.bEnableSound ||
+         current->Sound.bEnableMicrophone != changed->Sound.bEnableMicrophone)) {
+        bReInitSoundEmu = true;
+    }
 
 	/* Copy details to configuration,
 	 * so it can be saved out or set on reset
@@ -252,9 +260,16 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
         SCSI_Reset();
     }
     
+    /* Re-init Ethernet? */
     if (bReInitEnetEmu) {
         Dprintf("- Ethernet<\n");
         Ethernet_Reset(false);
+    }
+    
+    /* Re-init Sound? */
+    if (bReInitSoundEmu) {
+        Dprintf("- Sound<\n");
+        Sound_Reset();
     }
 
 	/* Force things associated with screen change */

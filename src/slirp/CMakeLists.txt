@@ -17,5 +17,5 @@ add_definitions(-DHAVE_STRERROR)
 
 add_library(Slirp
             bootp.c cksum.c if.c ip_icmp.c ip_input.c ip_output.c 
-            mbuf.c misc.c queue.c sbuf.c slirp.c slirpdebug.c socket.c 
+            mbuf.c misc.c sbuf.c slirp.c slirpdebug.c socket.c 
             tcp_input.c tcp_output.c tcp_subr.c tcp_timer.c tftp.c udp.c)

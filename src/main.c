@@ -32,6 +32,7 @@ const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 #include "nextMemory.h"
 #include "str.h"
 #include "video.h"
+#include "audio.h"
 #include "avi_record.h"
 #include "debugui.h"
 #include "clocks_timings.h"
@@ -152,7 +153,7 @@ bool Main_PauseEmulation(bool visualize)
 	if ( !bEmulationActive )
 		return false;
 
-//	Audio_EnableAudio(false);
+	//Audio_Output_Enable(false);
 	bEmulationActive = false;
 	if (visualize)
 	{
@@ -194,8 +195,7 @@ bool Main_UnPauseEmulation(void)
 	if ( bEmulationActive )
 		return false;
 
-//	Sound_BufferIndexNeedReset = true;
-//	Audio_EnableAudio(ConfigureParams.Sound.bEnableSound);
+	//Audio_Output_Enable(ConfigureParams.Sound.bEnableSound);
 	bEmulationActive = true;
 
 	/* Cause full screen update (to clear all) */

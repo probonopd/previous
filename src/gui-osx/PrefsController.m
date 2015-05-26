@@ -665,8 +665,8 @@ static const int nSoundFreqs[] =
 	
 	for (i = 0; i <= DLGSOUND_50KHZ-DLGSOUND_11KHZ; i++)
 	{
-		if (ConfigureParams.Sound.nPlaybackFreq > nSoundFreqs[i]-500
-		    && ConfigureParams.Sound.nPlaybackFreq < nSoundFreqs[i]+500)
+//		if (ConfigureParams.Sound.nPlaybackFreq > nSoundFreqs[i]-500
+//		    && ConfigureParams.Sound.nPlaybackFreq < nSoundFreqs[i]+500)
 		{
 			[playbackQuality selectCellWithTag:(i)];
 			break;
@@ -862,7 +862,7 @@ static const int nSoundFreqs[] =
 
 	ConfigureParams.Screen.nForceBpp = ([force8bpp state] == NSOnState) ? 8 : 0;
 
-	ConfigureParams.Sound.nPlaybackFreq = nSoundFreqs[[[playbackQuality selectedCell] tag]];
+//	ConfigureParams.Sound.nPlaybackFreq = nSoundFreqs[[[playbackQuality selectedCell] tag]];
 			
 	switch ([[resolution selectedCell] tag])
 	{

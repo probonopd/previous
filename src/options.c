@@ -1471,7 +1471,7 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 				{
 					return Opt_ShowError(OPT_SOUND, argv[i], "Unsupported sound frequency");
 				}
-				ConfigureParams.Sound.nPlaybackFreq = freq;
+//				ConfigureParams.Sound.nPlaybackFreq = freq;
 				ConfigureParams.Sound.bEnableSound = true;
 			}
 			break;
@@ -1485,7 +1485,7 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 				{
 					return Opt_ShowError(OPT_SOUNDBUFFERSIZE, argv[i], "Unsupported sound buffer size");
 				}
-			ConfigureParams.Sound.SdlAudioBufferSize = temp;
+//			ConfigureParams.Sound.SdlAudioBufferSize = temp;
 			break;
 			
 		case OPT_MICROPHONE:

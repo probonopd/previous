@@ -28,9 +28,9 @@
 typedef unsigned char *queueElementT;
 */
 
-struct queuepacket{
+struct queuepacket {
         int len;
-        unsigned char data[2000];
+        unsigned char data[4096];
 };
 typedef struct queuepacket *queueElementT;
 

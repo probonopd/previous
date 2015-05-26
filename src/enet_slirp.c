@@ -1,6 +1,7 @@
 #include "m68000.h"
 #include "ethernet.h"
 #include "enet_slirp.h"
+#include "queue.h"
 
 #include <SDL.h>
 #ifndef _WIN32
@@ -12,11 +13,6 @@
 /* -- SLIRP -- */
 
 #include <arpa/inet.h>
-
-struct queuepacket{
-    int len;
-    unsigned char data[2000];
-};
 
 /* slirp prototypes */
 extern  int slirp_init(void);
@@ -31,15 +27,6 @@ extern  void slirp_output(const unsigned char *pkt, int pkt_len);
 extern  int slirp_can_output(void);
 
 /* queue prototypes */
-typedef struct queuepacket *queueElementT;
-typedef struct queueCDT *queueADT;
-extern  queueADT QueueCreate(void);
-extern  void QueueDestroy(queueADT queue);
-extern  void QueueEnter(queueADT queue, queueElementT element);
-extern  queueElementT QueueDelete(queueADT queue);
-extern  int QueueIsEmpty(queueADT queue);
-extern  int QueueIsFull(queueADT queue);
-extern  int QueuePeek(queueADT queue);
 queueADT	slirpq;
 
 int slirp_inited;
@@ -63,8 +50,8 @@ void slirp_output (const unsigned char *pkt, int pkt_len)
     SDL_LockMutex(slirp_mutex);
     p->len=pkt_len;
     memcpy(p->data,pkt,pkt_len);
-    SDL_UnlockMutex(slirp_mutex);
     QueueEnter(slirpq,p);
+    SDL_UnlockMutex(slirp_mutex);
     Log_Printf(LOG_WARN, "[SLIRP] Output packet with %i bytes to queue",pkt_len);
 }
 
@@ -120,6 +107,7 @@ void enet_slirp_queue_poll(void)
         Log_Printf(LOG_WARN, "[SLIRP] Getting packet from queue");
         enet_receive(qp->data,qp->len);
         SDL_UnlockMutex(slirp_mutex);
+        free(qp);
     }
 }
 
