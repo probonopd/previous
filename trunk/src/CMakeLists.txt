@@ -1,12 +1,10 @@
 set(SOURCES
-	bmap.c cfgopts.c clocks_timings.c configuration.c options.c  change.c
+	audio.c bmap.c cfgopts.c clocks_timings.c configuration.c options.c  change.c
 	control.c cycInt.c cycles.c dialog.c dma.c esp.c enet_slirp.c ethernet.c
 	file.c floppy.c ioMem.c ioMemTabNEXT.c memorySnapShot.c keymap.c kms.c
-	m68000.c main.c mo.c nextMemory.c paths.c 
-	ramdac.c resolution.c reset.c rs.c rtcnvram.c scandir.c
-	scc.c screen.c screenSnapShot.c scsi.c shortcut.c
-	statusbar.c str.c sysReg.c zip.c unzip.c utils.c 
-	video.c )
+	m68000.c main.c mo.c nextMemory.c paths.c queue.c ramdac.c resolution.c reset.c
+    rs.c rtcnvram.c scandir.c scc.c screen.c screenSnapShot.c scsi.c shortcut.c
+    snd.c statusbar.c str.c sysReg.c zip.c unzip.c utils.c video.c )
 
 # When building for OSX, define specific sources for gui and ressources
 if(ENABLE_OSX_BUNDLE)

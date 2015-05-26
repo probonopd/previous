@@ -49,10 +49,6 @@ typedef struct
 {
   bool bEnableMicrophone;
   bool bEnableSound;
-  int nPlaybackFreq;
-  int SdlAudioBufferSize;
-  char szYMCaptureFileName[FILENAME_MAX];
-  int YmVolumeMixing;
 } CNF_SOUND;
 
 
@@ -134,6 +130,7 @@ typedef enum
   MEMORY_120NS,
   MEMORY_100NS,
   MEMORY_80NS,
+  MEMORY_70NS,
   MEMORY_60NS
 } MEMORY_SPEED;
 

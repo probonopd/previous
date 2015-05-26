@@ -707,10 +707,23 @@ void newrtc_stop_pdown_request(void) {
 #define SIMM_8MB_T          0x2 /* Pair of 4 or 8 MByte SIMMs (front or back) */
 #define SIMM_2MB_T          0x3 /* Pair of 1 or 2 MByte SIMMs (front or back) */
 
+/* bits in ni_reset (rtc ram byte 0 to 3) *
+ * -------- -------- -------- -------x bit 0:     any cmd
+ * -------- -------- -------- ------x- bit 1:     boot any
+ * -------- -------- -------- -----x-- bit 2:     enable lowpass filter
+ * -------- -------- -------- ----x--- bit 3:     disable speaker
+ * -------- -------- ------xx xxxx---- bit 4-9:   volume left (max 0, min 0x2B)
+ * -------- -------- --xxxx-- -------- bit 10-13: hardware password
+ * -------- ----xxxx xx------ -------- bit 14-19: brightness (max 0x3D, min 0)
+ * ------xx xxxx---- -------- -------- bit 20-25: volume right (max 0, min 0x2B)
+ * -----x-- -------- -------- -------- bit 26:    allow eject
+ * ----x--- -------- -------- -------- bit 27:    alt cons
+ * xxxx---- -------- -------- -------- bit 28-31: reset
+ */
 
 /* RTC RAM */
 Uint8 nvram_default[32]={
-    0x94,0x0f,0x40,0x00, // byte 0 - 3
+    0x94,0x0f,0x40,0x00, // byte 0 - 3: volume, brightness, ...
     0x00,0x00,0x00,0x00,0x00,0x00, // byte 4 - 9: hardware password, ethernet address (?)
     0x00,0x00, // byte 10, 11: simm type and size (4 simms, 4 bits per simm), see bits in ni_simm above
     0x00,0x00, // byte 12, 13: adobe (?)
@@ -721,8 +734,17 @@ Uint8 nvram_default[32]={
 };
 
 void nvram_init(void) {
-    /* Reset RTC RAM to default values */
-    memcpy(rtc.ram, nvram_default, sizeof(nvram_default));
+    /* Reset RTC RAM */
+    memset(rtc.ram, 0, 32);
+    
+    /* Build configuration bytes */
+    Uint32 config = 0x94000000; /* reset = 9, allow eject = 1 */
+    config |= 0x3D<<14; /* brightness */
+    
+    rtc.ram[0] = config>>24;
+    rtc.ram[1] = config>>16;
+    rtc.ram[2] = config>>8;
+    rtc.ram[3] = config;
     
     /* Build boot command */
     switch (ConfigureParams.Boot.nBootDevice) {
@@ -761,9 +783,10 @@ void nvram_init(void) {
     Uint8 simm[4];
     Uint8 parity = 0xF0;
     if (ConfigureParams.System.bTurbo) {
+        parity = 0x00;
         for (i = 0; i<4; i++) {
             switch (MemBank_Size[i]>>20) {
-                case 0: simm[i] = SIMM_EMPTY; parity &= ~(0x10<<i); break;
+                case 0: simm[i] = SIMM_EMPTY; break;
                 case 2: simm[i] = SIMM_2MB_T; break;
                 case 8: simm[i] = SIMM_8MB_T; break;
                 case 32: simm[i] = SIMM_32MB_T; break;

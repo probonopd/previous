@@ -168,10 +168,10 @@ static void ConvertHighRes_640x8Bit(void)
 	}
     
 	if (ConfigureParams.System.bTurbo) {
-		for (y = 0; y < 624; y++)
+		for (y = 0; y < 832; y++)
 		{
 			adr=y*280;            
-			for (x = 0; x < 832; x+=4)
+			for (x = 0; x < 1120; x+=4)
 			{
                 if (buffer[adr]!=NEXTVideo[adr]) {
                         col=(NEXTVideo[adr]&0xC0)>>6;

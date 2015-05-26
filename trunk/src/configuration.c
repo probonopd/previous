@@ -155,10 +155,6 @@ static const struct Config_Tag configs_Sound[] =
 {
     { "bEnableMicrophone", Bool_Tag, &ConfigureParams.Sound.bEnableMicrophone },
   	{ "bEnableSound", Bool_Tag, &ConfigureParams.Sound.bEnableSound },
-  	{ "nPlaybackFreq", Int_Tag, &ConfigureParams.Sound.nPlaybackFreq },
-  	{ "nSdlAudioBufferSize", Int_Tag, &ConfigureParams.Sound.SdlAudioBufferSize },
-    { "szYMCaptureFileName", String_Tag, ConfigureParams.Sound.szYMCaptureFileName },
-//    { "YmVolumeMixing", Int_Tag, &ConfigureParams.Sound.YmVolumeMixing },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -387,29 +383,27 @@ void Configuration_SetDefault(void)
     ConfigureParams.Boot.bExtendedPot = false;
     
 	/* Set defaults for SCSI disks */
-    int target;
-    for (target = 0; target < ESP_MAX_DEVS; target++) {
-        strcpy(ConfigureParams.SCSI.target[target].szImageName, psWorkingDir);
-        ConfigureParams.SCSI.target[target].nDeviceType = DEVTYPE_NONE;
-        ConfigureParams.SCSI.target[target].bDiskInserted = false;
-        ConfigureParams.SCSI.target[target].bWriteProtected = false;
+    for (i = 0; i < ESP_MAX_DEVS; i++) {
+        strcpy(ConfigureParams.SCSI.target[i].szImageName, psWorkingDir);
+        ConfigureParams.SCSI.target[i].nDeviceType = DEVTYPE_NONE;
+        ConfigureParams.SCSI.target[i].bDiskInserted = false;
+        ConfigureParams.SCSI.target[i].bWriteProtected = false;
     }
     
     /* Set defaults for MO drives */
-    int drive;
-    for (drive = 0; drive < MO_MAX_DRIVES; drive++) {
-        strcpy(ConfigureParams.MO.drive[drive].szImageName, psWorkingDir);
-        ConfigureParams.MO.drive[drive].bDriveConnected = false;
-        ConfigureParams.MO.drive[drive].bDiskInserted = false;
-        ConfigureParams.MO.drive[drive].bWriteProtected = false;
+    for (i = 0; i < MO_MAX_DRIVES; i++) {
+        strcpy(ConfigureParams.MO.drive[i].szImageName, psWorkingDir);
+        ConfigureParams.MO.drive[i].bDriveConnected = false;
+        ConfigureParams.MO.drive[i].bDiskInserted = false;
+        ConfigureParams.MO.drive[i].bWriteProtected = false;
     }
     
     /* Set defaults for floppy drives */
-    for (drive = 0; drive < FLP_MAX_DRIVES; drive++) {
-        strcpy(ConfigureParams.Floppy.drive[drive].szImageName, psWorkingDir);
-        ConfigureParams.Floppy.drive[drive].bDriveConnected = false;
-        ConfigureParams.Floppy.drive[drive].bDiskInserted = false;
-        ConfigureParams.Floppy.drive[drive].bWriteProtected = false;
+    for (i = 0; i < FLP_MAX_DRIVES; i++) {
+        strcpy(ConfigureParams.Floppy.drive[i].szImageName, psWorkingDir);
+        ConfigureParams.Floppy.drive[i].bDriveConnected = false;
+        ConfigureParams.Floppy.drive[i].bDiskInserted = false;
+        ConfigureParams.Floppy.drive[i].bWriteProtected = false;
     }
     
     /* Set defaults for Ethernet */
@@ -497,11 +491,6 @@ void Configuration_SetDefault(void)
 	/* Set defaults for Sound */
     ConfigureParams.Sound.bEnableMicrophone = true;
 	ConfigureParams.Sound.bEnableSound = true;
-	ConfigureParams.Sound.nPlaybackFreq = 44100;
-	sprintf(ConfigureParams.Sound.szYMCaptureFileName, "%s%chatari.wav",
-	        psWorkingDir, PATHSEP);
-	ConfigureParams.Sound.SdlAudioBufferSize = 0;
-//  ConfigureParams.Sound.YmVolumeMixing = YM_TABLE_MIXING;
 
 	/* Set defaults for Rom */
     sprintf(ConfigureParams.Rom.szRom030FileName, "%s%cRev_1.0_v41.BIN",
@@ -647,7 +636,6 @@ void Configuration_Apply(bool bReset)
     }
     
 	File_MakeAbsoluteName(ConfigureParams.Memory.szMemoryCaptureFileName);
-	File_MakeAbsoluteName(ConfigureParams.Sound.szYMCaptureFileName);
 	if (strlen(ConfigureParams.Keyboard.szMappingFileName) > 0)
 		File_MakeAbsoluteName(ConfigureParams.Keyboard.szMappingFileName);
     File_MakeAbsoluteName(ConfigureParams.Video.AviRecordFile);
@@ -937,6 +925,10 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
     /* Ethernet options */
     MemorySnapShot_Store(&ConfigureParams.Ethernet.bEthernetConnected, sizeof(ConfigureParams.Ethernet.bEthernetConnected));
 
+    /* Sound options */
+    MemorySnapShot_Store(&ConfigureParams.Sound.bEnableSound, sizeof(ConfigureParams.Sound.bEnableSound));
+    MemorySnapShot_Store(&ConfigureParams.Sound.bEnableMicrophone, sizeof(ConfigureParams.Sound.bEnableMicrophone));
+    
     /* Monitor options */
 	MemorySnapShot_Store(&ConfigureParams.Screen.nMonitorType, sizeof(ConfigureParams.Screen.nMonitorType));
 	MemorySnapShot_Store(&ConfigureParams.Screen.bUseExtVdiResolutions, sizeof(ConfigureParams.Screen.bUseExtVdiResolutions));

@@ -1,6 +1,6 @@
 
 
-                                 Previous 0.7
+                                 Previous 0.8
 
 
                     http://previous.alternative-system.com/
@@ -104,7 +104,7 @@ CPU		good
 MMU		good
 FPU		good
 DSP		missing
-DMA		good (channels missing)
+DMA		good
 NeXTbus		missing
 Memory		good
 2-bit graphics	good
@@ -117,7 +117,7 @@ Floppy drive	good
 Ethernet	good
 Serial		missing
 Printer		missing
-Sound		missing
+Sound		partial (no microphone)
 Keyboard	good
 Mouse		good
 
@@ -127,7 +127,7 @@ There are remaining problems with the host to emulated machine interface for
 input devices, mainly keyboard.
 
 
-Known issues (version 0.7):
+Known issues (version 0.8):
 - Un-emulated hardware may cause problems in certain situations (see above).
 - The kernel sometimes hangs during the boot process after printing "root on"
   (this is called "root on hang"). NeXTstep 3.0 and later are affected.
@@ -137,6 +137,7 @@ Known issues (version 0.7):
 - The clock does not tick accurately. Real time clock power-on test may fail
   sporadically on fast host systems.
 - FPU only works on x86 hosts.
+- Quite a lot of sound output won't work because of missing DSP emulation.
 - Slirp: In certain conditions when doing large network transfers Slirp may crash.
 - Mac OS X: When minimizing and maximizing the application window the mouse
   gets unlocked and sometimes is clicking is ignored (SDL bug).

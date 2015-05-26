@@ -512,12 +512,12 @@ static void CustomApplicationMain (int argc, char **argv)
 - (IBAction)captureSound:(id)sender
 {
 	GuiOsx_Pause();
-	NSString* path = [self displayFileSelection:ConfigureParams.Sound.szYMCaptureFileName preferredFileName:@"hatari.wav" 
-								 allowedExtensions:[NSArray arrayWithObjects:@"ym", @"wav", nil]];
-	if(path) {
-		GuiOsx_ExportPathString(path, ConfigureParams.Sound.szYMCaptureFileName, sizeof(ConfigureParams.Sound.szYMCaptureFileName));
+//	NSString* path = [self displayFileSelection:ConfigureParams.Sound.szYMCaptureFileName preferredFileName:@"hatari.wav"
+//								 allowedExtensions:[NSArray arrayWithObjects:@"ym", @"wav", nil]];
+//	if(path) {
+//		GuiOsx_ExportPathString(path, ConfigureParams.Sound.szYMCaptureFileName, sizeof(ConfigureParams.Sound.szYMCaptureFileName));
 //		Sound_BeginRecording(ConfigureParams.Sound.szYMCaptureFileName);
-	}
+//	}
 	GuiOsx_Resume();
 }
 
