@@ -96,4 +96,14 @@ queueElementT QueueDelete(queueADT queue);
 int QueueIsEmpty(queueADT queue);
 int QueueIsFull(queueADT queue);
 
+
+/*
+ * Function: QueuePeek
+ * Usage: qeuesize = QueuePeek(queue) ...
+ * -----------------------------------
+ * This returns the number of elements currently
+ * stored in the queue.
+ */
+int QueuePeek(queueADT queue);
+
 #endif  /* not defined _QUEUE_H */
