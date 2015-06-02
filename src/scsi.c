@@ -347,7 +347,7 @@ void SCSI_Emulate_Command(Uint8 *cdb) {
                 case CMD_FORMAT_TRACK:
                 case CMD_CORRECTION:
                 default:
-                    Log_Printf(LOG_WARN, "SCSI command: Unknown Command\n");
+                    Log_Printf(LOG_WARN, "SCSI command: Unknown Command (%02X)\n",opcode);
                     SCSIdisk[target].status = STAT_CHECK_COND;
                     SCSIdisk[target].sense.code = SC_INVALID_CMD;
                     SCSIdisk[target].sense.valid = false;

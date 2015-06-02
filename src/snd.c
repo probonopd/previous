@@ -23,6 +23,7 @@ queueADT	sndout_q;
 
 /* Initialize the audio system */
 bool sndout_inited;
+bool sound_output_active = false;
 
 void sound_init(void) {
     snd_buffer.limit=SND_BUFFER_LIMIT;
@@ -47,6 +48,9 @@ void sound_uninit(void) {
 void Sound_Reset(void) {
     sound_uninit();
     sound_init();
+    if (sound_output_active && sndout_inited) {
+        Audio_Output_Enable(true);
+    }
 }
 
 
@@ -72,8 +76,6 @@ void snd_make_normal_samples(Uint8 *buf, int len);
 void snd_make_double_samples(Uint8 *buf, int len, bool repeat);
 void snd_adjust_volume_and_lowpass(Uint8 *buf, int len);
 void sndout_queue_put(Uint8 *buf, int len);
-
-bool sound_output_active = false;
 
 void snd_start_output(Uint8 mode) {
     sndout_state.mode = mode;
@@ -104,6 +106,7 @@ void snd_stop_output(void) {
 /* Sound IO loop (reads via DMA from memory to queue) */
 #define SND_DELAY   100000
 int old_size;
+int queue_size;
 
 void SND_IO_Handler(void) {
     CycInt_AcknowledgeInterrupt();
@@ -116,17 +119,22 @@ void SND_IO_Handler(void) {
         snd_buffer.size = 0;
         if (!sound_output_active)
             return;
-    } else if (QueuePeek(sndout_q)<4) {
-        if (snd_buffer.size==SND_BUFFER_LIMIT || snd_buffer.size==old_size) {
-            Log_Printf(LOG_SND_LEVEL, "[Sound] %i samples ready.",snd_buffer.size/4);
-            snd_buffer.limit = snd_buffer.size;
-            snd_send_samples();
-            snd_buffer.limit = SND_BUFFER_LIMIT;
-            snd_buffer.size = 0; /* Must be 0 */
+    } else {
+        Audio_Output_Lock();
+        queue_size = QueuePeek(sndout_q);
+        Audio_Output_Unlock();
+        if (queue_size<4) {
+            if (snd_buffer.size==SND_BUFFER_LIMIT || snd_buffer.size==old_size) {
+                Log_Printf(LOG_SND_LEVEL, "[Sound] %i samples ready.",snd_buffer.size/4);
+                snd_buffer.limit = snd_buffer.size;
+                snd_send_samples();
+                snd_buffer.limit = SND_BUFFER_LIMIT;
+                snd_buffer.size = 0; /* Must be 0 */
+            }
+            
+            if (!sound_output_active)
+                return;
         }
-
-        if (!sound_output_active)
-            return;
     } /* if queuepeek<4 */
     CycInt_AddRelativeInterrupt(SND_DELAY, INT_CPU_CYCLE, INTERRUPT_SND_IO);
 }

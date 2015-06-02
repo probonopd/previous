@@ -189,6 +189,8 @@ static void Screen_SetResolution(void)
 		}
 		
 		/* Set new video mode */
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "linear");
+
 		fprintf(stderr, "SDL screen request: %d x %d @ %d (%s)\n", Width, Height, BitCount, bInFullScreen?"fullscreen":"windowed");
 		sdlWindow = SDL_CreateWindow(PROG_NAME,
 		                             SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
@@ -384,8 +386,9 @@ void Screen_EnterFullScreen(void)
 		}
 		else
 		{
-			Screen_SetResolution();
-			Screen_ClearScreen();       /* Black out screen bitmap as will be invalid when return */
+            SDL_SetWindowFullscreen(sdlWindow, SDL_WINDOW_FULLSCREEN_DESKTOP);
+			//Screen_SetResolution();
+			//Screen_ClearScreen();       /* Black out screen bitmap as will be invalid when return */
 		}
 
 		SDL_Delay(20);                  /* To give monitor time to change to new resolution */
@@ -425,7 +428,8 @@ void Screen_ReturnFromFullScreen(void)
 		}
 		else
 		{
-			Screen_SetResolution();
+            SDL_SetWindowFullscreen(sdlWindow, 0);
+			//Screen_SetResolution();
 		}
 		SDL_Delay(20);                /* To give monitor time to switch resolution */
 

@@ -26,35 +26,9 @@ const char IoMemTabST_fileid[] = "Previous ioMemTabST.c : " __DATE__ " " __TIME_
 #include "kms.h"
 #include "ramdac.h"
 #include "floppy.h"
+#include "dsp.h"
 
 
-/* Functions to be moved to other places */
-void DSP_icr_Read(void);
-void DSP_icr_Write(void);
-
-static Uint32 DSP_icr=0;
-
-
-/* DSP registers - Work on this later */
-void DSP_icr_Read (void) {
-    Log_Printf(LOG_WARN, "[DSP] read val %d PC=%x %s at %d",DSP_icr,m68k_getpc(),__FILE__,__LINE__);
-    IoMem_WriteLong(IoAccessCurrentAddress & 0x1FFFF,0x7FFFFFFF);
-}
-
-void DSP_icr_Write (void) {
-    DSP_icr=IoMem_ReadLong(IoAccessCurrentAddress & 0x1FFFF);
-    Log_Printf(LOG_WARN, "[DSP] write val %d PC=%x %s at %d",DSP_icr,m68k_getpc(),__FILE__,__LINE__);
-}
-
-
-#define	P_VIDEO_CSR	(SLOT_ID+0x02000180)
-#define	P_M2R_CSR	(SLOT_ID+0x020001d0)
-#define	P_R2M_CSR	(SLOT_ID+0x020001c0)
-
-/* DMA scratch pad (writes MUST be 32-bit) */
-#define	P_VIDEO_SPAD	(SLOT_ID+0x02004180)
-#define	P_EVENT_SPAD	(SLOT_ID+0x0200418c)
-#define	P_M2M_SPAD	(SLOT_ID+0x020041e0)
 
 /*-----------------------------------------------------------------------*/
 /*
@@ -72,8 +46,14 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x02010000, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
     
     /* DSP (Motorola XSP56001) ? ADB on Turbo Systems ? */
-	{ 0x02008000, SIZE_LONG, DSP_icr_Read, DSP_icr_Write },
-    { 0x02008004, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+	{ 0x02008000, SIZE_BYTE, DSP_ICR_Read, DSP_ICR_Write },
+    { 0x02008001, SIZE_BYTE, DSP_CVR_Read, DSP_CVR_Write },
+    { 0x02008002, SIZE_BYTE, DSP_ISR_Read, DSP_ISR_Write },
+    { 0x02008003, SIZE_BYTE, DSP_IVR_Read, DSP_IVR_Write },
+    { 0x02008004, SIZE_BYTE, DSP_Data0_Read, DSP_Data0_Write },
+    { 0x02008005, SIZE_BYTE, DSP_Data1_Read, DSP_Data1_Write },
+    { 0x02008006, SIZE_BYTE, DSP_Data2_Read, DSP_Data2_Write },
+    { 0x02008007, SIZE_BYTE, DSP_Data3_Read, DSP_Data3_Write },
 
     /* ADB */
 	{ 0x02008008, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
@@ -145,6 +125,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[] =
     { 0x0200e003, SIZE_BYTE, KMS_Stat_Cmd_Read, KMS_Ctrl_Cmd_Write },
     { 0x0200e004, SIZE_LONG, KMS_Data_Read, KMS_Data_Write },
     { 0x0200e008, SIZE_LONG, KMS_KM_Data_Read, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x0200e00c, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 
     /* Printer Register */
     { 0x0200f000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },

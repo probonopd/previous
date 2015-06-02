@@ -99,16 +99,16 @@ static int tick_func(void *arg)
 
 void enet_slirp_queue_poll(void)
 {
+    SDL_LockMutex(slirp_mutex);
     if (QueuePeek(slirpq)>0)
     {
         struct queuepacket *qp;
-        SDL_LockMutex(slirp_mutex);
         qp=QueueDelete(slirpq);
         Log_Printf(LOG_WARN, "[SLIRP] Getting packet from queue");
         enet_receive(qp->data,qp->len);
-        SDL_UnlockMutex(slirp_mutex);
         free(qp);
     }
+    SDL_UnlockMutex(slirp_mutex);
 }
 
 void enet_slirp_input(Uint8 *pkt, int pkt_len) {

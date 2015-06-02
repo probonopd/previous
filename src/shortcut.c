@@ -23,6 +23,7 @@ const char ShortCut_fileid[] = "Hatari shortcut.c : " __DATE__ " " __TIME__;
 #include "debugui.h"
 #include "sdlgui.h"
 #include "video.h"
+#include "snd.h"
 #include "avi_record.h"
 #include "clocks_timings.h"
 
@@ -98,6 +99,9 @@ static void ShortCut_RecordAnimation(void)
  */
 static void ShortCut_SoundOnOff(void)
 {
+    ConfigureParams.Sound.bEnableSound = !ConfigureParams.Sound.bEnableSound;
+    
+    Sound_Reset();
 }
 
 
@@ -192,6 +196,7 @@ void ShortCut_ActKey(void)
 		Main_UnPauseEmulation();
 		Reset_Cold();                  /* Reset emulator with 'cold' (clear all) */
 		break;
+#if 0
 	 case SHORTCUT_WARMRESET:
 		Main_UnPauseEmulation();
 		Reset_Warm();                  /* Emulator 'warm' reset */
@@ -203,7 +208,7 @@ void ShortCut_ActKey(void)
 		ShortCut_BossKey();            /* Boss key */
 		break;
 	 case SHORTCUT_CURSOREMU:          /* Toggle joystick emu on/off */
-//		Joy_ToggleCursorEmulation();
+		Joy_ToggleCursorEmulation();
 		break;
 	 case SHORTCUT_FASTFORWARD:
 		ShortCut_FastForward();       /* Toggle Min/Max speed */
@@ -212,20 +217,24 @@ void ShortCut_ActKey(void)
 		ShortCut_RecordAnimation();    /* Record animation */
 		break;
 	 case SHORTCUT_RECSOUND:
-//		ShortCut_RecordSound();        /* Toggle sound recording */
+		ShortCut_RecordSound();        /* Toggle sound recording */
 		break;
+#endif
 	 case SHORTCUT_SOUND:
 		ShortCut_SoundOnOff();         /* Enable/disable sound */
 		break;
+#if 0
 	 case SHORTCUT_DEBUG:
 		ShortCut_Debug();              /* Invoke the Debug UI */
 		break;
+#endif
 	 case SHORTCUT_PAUSE:
 		ShortCut_Pause();              /* Invoke Pause */
 		break;
 	 case SHORTCUT_QUIT:
 		Main_RequestQuit();
 		break;
+#if 0
 	 case SHORTCUT_LOADMEM:
 		MemorySnapShot_Restore(ConfigureParams.Memory.szMemoryCaptureFileName, true);
 		break;
@@ -233,11 +242,13 @@ void ShortCut_ActKey(void)
 		MemorySnapShot_Capture(ConfigureParams.Memory.szMemoryCaptureFileName, true);
 		break;
 	 case SHORTCUT_INSERTDISKA:
-//		ShortCut_InsertDisk(0);
+		ShortCut_InsertDisk(0);
 		break;
+#endif
 	 case SHORTCUT_KEYS:
 	 case SHORTCUT_NONE:
 		/* ERROR: cannot happen, just make compiler happy */
+	 default:
 		break;
 	}
 	ShortCutKey = SHORTCUT_NONE;
@@ -321,7 +332,7 @@ int ShortCut_CheckKeys(int modkey, int symkey, bool press)
 	SHORTCUTKEYIDX key;
 
 #if defined(__APPLE__)
-    if (modkey&(KMOD_RALT|KMOD_LALT))
+    if ((modkey&(KMOD_RCTRL|KMOD_LCTRL)) && (modkey&(KMOD_RALT|KMOD_LALT)))
 #else
 	if (modkey & (KMOD_RALT|KMOD_LGUI|KMOD_RGUI|KMOD_MODE))
 #endif

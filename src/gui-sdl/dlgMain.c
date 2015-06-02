@@ -51,7 +51,7 @@ static SGOBJ maindlg[] =
 	{ SGBUTTON, 0, 0, 17,8, 16,1, "MO disks" },
 	{ SGBUTTON, 0, 0, 17,10, 16,1, "Floppy disks" },
 	{ SGBUTTON, 0, 0, 35,4, 13,1, "Ethernet" },
-	{ SGBUTTON, 0, 0, 35,6, 13,1, "(not yet)" },
+	{ SGBUTTON, 0, 0, 35,6, 13,1, "Keyboard" },
 	{ SGBUTTON, 0, 0, 35,8, 13,1, "Mouse" },
 	{ SGBUTTON, 0, 0, 35,10, 13,1, "Sound" },
 	{ SGBUTTON, 0, 0, 7,13, 16,1, "Load config." },
@@ -134,7 +134,7 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 			DlgBoot_Main();
 			break;
 		 case MAINDLG_KEYBD:
-//			Dialog_KeyboardDlg();
+			Dialog_KeyboardDlg();
 			break;
 		 case MAINDLG_MOUSE:
 			Dialog_MouseDlg();

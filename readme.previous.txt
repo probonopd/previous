@@ -1,6 +1,6 @@
 
 
-                                 Previous 0.8
+                                 Previous 0.9
 
 
                     http://previous.alternative-system.com/
@@ -124,21 +124,20 @@ Mouse		good
 The Turbo chipset is not emulated.
 
 There are remaining problems with the host to emulated machine interface for
-input devices, mainly keyboard.
+input devices.
 
 
-Known issues (version 0.8):
+Known issues (version 0.9):
 - Un-emulated hardware may cause problems in certain situations (see above).
 - The kernel sometimes hangs during the boot process after printing "root on"
   (this is called "root on hang"). NeXTstep 3.0 and later are affected.
 - The MO drive causes problems (mainly hangs) when both drives are used (disabled).
-- Keys are not mapped correctly depending on the host keyboard layout.
 - Shortcuts do not work properly or overlap with host commands on some platforms.
 - The clock does not tick accurately. Real time clock power-on test may fail
   sporadically on fast host systems.
 - FPU only works on x86 hosts.
 - Quite a lot of sound output won't work because of missing DSP emulation.
-- Slirp: In certain conditions when doing large network transfers Slirp may crash.
+- Slirp: In certain rare conditions Slirp may crash.
 - Mac OS X: When minimizing and maximizing the application window the mouse
   gets unlocked and sometimes is clicking is ignored (SDL bug).
 

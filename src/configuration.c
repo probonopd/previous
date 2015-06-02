@@ -411,7 +411,7 @@ void Configuration_SetDefault(void)
     
 	/* Set defaults for Keyboard */
 	ConfigureParams.Keyboard.bDisableKeyRepeat = false;
-	ConfigureParams.Keyboard.nKeymapType = KEYMAP_SYMBOLIC;
+	ConfigureParams.Keyboard.nKeymapType = KEYMAP_SCANCODE;
 	strcpy(ConfigureParams.Keyboard.szMappingFileName, "");
 
     /* Set defaults for Mouse */

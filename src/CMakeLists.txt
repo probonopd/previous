@@ -1,6 +1,6 @@
 set(SOURCES
-	audio.c bmap.c cfgopts.c clocks_timings.c configuration.c options.c  change.c
-	control.c cycInt.c cycles.c dialog.c dma.c esp.c enet_slirp.c ethernet.c
+	audio.c bmap.c cfgopts.c clocks_timings.c configuration.c options.c change.c
+	control.c cycInt.c cycles.c dialog.c dma.c dsp.c esp.c enet_slirp.c ethernet.c
 	file.c floppy.c ioMem.c ioMemTabNEXT.c memorySnapShot.c keymap.c kms.c
 	m68000.c main.c mo.c nextMemory.c paths.c queue.c ramdac.c resolution.c reset.c
     rs.c rtcnvram.c scandir.c scc.c screen.c screenSnapShot.c scsi.c shortcut.c

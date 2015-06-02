@@ -24,7 +24,7 @@ const char DlgEthernet_fileid[] = "Previous dlgEthernet.c : " __DATE__ " " __TIM
 static SGOBJ enetdlg[] =
 {
 	{ SGBOX, 0, 0, 0,0, 40,13, NULL },
-    { SGTEXT, 0, 0, 14,1, 16,1, "Ethernet options" },
+    { SGTEXT, 0, 0, 12,1, 16,1, "Ethernet options" },
 
 	{ SGBOX, 0, 0, 1,3, 38,5, NULL },
 	{ SGCHECKBOX, 0, 0, 4,5, 20,1, "Ethernet connected" },
