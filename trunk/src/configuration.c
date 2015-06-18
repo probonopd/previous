@@ -318,6 +318,7 @@ static const struct Config_Tag configs_System[] =
 	{ "bCompatibleCpu", Bool_Tag, &ConfigureParams.System.bCompatibleCpu },
 	{ "bBlitter", Bool_Tag, &ConfigureParams.System.bBlitter },
 	{ "nDSPType", Int_Tag, &ConfigureParams.System.nDSPType },
+	{ "bDSPMemoryExpansion", Bool_Tag, &ConfigureParams.System.bDSPMemoryExpansion },
 	{ "bRealTimeClock", Bool_Tag, &ConfigureParams.System.bRealTimeClock },
 	{ "bPatchTimerD", Bool_Tag, &ConfigureParams.System.bPatchTimerD },
 	{ "bFastForward", Bool_Tag, &ConfigureParams.System.bFastForward },
@@ -514,6 +515,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.System.bCompatibleCpu = true;
 	ConfigureParams.System.bBlitter = false;
 	ConfigureParams.System.nDSPType = DSP_TYPE_NONE;
+	ConfigureParams.System.bDSPMemoryExpansion = false;
 	ConfigureParams.System.bPatchTimerD = true;
 	ConfigureParams.System.bRealTimeClock = true;
 	ConfigureParams.System.bFastForward = false;
@@ -663,6 +665,8 @@ void Configuration_SetSystemDefaults(void) {
             ConfigureParams.System.nCpuLevel = 3;
             ConfigureParams.System.nCpuFreq = 25;
             ConfigureParams.System.n_FPUType = FPU_68882;
+            ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
+            ConfigureParams.System.bDSPMemoryExpansion = false;
             ConfigureParams.System.nSCSI = NCR53C90;
             ConfigureParams.System.nRTC = MC68HC68T1;
             ConfigureParams.System.bADB = false;
@@ -679,6 +683,8 @@ void Configuration_SetSystemDefaults(void) {
                 ConfigureParams.System.nRTC = MC68HC68T1;
             }
             ConfigureParams.System.n_FPUType = FPU_CPU;
+            ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
+            ConfigureParams.System.bDSPMemoryExpansion = true;
             ConfigureParams.System.nSCSI = NCR53C90A;
             ConfigureParams.System.bADB = false;
             break;
@@ -696,6 +702,8 @@ void Configuration_SetSystemDefaults(void) {
                 ConfigureParams.System.nRTC = MC68HC68T1;
             }
             ConfigureParams.System.n_FPUType = FPU_CPU;
+            ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
+            ConfigureParams.System.bDSPMemoryExpansion = true;
             ConfigureParams.System.nSCSI = NCR53C90A;
             ConfigureParams.System.bADB = false;
             break;
@@ -950,6 +958,7 @@ void Configuration_MemorySnapShot_Capture(bool bSave)
     
 	MemorySnapShot_Store(&ConfigureParams.System.bBlitter, sizeof(ConfigureParams.System.bBlitter));
 	MemorySnapShot_Store(&ConfigureParams.System.nDSPType, sizeof(ConfigureParams.System.nDSPType));
+	MemorySnapShot_Store(&ConfigureParams.System.bDSPMemoryExpansion, sizeof(ConfigureParams.System.bDSPMemoryExpansion));
 	MemorySnapShot_Store(&ConfigureParams.System.bRealTimeClock, sizeof(ConfigureParams.System.bRealTimeClock));
 	MemorySnapShot_Store(&ConfigureParams.System.bPatchTimerD, sizeof(ConfigureParams.System.bPatchTimerD));
     

@@ -142,6 +142,9 @@ extern char *Log_MatchTrace(const char *text, int state);
 #define TRACE_DSP_ALL		( TRACE_DSP_HOST_INTERFACE | TRACE_DSP_HOST_COMMAND | TRACE_DSP_HOST_SSI | TRACE_DSP_DISASM \
     | TRACE_DSP_DISASM_REG | TRACE_DSP_DISASM_MEM | TRACE_DSP_STATE | TRACE_DSP_INTERRUPT )
 
+/* Dummy for DSP */
+#define ExceptionDebugMask 0
+#define EXCEPT_DSP 0
 
 
 extern FILE *TraceFile;

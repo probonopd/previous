@@ -41,7 +41,7 @@ const char DlgMain_fileid[] = "Hatari dlgMain.c : " __DATE__ " " __TIME__;
 static SGOBJ maindlg[] =
 {
 	{ SGBOX, 0, 0, 0,0, 50,19, NULL },
-	{ SGTEXT, 0, 0, 5,1, 16,1, "Previous powered by Hatari - main menu" },
+	{ SGTEXT, 0, 0, 15,1, 20,1, "Previous - Main menu" },
 	{ SGBUTTON, 0, 0, 2,4, 13,1, "About" },
 	{ SGBUTTON, 0, 0, 2,6, 13,1, "System" },
 	{ SGBUTTON, 0, 0, 2,8, 13,1, "ROM" },

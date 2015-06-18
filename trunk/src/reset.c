@@ -25,6 +25,7 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
 #include "ethernet.h"
 #include "floppy.h"
 #include "snd.h"
+#include "dsp.h"
 
 
 /*-----------------------------------------------------------------------*/
@@ -44,17 +45,18 @@ static const char* Reset_ST(bool bCold)
 	}
 	CycInt_Reset();               /* Reset interrupts */
 	Video_Reset();                /* Reset video */
-    SCR_Reset();                  /* Reset System Control Registers */
-    nvram_init();                 /* Reset NVRAM */
-    SCSI_Reset();                 /* Reset SCSI disks */
-    MO_Reset();                   /* Reset MO disks */
-    Floppy_Reset();               /* Reset Floppy disks */
-    SCC_Reset();                  /* Reset SCC */
-    Ethernet_Reset(true);         /* Reset Ethernet */
-    Sound_Reset();                /* Reset Sound */
+	SCR_Reset();                  /* Reset System Control Registers */
+	nvram_init();                 /* Reset NVRAM */
+	SCSI_Reset();                 /* Reset SCSI disks */
+	MO_Reset();                   /* Reset MO disks */
+	Floppy_Reset();               /* Reset Floppy disks */
+	SCC_Reset();                  /* Reset SCC */
+	Ethernet_Reset(true);         /* Reset Ethernet */
+	Sound_Reset();                /* Reset Sound */
 	Screen_Reset();               /* Reset screen */
+	DSP_Reset();                  /* Reset DSP */
 	M68000_Reset(bCold);          /* Reset CPU */
-    DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */
+	DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */
 
 	return NULL;
 }

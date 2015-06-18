@@ -20,6 +20,7 @@
 #include "ethernet.h"
 #include "floppy.h"
 #include "snd.h"
+#include "dsp.h"
 #include "mmu_common.h"
 
 
@@ -898,6 +899,74 @@ void dma_m2m_write_memory(void) {
     CycInt_AddRelativeInterrupt(time/4, INT_CPU_CYCLE, INTERRUPT_R2M);
 }
 
+
+/* Channel DSP */
+#define LOG_DMA_DSP_LEVEL	LOG_DEBUG
+
+void dma_dsp_write_memory(Uint8 val) {
+	Log_Printf(LOG_DMA_DSP_LEVEL, "[DMA] Channel DSP: Write to memory at $%08x, %i bytes",
+			   dma[CHANNEL_DSP].next,dma[CHANNEL_DSP].limit-dma[CHANNEL_DSP].next);
+	
+	if (!(dma[CHANNEL_DSP].csr&DMA_ENABLE)) {
+		Log_Printf(LOG_WARN, "[DMA] Channel DSP: Error! DMA not enabled!");
+		return;
+	}
+	
+	TRY(prb) {
+		if (dma[CHANNEL_DSP].next<dma[CHANNEL_DSP].limit) {
+			NEXTMemory_WriteByte(dma[CHANNEL_DSP].next, val);
+			dma[CHANNEL_DSP].next++;
+		}
+	} CATCH(prb) {
+		Log_Printf(LOG_WARN, "[DMA] Channel DSP: Bus error while writing to %08x",dma[CHANNEL_DSP].next);
+		dma[CHANNEL_DSP].csr &= ~DMA_ENABLE;
+		dma[CHANNEL_DSP].csr |= (DMA_COMPLETE|DMA_BUSEXC);
+	} ENDTRY
+	
+	if (dma[CHANNEL_DSP].next==dma[CHANNEL_DSP].limit) {
+		DSP_SetIRQB();
+		dma_interrupt(CHANNEL_DSP);
+	}
+}
+
+Uint8 dma_dsp_read_memory(void) {
+	Uint8 val = 0;
+	
+	Log_Printf(LOG_DMA_DSP_LEVEL, "[DMA] Channel DSP: Read from memory at $%08x, %i bytes",
+			   dma[CHANNEL_DSP].next,dma[CHANNEL_DSP].limit-dma[CHANNEL_DSP].next);
+	
+	if (!(dma[CHANNEL_DSP].csr&DMA_ENABLE)) {
+		Log_Printf(LOG_WARN, "[DMA] Channel DSP: Error! DMA not enabled!");
+		return val;
+	}
+	
+	TRY(prb) {
+		if (dma[CHANNEL_DSP].next<dma[CHANNEL_DSP].limit) {
+			val = NEXTMemory_ReadByte(dma[CHANNEL_DSP].next);
+			dma[CHANNEL_DSP].next++;
+		}
+	} CATCH(prb) {
+		Log_Printf(LOG_WARN, "[DMA] Channel DSP: Bus error while writing to %08x",dma[CHANNEL_DSP].next);
+		dma[CHANNEL_DSP].csr &= ~DMA_ENABLE;
+		dma[CHANNEL_DSP].csr |= (DMA_COMPLETE|DMA_BUSEXC);
+	} ENDTRY
+	
+	if (dma[CHANNEL_DSP].next==dma[CHANNEL_DSP].limit) {
+		DSP_SetIRQB();
+		dma_interrupt(CHANNEL_DSP);
+	}
+	return val;
+}
+
+bool dma_dsp_ready(void) {
+	if (!(dma[CHANNEL_DSP].csr&DMA_ENABLE) ||
+		!(dma[CHANNEL_DSP].next<dma[CHANNEL_DSP].limit)) {
+		Log_Printf(LOG_DEBUG, "[DMA] Channel DSP: Not ready!");
+		return false;
+	} else {
+		return true;
+	}
+}
 
 
 /* ---------------------- DMA Scratchpad ---------------------- */

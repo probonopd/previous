@@ -88,6 +88,13 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
         printf("fpu type reset\n");
         return true;
     }
+	
+	/* Did we change DSP type or memory? */
+	if ((current->System.nDSPType != changed->System.nDSPType) ||
+		(current->System.bDSPMemoryExpansion != changed->System.bDSPMemoryExpansion)) {
+		printf("dsp type reset\n");
+		return true;
+	}
 
     /* Did we change SCSI controller? */
     if (current->System.nSCSI != changed->System.nSCSI) {

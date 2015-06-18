@@ -49,6 +49,8 @@
 void set_interrupt(Uint32 intr, Uint8 state);
 int get_interrupt_level(void);
 
+void set_dsp_interrupt(Uint8 state);
+
 void SID_Read(void);
 
 void SCR_Reset(void);

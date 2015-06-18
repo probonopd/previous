@@ -8,6 +8,7 @@
 #include "configuration.h"
 #include "sysdeps.h"
 #include "m68000.h"
+#include "dsp.h"
 #include "sysReg.h"
 #include "rtcnvram.h"
 #include "statusbar.h"
@@ -268,16 +269,26 @@ void TurboSCR1_Read3(void) {
  
  */
 
+/* byte 0 */
+#define SCR2_DSP_RESET      0x80
+#define SCR2_DSP_BLK_END    0x40
+#define SCR2_DSP_UNPKD      0x20
+#define SCR2_DSP_MODE_B     0x10
+#define SCR2_DSP_MODE_A     0x08
 #define SCR2_SOFTINT2		0x02
 #define SCR2_SOFTINT1		0x01
 
+/* byte 2 */
 #define SCR2_TIMERIPL7		0x80
 #define SCR2_RTDATA		0x04
 #define SCR2_RTCLK		0x02
 #define SCR2_RTCE		0x01
 
-#define SCR2_LED		0x01
+/* byte 3 */
 #define SCR2_ROM		0x80
+#define SCR2_DSP_INT_EN 0x40
+#define SCR2_DSP_MEM_EN 0x20
+#define SCR2_LED		0x01
 
 
 void SCR2_Write0(void)
@@ -303,6 +314,29 @@ void SCR2_Write0(void)
 		else
 			set_interrupt(INT_SOFT2,RELEASE_INT);
 	}
+    
+    /* DSP bits */
+    if (scr2_0&SCR2_DSP_MODE_A) {
+        Log_Printf(LOG_WARN,"[SCR2] DSP Mode A");
+    }
+    if (scr2_0&SCR2_DSP_MODE_B) {
+        Log_Printf(LOG_WARN,"[SCR2] DSP Mode B");
+    }
+    if (!(scr2_0&SCR2_DSP_RESET) && (old_scr2_0&SCR2_DSP_RESET)) {
+        Log_Printf(LOG_WARN,"[SCR2] DSP Reset");
+        DSP_Reset();
+    } else if ((scr2_0&SCR2_DSP_RESET) && !(old_scr2_0&SCR2_DSP_RESET)) {
+        Log_Printf(LOG_WARN,"[SCR2] DSP Start (mode %i)",(~(scr2_0>>3))&3);
+        DSP_Start((~(scr2_0>>3))&3);
+    }
+	dsp_intr_at_block_end = scr2_0&SCR2_DSP_BLK_END;
+    if ((old_scr2_0&SCR2_DSP_BLK_END) != (scr2_0&SCR2_DSP_BLK_END)) {
+        Log_Printf(LOG_WARN,"[SCR2] %s DSP interrupt from DMA at block end",dsp_intr_at_block_end?"Enable":"Disable");
+    }
+	dsp_dma_unpacked = scr2_0&SCR2_DSP_UNPKD;
+    if ((old_scr2_0&SCR2_DSP_UNPKD) != (scr2_0&SCR2_DSP_UNPKD)) {
+        Log_Printf(LOG_WARN,"[SCR2] %s DSP DMA unpacked mode",dsp_dma_unpacked?"Enable":"Disable");
+    }
 }
 
 void SCR2_Read0(void)
@@ -368,6 +402,18 @@ void SCR2_Write3(void)
                    IoAccessCurrentAddress,scr2_3&SCR2_LED,m68k_getpc());
         Statusbar_SetSystemLed(scr2_3&SCR2_LED);
     }
+    
+    if ((old_scr2_3&SCR2_DSP_INT_EN) != (scr2_3&SCR2_DSP_INT_EN)) {
+        Log_Printf(LOG_WARN,"[SCR2] DSP interrupt at level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
+		if (intStat&(INT_DSP_L3|INT_DSP_L4)) {
+			Log_Printf(LOG_WARN,"[SCR2] Switching DSP interrupt to level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
+			set_interrupt(INT_DSP_L3|INT_DSP_L4, RELEASE_INT);
+			set_dsp_interrupt(SET_INT);
+		}
+    }
+    if ((old_scr2_3&SCR2_DSP_MEM_EN) != (scr2_3&SCR2_DSP_MEM_EN)) {
+        Log_Printf(LOG_WARN,"[SCR2] %s DSP memory",(scr2_3&SCR2_DSP_MEM_EN)?"Enable":"Disable");
+    }
 }
 
 
@@ -387,6 +433,17 @@ void IntRegStatRead(void) {
 
 void IntRegStatWrite(void) {
     intStat = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
+}
+
+void set_dsp_interrupt(Uint8 state) {
+    Uint32 intr;
+    
+    if (scr2_3&SCR2_DSP_INT_EN) {
+        intr = INT_DSP_L4;
+    } else {
+        intr = INT_DSP_L3;
+    }
+    set_interrupt(intr, state);
 }
 
 void set_interrupt(Uint32 intr, Uint8 state) {

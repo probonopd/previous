@@ -1,12 +1,12 @@
 /*
-  Hatari - dlgAbout.c
+  Previous - dlgAbout.c
 
   This file is distributed under the GNU Public License, version 2 or at
   your option any later version. Read the file gpl.txt for details.
 
   Show information about the program and its license.
 */
-const char DlgAbout_fileid[] = "Hatari dlgAbout.c : " __DATE__ " " __TIME__;
+const char DlgAbout_fileid[] = "Previous dlgAbout.c : " __DATE__ " " __TIME__;
 
 #include "main.h"
 #include "dialog.h"
@@ -16,24 +16,22 @@ const char DlgAbout_fileid[] = "Hatari dlgAbout.c : " __DATE__ " " __TIME__;
 /* The "About"-dialog: */
 static SGOBJ aboutdlg[] =
 {
-	{ SGBOX, 0, 0, 0,0, 40,25, NULL },
-	{ SGTEXT, 0, 0, 13,1, 12,1, PROG_NAME },
-	{ SGTEXT, 0, 0, 13,2, 12,1, "==============" },
-	{ SGTEXT, 0, 0, 1,4, 38,1, "Written by the Previous Team." },
-	{ SGTEXT, 0, 0, 1,5, 38,1, "Derived from Hatari by Thomas Huth." },
-	{ SGTEXT, 0, 0, 1,7, 38,1, "Please see the readme for more info!" },
-	{ SGTEXT, 0, 0, 1,9, 38,1, "This program is free software; you can" },
-	{ SGTEXT, 0, 0, 1,10, 38,1, "redistribute it and/or modify it under" },
-	{ SGTEXT, 0, 0, 1,11, 38,1, "the terms of the GNU General Public" },
-	{ SGTEXT, 0, 0, 1,12, 38,1, "License as published by the Free Soft-" },
-	{ SGTEXT, 0, 0, 1,13, 38,1, "ware Foundation; either version 2 of" },
-	{ SGTEXT, 0, 0, 1,14, 38,1, "the License, or (at your option) any" },
-	{ SGTEXT, 0, 0, 1,15, 38,1, "later version." },
-	{ SGTEXT, 0, 0, 1,17, 38,1, "This program is distributed in the" },
-	{ SGTEXT, 0, 0, 1,18, 38,1, "hope that it will be useful, but" },
-	{ SGTEXT, 0, 0, 1,19, 38,1, "WITHOUT ANY WARRANTY. See the GNU Ge-" },
-	{ SGTEXT, 0, 0, 1,20, 38,1, "neral Public License for more details." },
-	{ SGBUTTON, SG_DEFAULT, 0, 16,23, 8,1, "OK" },
+	{ SGBOX, 0, 0, 0,0, 56,22, NULL },
+	{ SGTEXT, 0, 0, 21,1, 12,1, PROG_NAME },
+	{ SGTEXT, 0, 0, 21,2, 12,1, "==============" },
+	{ SGTEXT, 0, 0, 1,4, 38,1, "Previous emulates NeXT computer systems. Is is derived" },
+	{ SGTEXT, 0, 0, 1,5, 38,1, "from Hatari. This application is the work of many." },
+	{ SGTEXT, 0, 0, 1,6, 38,1, "It was only possible with the help of the community at" },
+	{ SGTEXT, 0, 0, 1,7, 38,1, "the NeXT International forums (www.nextcomputers.org)." },
+	{ SGTEXT, 0, 0, 1,9, 38,1, "This program is free software; you can redistribute it" },
+	{ SGTEXT, 0, 0, 1,10, 38,1, "and/or modify it under the terms of the GNU General" },
+	{ SGTEXT, 0, 0, 1,11, 38,1, "Public License as published by the Free Software" },
+	{ SGTEXT, 0, 0, 1,12, 38,1, "Foundation; either version 2 of the license, or (at" },
+	{ SGTEXT, 0, 0, 1,13, 38,1, "your option) any later version." },
+	{ SGTEXT, 0, 0, 1,15, 38,1, "This program is distributed in the hope that it will" },
+	{ SGTEXT, 0, 0, 1,16, 38,1, "be useful, but WITHOUT ANY WARRANTY." },
+	{ SGTEXT, 0, 0, 1,17, 38,1, "See the GNU General Public License for more details." },
+	{ SGBUTTON, SG_DEFAULT, 0, 24,20, 8,1, "OK" },
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 

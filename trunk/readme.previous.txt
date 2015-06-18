@@ -1,6 +1,6 @@
 
 
-                                 Previous 0.9
+                                 Previous 1.0
 
 
                     http://previous.alternative-system.com/
@@ -92,18 +92,14 @@ by typing "make". If all works fine, you'll get the executable "Previous" in
 the src/ subdirectory of the build tree.
 
 
- 4) Known problems
- -----------------
+ 4) Status
+ ---------
 
-WARNING:
-This is software in an early development state. Always make sure you only work 
-on copies of your images or other data. There is a risk of data loss.
-
-Previous is still work in progress. Some hardware is not yet emulated. Status:
+Previous is still work in progress. Some hardware is not yet emulated:
 CPU		good
 MMU		good
 FPU		good
-DSP		missing
+DSP		buggy
 DMA		good
 NeXTbus		missing
 Memory		good
@@ -127,7 +123,9 @@ There are remaining problems with the host to emulated machine interface for
 input devices.
 
 
-Known issues (version 0.9):
+ 5) Known issues
+ ---------------
+
 - Un-emulated hardware may cause problems in certain situations (see above).
 - The kernel sometimes hangs during the boot process after printing "root on"
   (this is called "root on hang"). NeXTstep 3.0 and later are affected.
@@ -136,13 +134,19 @@ Known issues (version 0.9):
 - The clock does not tick accurately. Real time clock power-on test may fail
   sporadically on fast host systems.
 - FPU only works on x86 hosts.
-- Quite a lot of sound output won't work because of missing DSP emulation.
 - Slirp: In certain rare conditions Slirp may crash.
 - Mac OS X: When minimizing and maximizing the application window the mouse
   gets unlocked and sometimes is clicking is ignored (SDL bug).
 
 
- 5) Running Previous
+ 6) Release notes
+ ----------------
+
+  Previous v1.0:
+  > Initial release.
+
+
+ 7) Running Previous
  -------------------
 
 For running the emulator, you need an image of the boot ROM of the emulated 
@@ -153,7 +157,7 @@ pressing F12, toggle between fullscreen and windowed mode by pressing F11
 and initiate a clean shut down by pressing F10 (emulates the power button).
 
 
- 6) Contributors
+ 8) Contributors
  ---------------
 
 Many thanks go to the members of the NeXT International Forums for their
@@ -163,7 +167,7 @@ and Peter Leonard!
 This emulator would not exist without their help.
 
 
- 7) Contact
+ 9) Contact
  ----------
 
 If you want to contact the authors of Previous, please have a look at the 
