@@ -197,7 +197,7 @@ bool	DSP_ProcessIRQ(void)
 void DSP_Init(void)
 {
 #if ENABLE_DSP_EMU
-	if (bDspEnabled || ConfigureParams.System.nDSPType != DSP_TYPE_EMU)
+	if (bDspEnabled)
 		return;
 	dsp_core_init(DSP_HandleHREQ);
 	dsp56k_init_cpu();
