@@ -332,6 +332,7 @@ typedef struct
   MACHINETYPE nMachineType;
   bool bBlitter;                  /* TRUE if Blitter is enabled */
   DSPTYPE nDSPType;               /* how to "emulate" DSP */
+  bool bDSPMemoryExpansion;
   bool bRealTimeClock;
   bool bPatchTimerD;
   bool bFastForward;

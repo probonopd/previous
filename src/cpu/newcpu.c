@@ -25,6 +25,7 @@
 #include "cpu_prefetch.h"
 #include "main.h"
 #include "m68000.h"
+#include "dsp.h"
 #include "reset.h"
 #include "cycInt.h"
 #include "mfp.h"
@@ -2494,6 +2495,8 @@ insretry:
 			}
 
 			mmu030_opcode = -1;
+            
+			DSP_Run(cpu_cycles * 2 / CYCLE_UNIT);
 
 			M68000_AddCycles(cpu_cycles * 2 / CYCLE_UNIT);
 
@@ -2581,6 +2584,8 @@ static void m68k_run_mmu040 (void)
 			mmu_opcode = opcode = x_prefetch (0);
 			count_instr (opcode);
 			cpu_cycles = (*cpufunctbl[opcode])(opcode);
+
+			DSP_Run(cpu_cycles * 4 / CYCLE_UNIT);
 
 			M68000_AddCycles(cpu_cycles * 2 / CYCLE_UNIT);
 

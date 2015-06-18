@@ -17,6 +17,9 @@ enum {
 	DEBUGGER_CMDDONE   // Command done
 };
 
+/* Dummy for DSP */
+#define REASON_DSP_EXCEPTION
+
 /* Whether CPU exceptions invoke DebugUI */
 extern int bExceptionDebugging;
 

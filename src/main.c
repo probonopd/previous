@@ -37,6 +37,7 @@ const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 #include "debugui.h"
 #include "clocks_timings.h"
 #include "file.h"
+#include "dsp.h"
 
 #include "hatari-glue.h"
 
@@ -565,7 +566,7 @@ static void Main_Init(void)
 	Screen_Init();
 	Main_SetTitle(NULL);
 //	HostScreen_Init();
-//	DSP_Init();
+	DSP_Init();
 //	Floppy_Init();
 	M68000_Init();                /* Init CPU emulation */
 //	Audio_Init();

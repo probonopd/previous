@@ -75,12 +75,15 @@ static enum {
 static SDL_Rect SystemLedRect;
 static bool bOldSystemLed;
 
+static SDL_Rect DspLedRect;
+static bool bOldDspLed;
+
 /* led colors */
-static Uint32 LedColorOn, LedColorOff, SysColorOn, SysColorOff;
+static Uint32 LedColorOn, LedColorOff, SysColorOn, SysColorOff, DspColorOn, DspColorOff;
 static Uint32 GrayBg, LedColorBg;
 
 
-#define MAX_MESSAGE_LEN 76 /* changed for Previous, was 50 */
+#define MAX_MESSAGE_LEN 72 /* changed for Previous, was 50 */
 typedef struct msg_item {
 	struct msg_item *next;
 	char msg[MAX_MESSAGE_LEN+1];
@@ -162,12 +165,17 @@ void Statusbar_BlinkLed(drive_index_t drive)
 
 /*-----------------------------------------------------------------------*/
 /**
- * Set system led state, anything enabling led with this
+ * Set system and dsp led state, anything enabling led with this
  * needs also to take care of disabling it.
  */
 void Statusbar_SetSystemLed(bool state)
 {
-        bOldSystemLed = state;
+	bOldSystemLed = state;
+}
+
+void Statusbar_SetDspLed(bool state)
+{
+	bOldDspLed = state;
 }
 
 
@@ -217,6 +225,8 @@ void Statusbar_Init(SDL_Surface *surf)
 	LedColorBg  = SDL_MapRGB(surf->format, 0x00, 0x00, 0x00);
 	SysColorOff = SDL_MapRGB(surf->format, 0x40, 0x00, 0x00);
 	SysColorOn  = SDL_MapRGB(surf->format, 0xe0, 0x00, 0x00);
+	DspColorOff = SDL_MapRGB(surf->format, 0x00, 0x00, 0x40);
+	DspColorOn  = SDL_MapRGB(surf->format, 0x00, 0x00, 0xe0);
 	GrayBg      = SDL_MapRGB(surf->format, 0xb5, 0xb7, 0xaa);
 
 	/* disable leds */
@@ -310,8 +320,17 @@ void Statusbar_Init(SDL_Surface *surf)
 	for (item = MessageList; item; item = item->next) {
 		item->shown = false;
 	}
+	
+	/* draw dsp led box */
+	DspLedRect = LedRect;
+	DspLedRect.x = surf->w - 8*fontw - DspLedRect.w;
+	ledbox.x = DspLedRect.x - 1;
+	SDLGui_Text(ledbox.x - 4*fontw - fontw/2, MessageRect.y, "DSP:");
+	SDL_FillRect(surf, &ledbox, LedColorBg);
+	SDL_FillRect(surf, &DspLedRect, DspColorOff);
+	bOldSystemLed = false;
 
-	/* draw recording led box */
+	/* draw system led box */
 	SystemLedRect = LedRect;
 	SystemLedRect.x = surf->w - fontw - SystemLedRect.w;
 	ledbox.x = SystemLedRect.x - 1;
@@ -639,6 +658,16 @@ void Statusbar_Update(SDL_Surface *surf)
 	}
 
 	Statusbar_ShowMessage(surf, currentticks);
+
+	/* Draw dsp LED */
+	if (bOldDspLed) {
+		color = DspColorOn;
+	} else {
+		color = DspColorOff;
+	}
+	SDL_FillRect(surf, &DspLedRect, color);
+	SDL_UpdateRects(surf, 1, &DspLedRect);
+	DEBUGPRINT(("DSP LED = ON\n"));
 
     /* Draw scr2 LED */
     if (bOldSystemLed) {

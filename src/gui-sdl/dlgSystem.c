@@ -24,16 +24,17 @@ const char DlgSystem_fileid[] = "Previous dlgSystem.c : " __DATE__ " " __TIME__;
 #define DLGSYS_CUSTOMIZE  10
 #define DLGSYS_RESET      11
 
-#define DLGSYS_EXIT       27
+#define DLGSYS_EXIT       30
 
 /* Variable strings */
 char cpu_type[16] = "68030";
 char cpu_clock[16] = "25 MHz";
 char fpu_type[16] = "68882";
-char memory_size[16] = "8 MB";
+char dsp_type[16] = "56001";
+char dsp_memory[16] = "24 kB";
+char main_memory[16] = "8 MB";
 char scsi_controller[16] = "NCR53C90";
 char rtc_chip[16] = "MC68HC68T1";
-char emulate_adb[16] = " ";
 
 /* Additional functions */
 void print_system_overview(void);
@@ -47,14 +48,14 @@ static SGOBJ systemdlg[] =
 {
 #if GUI_TURBO
     { SGBOX, 0, 0, 0,0, 58,27, NULL },
- 	{ SGTEXT, 0, 0, 22,1, 14,1, "System options" },
+    { SGTEXT, 0, 0, 22,1, 14,1, "System options" },
     
- 	{ SGBOX, 0, 0, 2,3, 25,17, NULL },
- 	{ SGTEXT, 0, 0, 3,4, 14,1, "Machine type" },
- 	{ SGRADIOBUT, 0, 0, 5,6, 15,1, "NeXT Computer" },
+    { SGBOX, 0, 0, 2,3, 25,17, NULL },
+    { SGTEXT, 0, 0, 3,4, 14,1, "Machine type" },
+    { SGRADIOBUT, 0, 0, 5,6, 15,1, "NeXT Computer" },
     { SGRADIOBUT, 0, 0, 5,8, 10,1, "NeXTcube" },
     { SGCHECKBOX, 0, 0, 7,9, 7,1, "Turbo" },
- 	{ SGRADIOBUT, 0, 0, 5,11, 13,1, "NeXTstation" },
+    { SGRADIOBUT, 0, 0, 5,11, 13,1, "NeXTstation" },
     { SGCHECKBOX, 0, 0, 7,12, 7,1, "Turbo" },
     { SGCHECKBOX, 0, 0, 7,13, 7,1, "Color" },
     
@@ -76,31 +77,34 @@ static SGOBJ systemdlg[] =
     { SGBUTTON, 0, 0, 5,14, 19,1, "Customize" },
     { SGBUTTON, 0, 0, 5,16, 19,1, "System defaults" },
 #endif
- 	{ SGTEXT, 0, 0, 30,4, 13,1, "System overview:" },
-    { SGTEXT, 0, 0, 30,6, 13,1, "CPU type:" },
-    { SGTEXT, 0, 0, 44,6, 13,1, cpu_type },
-    { SGTEXT, 0, 0, 30,7, 13,1, "CPU clock:" },
-    { SGTEXT, 0, 0, 44,7, 13,1, cpu_clock },
+    { SGTEXT, 0, 0, 30,4, 13,1, "System overview:" },
+    { SGTEXT, 0, 0, 30,6, 13,1, "CPU clock:" },
+    { SGTEXT, 0, 0, 44,6, 13,1, cpu_clock },
+    { SGTEXT, 0, 0, 30,7, 13,1, "CPU type:" },
+    { SGTEXT, 0, 0, 44,7, 13,1, cpu_type },
     { SGTEXT, 0, 0, 30,8, 13,1, "FPU type:" },
     { SGTEXT, 0, 0, 44,8, 13,1, fpu_type },
-    { SGTEXT, 0, 0, 30,9, 13,1, "Memory size:" },
-    { SGTEXT, 0, 0, 44,9, 13,1, memory_size },
-    { SGTEXT, 0, 0, 30,10, 13,1, "SCSI chip:" },
-    { SGTEXT, 0, 0, 44,10, 13,1, scsi_controller },
-    { SGTEXT, 0, 0, 30,11, 13,1, "RTC chip:" },
-    { SGTEXT, 0, 0, 44,11, 13,1, rtc_chip },
-    { SGTEXT, 0, 0, 30,13, 13,1, emulate_adb },
+    { SGTEXT, 0, 0, 30,9, 13,1, "DSP type:" },
+    { SGTEXT, 0, 0, 44,9, 13,1, dsp_type },
+    { SGTEXT, 0, 0, 30,10, 13,1, "DSP memory:" },
+    { SGTEXT, 0, 0, 44,10, 13,1, dsp_memory },
+    { SGTEXT, 0, 0, 30,11, 13,1, "Main memory:" },
+    { SGTEXT, 0, 0, 44,11, 13,1, main_memory },
+    { SGTEXT, 0, 0, 30,12, 13,1, "SCSI chip:" },
+    { SGTEXT, 0, 0, 44,12, 13,1, scsi_controller },
+    { SGTEXT, 0, 0, 30,13, 13,1, "RTC chip:" },
+    { SGTEXT, 0, 0, 44,13, 13,1, rtc_chip },
 #if GUI_TURBO
     { SGTEXT, 0, 0, 4,21, 13,1, "Changing machine type resets all advanced options." },
     
- 	{ SGBUTTON, SG_DEFAULT, 0, 18,24, 21,1, "Back to main menu" },
+    { SGBUTTON, SG_DEFAULT, 0, 18,24, 21,1, "Back to main menu" },
 #else
     { SGTEXT, 0, 0, 4,19, 13,1, "Changing machine type resets all advanced options." },
     
     { SGBUTTON, SG_DEFAULT, 0, 18,22, 21,1, "Back to main menu" },
 #endif
- 	{ -1, 0, 0, 0,0, 0,0, NULL }
- };
+    { -1, 0, 0, 0,0, 0,0, NULL }
+};
 
 
 /* Function to print system overview */
@@ -124,7 +128,9 @@ void print_system_overview(void) {
     
     sprintf(cpu_clock, "%i MHz", ConfigureParams.System.nCpuFreq);
     
-    sprintf(memory_size, "%i MB", Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
+    sprintf(main_memory, "%i MB", Configuration_CheckMemory(ConfigureParams.Memory.nMemoryBankSize));
+    
+    sprintf(dsp_memory, "%i kB", ConfigureParams.System.bDSPMemoryExpansion?96:24);
     
     switch (ConfigureParams.System.n_FPUType) {
         case FPU_NONE:
@@ -135,6 +141,16 @@ void print_system_overview(void) {
             sprintf(fpu_type, "68882"); break;
         case FPU_CPU:
             sprintf(fpu_type, "68040"); break;
+        default: break;
+    }
+    
+    switch (ConfigureParams.System.nDSPType) {
+        case DSP_TYPE_NONE:
+        case DSP_TYPE_DUMMY:
+            sprintf(dsp_type, "none"); break;
+        case DSP_TYPE_EMU:
+            sprintf(dsp_type, "56001"); break;
+            
         default: break;
     }
     
@@ -153,11 +169,6 @@ void print_system_overview(void) {
             sprintf(rtc_chip, "MCCS1850"); break;
         default: break;
     }
-    
-    if (ConfigureParams.System.bADB)
-        sprintf(emulate_adb, "ADB emulated");
-    else
-        sprintf(emulate_adb, " ");
     
     update_system_selection();
 }
