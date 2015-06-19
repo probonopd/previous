@@ -514,7 +514,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.System.nCpuFreq = 25;
 	ConfigureParams.System.bCompatibleCpu = true;
 	ConfigureParams.System.bBlitter = false;
-	ConfigureParams.System.nDSPType = DSP_TYPE_NONE;
+	ConfigureParams.System.nDSPType = DSP_TYPE_EMU;
 	ConfigureParams.System.bDSPMemoryExpansion = false;
 	ConfigureParams.System.bPatchTimerD = true;
 	ConfigureParams.System.bRealTimeClock = true;
