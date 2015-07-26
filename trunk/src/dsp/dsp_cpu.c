@@ -779,8 +779,6 @@ void dsp56k_execute_instruction(void)
 	/* Trace Interrupt at end of instruction? */
 	if (dsp_core.registers[DSP_REG_SR] & (1<<DSP_SR_T)) {
 		dsp_set_interrupt(DSP_INTER_TRACE, 1);
-	} else {
-		dsp_set_interrupt(DSP_INTER_TRACE, 0);
 	}
 	
 	/* Decode and execute current instruction */
