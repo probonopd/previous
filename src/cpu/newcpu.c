@@ -3554,7 +3554,7 @@ void exception2 (uaecptr addr, bool read, int size, uae_u32 fc)
 			uae_u32 flags = size == 1 ? MMU030_SSW_SIZE_B : (size == 2 ? MMU030_SSW_SIZE_W : MMU030_SSW_SIZE_L);
 			mmu030_page_fault (addr, read, flags, fc);
 		} else {
-			mmu_bus_error (addr, fc, read == false, size, false, 0);
+			mmu_bus_error (addr, fc, read == false, size, false, 0, true);
 		}
 	} else {
 		// simple version
@@ -3589,13 +3589,13 @@ void cpureset (void)
 	}
 	pc = m68k_getpc ();
 	if (pc >= currprefs.chipmem_size) {
-		addrbank *b = &get_mem_bank (pc);
-		if (b->check (pc, 2 + 2)) {
+//		addrbank *b = &get_mem_bank (pc);
+//		if (b->check (pc, 2 + 2)) {
 			/* We have memory, hope for the best.. */
 //			customreset (0);
-			customreset ();
-			return;
-		}
+//			customreset ();
+//			return;
+//		}
 		write_log ("M68K RESET PC=%x, rebooting..\n", pc);
 //		customreset (0);
 		customreset ();

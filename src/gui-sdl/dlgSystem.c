@@ -42,7 +42,7 @@ void update_system_selection(void);
 void get_default_values(void);
 
 
-#define GUI_TURBO 0
+#define GUI_TURBO 1
 
 static SGOBJ systemdlg[] =
 {
@@ -263,67 +263,72 @@ void Dialog_SystemDlg(void)
             case DLGSYS_CUBE030:
                 ConfigureParams.System.nMachineType = NEXT_CUBE030;
                 get_default_values();
-                print_system_overview();
                 break;
                 
             case DLGSYS_CUBE:
+				if (ConfigureParams.System.nMachineType!=NEXT_CUBE040) {
+					ConfigureParams.System.bTurbo = false;
+				}
                 ConfigureParams.System.nMachineType = NEXT_CUBE040;
                 get_default_values();
-                print_system_overview();
                 break;
                 
             case DLGSYS_CUBETURBO:
-                ConfigureParams.System.nMachineType = NEXT_CUBE040;
-                if (ConfigureParams.System.bTurbo) {
+                if (ConfigureParams.System.bTurbo &&
+					ConfigureParams.System.nMachineType==NEXT_CUBE040) {
                     ConfigureParams.System.bTurbo = false;
                 } else {
                     ConfigureParams.System.bTurbo = true;
                 }
+				ConfigureParams.System.nMachineType = NEXT_CUBE040;
                 get_default_values();
-                print_system_overview();
                 break;
                 
             case DLGSYS_SLAB:
+				if (ConfigureParams.System.nMachineType!=NEXT_STATION) {
+					ConfigureParams.System.bTurbo = false;
+				}
                 ConfigureParams.System.nMachineType = NEXT_STATION;
                 get_default_values();
-                print_system_overview();
                 break;
                 
             case DLGSYS_SLABCOLOR:
-                ConfigureParams.System.nMachineType = NEXT_STATION;
+				if (ConfigureParams.System.nMachineType!=NEXT_STATION) {
+					ConfigureParams.System.bTurbo = false;
+				}
                 if (ConfigureParams.System.bColor) {
                     ConfigureParams.System.bColor = false;
                 } else {
                     ConfigureParams.System.bColor = true;
                 }
+				ConfigureParams.System.nMachineType = NEXT_STATION;
                 get_default_values();
-                print_system_overview();
                 break;
                 
             case DLGSYS_SLABTURBO:
-                ConfigureParams.System.nMachineType = NEXT_STATION;
-                if (ConfigureParams.System.bTurbo) {
+				if (ConfigureParams.System.bTurbo &&
+					ConfigureParams.System.nMachineType==NEXT_STATION) {
                     ConfigureParams.System.bTurbo = false;
                 } else {
                     ConfigureParams.System.bTurbo = true;
                 }
+				ConfigureParams.System.nMachineType = NEXT_STATION;
                 get_default_values();
-                print_system_overview();
                 break;
                                 
             case DLGSYS_CUSTOMIZE:
                 Dialog_AdvancedDlg();
-                print_system_overview();
                 break;
                 
             case DLGSYS_RESET:
                 get_default_values();
-                print_system_overview();
                 break;
 
             default:
                 break;
         }
+		
+		print_system_overview();
     }
     while (but != DLGSYS_EXIT && but != SDLGUI_QUIT
            && but != SDLGUI_ERROR && !bQuitProgram);

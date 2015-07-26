@@ -1,6 +1,6 @@
 
 
-                                 Previous 1.0
+                                 Previous 1.1
 
 
                     http://previous.alternative-system.com/
@@ -44,13 +44,14 @@ the latest CPU emulation core from WinUAE. Previous is confirmed to compile and
 run on Linux, Mac OS X and Windows. It may also work on other Systems which are 
 supported by the SDL library, like FreeBSD, NetBSD and BeOS.
 
-For now it emulates the following machines:
+Previous emulates the following machines:
  NeXT Computer (original 68030 Cube)
  NeXTcube
+ NeXTcube Turbo
  NeXTstation
+ NeXTstation Turbo
  NeXTstation Color
-
-Actually it does not emulate Turbo machines.
+ NeXTstation Turbo Color
 
 
  3) Compiling and installing
@@ -117,7 +118,6 @@ Sound		partial (no microphone)
 Keyboard	good
 Mouse		good
 
-The Turbo chipset is not emulated.
 
 There are remaining problems with the host to emulated machine interface for
 input devices.
@@ -133,6 +133,7 @@ input devices.
 - Shortcuts do not work properly or overlap with host commands on some platforms.
 - The clock does not tick accurately. Real time clock power-on test may fail
   sporadically on fast host systems.
+- Turbo systems are mistakenly identified as Nitro systems.
 - FPU only works on x86 hosts.
 - Slirp: In certain rare conditions Slirp may crash.
 - Mac OS X: When minimizing and maximizing the application window the mouse
@@ -144,6 +145,11 @@ input devices.
 
   Previous v1.0:
   > Initial release.
+
+  Previous v1.1:
+  > Adds Turbo chipset emulation.
+  > Improves DSP interrupt handling.
+  > Improves hardclock timing.
 
 
  7) Running Previous

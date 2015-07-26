@@ -19,7 +19,7 @@ static SGOBJ aboutdlg[] =
 	{ SGBOX, 0, 0, 0,0, 56,22, NULL },
 	{ SGTEXT, 0, 0, 21,1, 12,1, PROG_NAME },
 	{ SGTEXT, 0, 0, 21,2, 12,1, "==============" },
-	{ SGTEXT, 0, 0, 1,4, 38,1, "Previous emulates NeXT computer systems. Is is derived" },
+	{ SGTEXT, 0, 0, 1,4, 38,1, "Previous emulates NeXT computer systems. It is derived" },
 	{ SGTEXT, 0, 0, 1,5, 38,1, "from Hatari. This application is the work of many." },
 	{ SGTEXT, 0, 0, 1,6, 38,1, "It was only possible with the help of the community at" },
 	{ SGTEXT, 0, 0, 1,7, 38,1, "the NeXT International forums (www.nextcomputers.org)." },

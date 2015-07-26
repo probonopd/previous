@@ -694,21 +694,26 @@ static const int registers_mask[64] = {
 	16, 16, 16, 16
 };
 
-static const dsp_interrupt_t dsp_interrupt[14] = {
-	{DSP_INTER_RESET	,	0x00, 0, "Reset"},
-	{DSP_INTER_ILLEGAL	,	0x3e, 0, "Illegal"},
-	{DSP_INTER_STACK_ERROR	,	0x02, 0, "Stack Error"},
-	{DSP_INTER_TRACE	,	0x04, 0, "Trace"},
-	{DSP_INTER_SWI		,	0x06, 0, "Swi"},
-	{DSP_INTER_IRQA     ,   0x08, 1, "IRQA"},
-	{DSP_INTER_IRQB     ,   0x0a, 1, "IRQB"},
-	{DSP_INTER_HOST_COMMAND	,	0x24, 1, "Host Command"},
-	{DSP_INTER_HOST_RCV_DATA,	0x20, 1, "Host receive"},
-	{DSP_INTER_HOST_TRX_DATA,	0x22, 1, "Host transmit"},
-	{DSP_INTER_SSI_RCV_DATA_E,	0x0e, 2, "SSI receive with exception"},
-	{DSP_INTER_SSI_RCV_DATA	,	0x0c, 2, "SSI receive"},
-	{DSP_INTER_SSI_TRX_DATA_E,	0x12, 2, "SSI transmit with exception"},
-	{DSP_INTER_SSI_TRX_DATA	,	0x10, 2, "SSI tramsmit"}
+const char dsp_inter_priority_list[32] = {
+	DSP_INTER_ILLEGAL, DSP_INTER_TRACE, DSP_INTER_SWI, DSP_INTER_IRQA,									/* 0 */
+	DSP_INTER_IRQB, DSP_INTER_HOST_COMMAND, DSP_INTER_SSI_TRX_DATA_E, DSP_INTER_SSI_RCV_DATA,			/* 4 */
+	DSP_INTER_SCI_RCV_DATA_E, DSP_INTER_SSI_TRX_DATA, DSP_INTER_SCI_TRX_DATA, DSP_INTER_SCI_RCV_DATA,	/* 8 */
+	DSP_INTER_SCI_IDLE_LINE, DSP_INTER_SCI_TIMER, DSP_PRIORITY_LIST_EXIT, DSP_INTER_STACK_ERROR,		/* 12 */
+	DSP_INTER_HOST_TRX_DATA, DSP_INTER_SSI_RCV_DATA_E, DSP_INTER_HOST_RCV_DATA, 0,						/* 16 */
+	0, 0, 0, 0,						/* 20 */
+	0, 0, 0, 0,						/* 24 */
+	0, 0, 0, DSP_INTER_NMI,			/* 28 */
+};
+
+const char *dsp_interrupt_name[32] = {
+	"Reset", "Stack Error", "Trace", "SWI",
+	"IRQA", "IRQB", "SSI Receive Data", "SSI Receive Data with Exception",
+	"SSI Transmit Data", "SSI Transmit Data with Exception", "SCI Receive Data", "SCI Receive Data with Exception",
+	"SCI Transmit Data", "SCI Idle Line", "SCI Timer", "NMI",
+	"Host Receive Data", "Host Transmit Data", "Host Command", "Unknown",
+	"Unknown", "Unknown", "Unknown", "Unknown",
+	"Unknown", "Unknown", "Unknown", "Unknown",
+	"Unknown", "Unknown", "Unknown", "Illegal"
 };
 
 
@@ -770,6 +775,13 @@ void dsp56k_execute_instruction(void)
 
 	/* Initialise the number of access to the external memory for this instruction */
 	access_to_ext_memory = 0;
+	
+	/* Trace Interrupt at end of instruction? */
+	if (dsp_core.registers[DSP_REG_SR] & (1<<DSP_SR_T)) {
+		dsp_set_interrupt(DSP_INTER_TRACE, 1);
+	} else {
+		dsp_set_interrupt(DSP_INTER_TRACE, 0);
+	}
 	
 	/* Decode and execute current instruction */
 	cur_inst = read_memory_p(dsp_core.pc);
@@ -916,60 +928,81 @@ static void dsp_postexecute_update_pc(void)
  *	Interrupts
 **********************************/
 
-/* Post a new interrupt to the interrupt table */
-void dsp_add_interrupt(Uint16 inter)
+/* Set the status of an interrupt */
+void dsp_set_interrupt(Uint32 intr, Uint32 set)
 {
-	/* detect if this interrupt is used or not */
-	if (dsp_core.interrupt_ipl[inter] == -1)
-		return;
-
-	/* add this interrupt to the pending interrupts table */
-	if (dsp_core.interrupt_isPending[inter] == 0) { 
-		dsp_core.interrupt_isPending[inter] = 1;
-		dsp_core.interrupt_counter ++;
+	if (set) {
+		dsp_core.interrupt_status |= (1<<intr);
+	} else {
+		dsp_core.interrupt_status &= ~(1<<intr);
 	}
 }
 
-void dsp_remove_interrupt(Uint16 inter)
+/* Mask or unmask an interrupt */
+void dsp_set_interrupt_mask(Uint32 intr, Uint32 set)
 {
-	/* check if the interrupt is pending, and remove it */
-	if (dsp_core.interrupt_isPending[inter] != 0) {
-		LOG_TRACE(TRACE_DSP_INTERRUPT, "Dsp remove pending interrupt: %s\n", dsp_interrupt[inter].name);
-		dsp_core.interrupt_isPending[inter] = 0;
-		dsp_core.interrupt_counter--;
+	if (set) {
+		dsp_core.interrupt_mask |= (1<<intr);
+	} else {
+		dsp_core.interrupt_mask &= ~(1<<intr);
 	}
 }
 
 static void dsp_setInterruptIPL(Uint32 value)
 {
-	Uint32 ipl_ssi, ipl_hi, ipl_irqa, ipl_irqb, i;
-
-    ipl_irqa = (value & 3) - 1;
-    ipl_irqb = ((value >> 3) & 3) - 1;
-	ipl_hi  = ((value >> 10) & 3) - 1;
-    ipl_ssi = ((value >> 12) & 3) - 1;
-    
-    /* set IPL_IRQA */
-    dsp_core.interrupt_ipl[5] = ipl_irqa;
-    
-    /* set IPL_IRQB */
-    dsp_core.interrupt_ipl[6] = ipl_irqb;
-
-	/* set IPL_HI */
-	for (i=7; i<10; i++) {
-		dsp_core.interrupt_ipl[i] = ipl_hi;
+	Uint32 ipl_irqa, ipl_irqb, ipl_hi, ipl_ssi, ipl_sci;
+	
+	ipl_irqa = (value & 3);
+	ipl_irqb = ((value >> 3) & 3);
+	ipl_hi  = ((value >> 10) & 3);
+	ipl_ssi = ((value >> 12) & 3);
+	ipl_sci = ((value >> 14) & 3);
+	
+	/* Reset all masks */
+	dsp_core.interrupt_enable = 0;
+	dsp_core.interrupt_mask_level[0] = 0;
+	dsp_core.interrupt_mask_level[1] = 0;
+	dsp_core.interrupt_mask_level[2] = 0;
+	dsp_core.interrupt_edgetriggered_mask = DSP_INTER_EDGE_MASK;
+	
+    /* Set masks to programmed values */
+	if (ipl_irqa) {
+		dsp_core.interrupt_enable |= DSP_INTER_IRQA_MASK;
+		dsp_core.interrupt_mask_level[ipl_irqa-1] |= DSP_INTER_IRQA_MASK;
 	}
-
-	/* set IPL_SSI */
-	for (i=10; i<14; i++) {
-		dsp_core.interrupt_ipl[i] = ipl_ssi;
+	if (ipl_irqb) {
+		dsp_core.interrupt_enable |= DSP_INTER_IRQB_MASK;
+		dsp_core.interrupt_mask_level[ipl_irqb-1] |= DSP_INTER_IRQB_MASK;
+	}
+	if (ipl_hi) {
+		dsp_core.interrupt_enable |= DSP_INTER_HOST_MASK;
+		dsp_core.interrupt_mask_level[ipl_hi-1] |= DSP_INTER_HOST_MASK;
+	}
+	if (ipl_ssi) {
+		dsp_core.interrupt_enable |= DSP_INTER_SSI_MASK;
+		dsp_core.interrupt_mask_level[ipl_ssi-1] |= DSP_INTER_SSI_MASK;
+	}
+	if (ipl_sci) {
+		dsp_core.interrupt_enable |= DSP_INTER_SCI_MASK;
+		dsp_core.interrupt_mask_level[ipl_sci-1] |= DSP_INTER_SCI_MASK;
+	}
+	
+	/* Add IRQA, IRQB as edge triggered, if configured */
+	if (value & 0x04) {
+		dsp_core.interrupt_edgetriggered_mask |= DSP_INTER_IRQA_MASK;
+	}
+	if (value & 0x20) {
+		dsp_core.interrupt_edgetriggered_mask |= DSP_INTER_IRQB_MASK;
 	}
 }
 
 static void dsp_postexecute_interrupts(void)
 {
-	Uint32 index, instr, i;
-	Sint32 ipl_to_raise, ipl_sr;
+	int i;
+	Uint32 interrupt, inter;
+	Uint32 priority_list_start;
+	Uint32 instr;
+	Sint32 ipl_sr;
 
 	/* REP is not interruptible */
 	if (dsp_core.loop_rep) {
@@ -1041,87 +1074,80 @@ static void dsp_postexecute_interrupts(void)
 		}
 	}
 
-	/* Trace Interrupt ? */
-	if (dsp_core.registers[DSP_REG_SR] & (1<<DSP_SR_T)) {
-		dsp_add_interrupt(DSP_INTER_TRACE);
-	}
+	/* See if there is an interrupt pending */
+	if (dsp_core.interrupt_status & DSP_INTER_NMI_MASK) {
+		interrupt = dsp_core.interrupt_status & DSP_INTER_NMI_MASK;
+		dsp_core.interrupt_IplToRaise = 3;
+		priority_list_start = DSP_INTER_RESET;
+	} else {
+		interrupt = 0;
+		inter = dsp_core.interrupt_status & dsp_core.interrupt_enable & dsp_core.interrupt_mask;
 
-	/* No interrupt to execute */
-	if (dsp_core.interrupt_counter == 0) {
-		return;
-	}
-
-	/* search for an interrupt */
-	ipl_sr = (dsp_core.registers[DSP_REG_SR]>>DSP_SR_I0) & BITMASK(2);
-	index = 0xffff;
-	ipl_to_raise = -1;
-
-	/* Arbitrate between all pending interrupts */
-	for (i=0; i<14; i++) {
-		if (dsp_core.interrupt_isPending[i] == 1) {
-
-			/* level 3 interrupt ? */
-			if (dsp_core.interrupt_ipl[i] == 3) {
-				index = i;
+		/* If there is no enabled interrupt, stop here */
+		if (!inter) {
+			return;
+		}
+		
+		/* Find out the interrupt priority level */
+		ipl_sr = (dsp_core.registers[DSP_REG_SR]>>DSP_SR_I0) & BITMASK(2);
+		for (i = 2; i >= ipl_sr; i--) {
+			if (inter & dsp_core.interrupt_mask_level[i]) {
+				dsp_core.interrupt_IplToRaise = i+1;
+				interrupt = inter & dsp_core.interrupt_mask_level[i];
 				break;
 			}
-
-			/* level 0, 1 ,2 interrupt ? */
-			/* if interrupt is masked in SR, don't process it */
-			if (dsp_core.interrupt_ipl[i] < ipl_sr)
-				continue;
-
-			/* if interrupt is lower or equal than current arbitrated interrupt */
-			if (dsp_core.interrupt_ipl[i] <= ipl_to_raise)
-				continue;
-
-			/* save current arbitrated interrupt */
-			index = i;
-			ipl_to_raise = dsp_core.interrupt_ipl[i];
 		}
+		priority_list_start = DSP_INTER_IRQA;
 	}
 
-	/* If there's no interrupt to process, return */
-	if (index == 0xffff) {
+	/* If there is no unmasked interrupt, stop here */
+	if (!interrupt) {
 		return;
 	}
+	
+	/* Find out which interrupt is pending, using priorities */
+	for (i = priority_list_start; i != DSP_PRIORITY_LIST_EXIT; i = dsp_inter_priority_list[i]) {
+		if (interrupt & (1<<i)) {
+			interrupt = i;
+			break;
+		}
+	}
+	
+	LOG_TRACE(TRACE_DSP_INTERRUPT, "Dsp interrupt: %s\n", dsp_interrupt_name[interrupt]);
 
-	/* remove this interrupt from the pending interrupts table */
-	dsp_core.interrupt_isPending[index] = 0;
-	dsp_core.interrupt_counter --;
-
-	/* process arbritrated interrupt */
-	ipl_to_raise = dsp_core.interrupt_ipl[index] + 1;
-	if (ipl_to_raise > 3) {
-		ipl_to_raise = 3;
+	/* Auto-release edge triggered interrupts (IRQB simplified for NeXT) */
+	if ((1<<interrupt) & (dsp_core.interrupt_edgetriggered_mask|DSP_INTER_IRQB_MASK)) {
+		dsp_set_interrupt(interrupt, 0);
+	}
+	
+	/* Host command interrupt */
+	if (interrupt == DSP_INTER_HOST_COMMAND) {
+		interrupt = dsp_core.hostport[CPU_HOST_CVR] & BITMASK(5);
+		
+		/* Clear HC and HCP interrupt */
+		dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] &= 0xff - (1<<DSP_HOST_HSR_HCP);
+		dsp_core.hostport[CPU_HOST_CVR] &= 0xff - (1<<CPU_HOST_CVR_HC);
 	}
 
-	dsp_core.interrupt_instr_fetch = dsp_interrupt[index].vectorAddr;
+	/* Set variables for interrupt routine */
 	dsp_core.interrupt_pipeline_count = 5;
 	dsp_core.interrupt_state = DSP_INTERRUPT_DISABLED;
-	dsp_core.interrupt_IplToRaise = ipl_to_raise;
 
-	LOG_TRACE(TRACE_DSP_INTERRUPT, "Dsp interrupt: %s\n", dsp_interrupt[index].name);
+	/* Set the interrupt vector */
+	dsp_core.interrupt_instr_fetch = interrupt * 2;
 
+#if 0 /* FIXME: adapt this to new interrupt routine */
+	
 	/* SSI receive data with exception ? */
 	if (dsp_core.interrupt_instr_fetch == 0xe) {
 		dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] &= 0xff-(1<<DSP_SSI_SR_ROE);
 	}
-
+	
 	/* SSI transmit data with exception ? */
 	else if (dsp_core.interrupt_instr_fetch == 0x12) {
 		dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] &= 0xff-(1<<DSP_SSI_SR_TUE);
 	}
-
-	/* host command ? */
-	else if (dsp_core.interrupt_instr_fetch == 0x24) {
-		/* Clear HC and HCP interrupt */
-		dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR] &= 0xff - (1<<DSP_HOST_HSR_HCP);
-		dsp_core.hostport[CPU_HOST_CVR] &= 0xff - (1<<CPU_HOST_CVR_HC);  
-
-		dsp_core.interrupt_instr_fetch = dsp_core.hostport[CPU_HOST_CVR] & BITMASK(5);
-		dsp_core.interrupt_instr_fetch *= 2;	
-	}
+#endif
 }
 
 /**********************************
@@ -1372,25 +1398,10 @@ static void write_memory_x(Uint16 address, Uint32 value)
 				BITMASK(8)-((1<<CPU_HOST_ISR_HF3)|(1<<CPU_HOST_ISR_HF2));
 				dsp_core.hostport[CPU_HOST_ISR] |=
 				dsp_core.periph[DSP_SPACE_X][DSP_HOST_HCR] & ((1<<CPU_HOST_ISR_HF3)|(1<<CPU_HOST_ISR_HF2));
-				/* Handle masked interrupts */
-				if (dsp_core.periph[DSP_SPACE_X][DSP_HOST_HCR]&(1<<DSP_HOST_HCR_HRIE) &&
-					dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR]&(1<<DSP_HOST_HSR_HRDF)) {
-					dsp_add_interrupt(DSP_INTER_HOST_RCV_DATA);
-				} else {
-					dsp_remove_interrupt(DSP_INTER_HOST_RCV_DATA);
-				}
-				if (dsp_core.periph[DSP_SPACE_X][DSP_HOST_HCR]&(1<<DSP_HOST_HCR_HTIE) &&
-					dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR]&(1<<DSP_HOST_HSR_HTDE)) {
-					dsp_add_interrupt(DSP_INTER_HOST_TRX_DATA);
-				} else {
-					dsp_remove_interrupt(DSP_INTER_HOST_TRX_DATA);
-				}
-				if (dsp_core.periph[DSP_SPACE_X][DSP_HOST_HCR]&(1<<DSP_HOST_HCR_HCIE) &&
-					dsp_core.periph[DSP_SPACE_X][DSP_HOST_HSR]&(1<<DSP_HOST_HSR_HCP)) {
-					dsp_add_interrupt(DSP_INTER_HOST_COMMAND);
-				} else {
-					dsp_remove_interrupt(DSP_INTER_HOST_COMMAND);
-				}
+				/* Handle interrupt mask */
+				dsp_set_interrupt_mask(DSP_INTER_HOST_RCV_DATA, dsp_core.periph[DSP_SPACE_X][DSP_HOST_HCR]&(1<<DSP_HOST_HCR_HRIE));
+				dsp_set_interrupt_mask(DSP_INTER_HOST_TRX_DATA, dsp_core.periph[DSP_SPACE_X][DSP_HOST_HCR]&(1<<DSP_HOST_HCR_HTIE));
+				dsp_set_interrupt_mask(DSP_INTER_HOST_COMMAND, dsp_core.periph[DSP_SPACE_X][DSP_HOST_HCR]&(1<<DSP_HOST_HCR_HCIE));
 				break;
 			case DSP_HOST_HSR:
 				/* Read only */
@@ -1540,7 +1551,7 @@ static void dsp_write_reg(Uint32 numreg, Uint32 value)
 			stack_error = dsp_core.registers[DSP_REG_SP] & (3<<DSP_SP_SE);
 			if ((stack_error==0) && (value & (3<<DSP_SP_SE))) {
 				/* Stack underflow or overflow detected, raise interrupt */
-				dsp_add_interrupt(DSP_INTER_STACK_ERROR);
+				dsp_set_interrupt(DSP_INTER_STACK_ERROR, 1);
 				dsp_core.registers[DSP_REG_SP] = value & (3<<DSP_SP_SE);
 				if (!isDsp_in_disasm_mode)
 					fprintf(stderr,"Dsp: Stack Overflow or Underflow\n");
@@ -1584,7 +1595,7 @@ static void dsp_stack_push(Uint32 curpc, Uint32 cursr, Uint16 sshOnly)
 
 	if ((stack_error==0) && (stack & (1<<DSP_SP_SE))) {
 		/* Stack full, raise interrupt */
-		dsp_add_interrupt(DSP_INTER_STACK_ERROR);
+		dsp_set_interrupt(DSP_INTER_STACK_ERROR, 1);
 		if (!isDsp_in_disasm_mode)
 			fprintf(stderr,"Dsp: Stack Overflow\n");
 		if (ExceptionDebugMask & EXCEPT_DSP)
@@ -1621,7 +1632,7 @@ static void dsp_stack_pop(Uint32 *newpc, Uint32 *newsr)
 
 	if ((stack_error==0) && (stack & (1<<DSP_SP_SE))) {
 		/* Stack empty*/
-		dsp_add_interrupt(DSP_INTER_STACK_ERROR);
+		dsp_set_interrupt(DSP_INTER_STACK_ERROR, 1);
 		if (!isDsp_in_disasm_mode)
 			fprintf(stderr,"Dsp: Stack underflow\n");
 		if (ExceptionDebugMask & EXCEPT_DSP)
@@ -2486,7 +2497,7 @@ static void dsp_enddo(void)
 static void dsp_illegal(void)
 {
 	/* Raise interrupt p:0x003e */
-	dsp_add_interrupt(DSP_INTER_ILLEGAL);
+	dsp_set_interrupt(DSP_INTER_ILLEGAL, 1);
 	if (ExceptionDebugMask & EXCEPT_DSP) {
 		DebugUI(REASON_DSP_EXCEPTION);
 	}

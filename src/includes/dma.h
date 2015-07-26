@@ -23,6 +23,12 @@ void DMA_Stop_Write(void);
 void DMA_Init_Read(void);
 void DMA_Init_Write(void);
 
+/* Turbo DMA functions */
+void TDMA_CSR_Read(void);
+void TDMA_CSR_Write(void);
+void TDMA_Saved_Next_Read(void);
+void tdma_flush_buffer(int channel);
+
 /* Device functions */
 void dma_esp_write_memory(void);
 void dma_esp_read_memory(void);

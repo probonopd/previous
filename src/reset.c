@@ -15,6 +15,7 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
 #include "reset.h"
 #include "screen.h"
 #include "nextMemory.h"
+#include "tmc.h"
 #include "video.h"
 #include "debugcpu.h"
 #include "scsi.h"
@@ -45,6 +46,7 @@ static const char* Reset_ST(bool bCold)
 	}
 	CycInt_Reset();               /* Reset interrupts */
 	Video_Reset();                /* Reset video */
+	TMC_Reset();				  /* Reset TMC Registers */
 	SCR_Reset();                  /* Reset System Control Registers */
 	nvram_init();                 /* Reset NVRAM */
 	SCSI_Reset();                 /* Reset SCSI disks */

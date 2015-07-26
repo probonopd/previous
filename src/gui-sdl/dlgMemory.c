@@ -129,6 +129,19 @@ bool Dialog_MemDlg(void)
         memorydlg[DLGMEM_128MB] = disable_128mb_option;
         defsizecount = 8;
     }
+	
+	/* Display memory speed options depending on system type */
+	if (ConfigureParams.System.bTurbo) {
+		memorydlg[DLGMEM_120NS].txt = "60 ns";
+		memorydlg[DLGMEM_100NS].txt = "70 ns";
+		memorydlg[DLGMEM_80NS].txt = "80 ns";
+		memorydlg[DLGMEM_60NS].txt = "100 ns";
+	} else {
+		memorydlg[DLGMEM_120NS].txt = "120 ns";
+		memorydlg[DLGMEM_100NS].txt = "100 ns";
+		memorydlg[DLGMEM_80NS].txt = "80 ns";
+		memorydlg[DLGMEM_60NS].txt = "60 ns";
+	}
 
     /* Draw dialog from actual values */
 

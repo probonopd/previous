@@ -785,7 +785,7 @@ void nvram_init(void) {
     if (ConfigureParams.System.bTurbo) {
         parity = 0x00;
         for (i = 0; i<4; i++) {
-            switch (MemBank_Size[i]>>20) {
+            switch (ConfigureParams.Memory.nMemoryBankSize[i]) {
                 case 0: simm[i] = SIMM_EMPTY; break;
                 case 2: simm[i] = SIMM_2MB_T; break;
                 case 8: simm[i] = SIMM_8MB_T; break;
@@ -796,7 +796,7 @@ void nvram_init(void) {
         
     } else if (ConfigureParams.System.bColor) {
         for (i = 0; i<4; i++) {
-            switch (MemBank_Size[i]>>20) {
+            switch (ConfigureParams.Memory.nMemoryBankSize[i]) {
                 case 0: simm[i] = SIMM_EMPTY; parity &= ~(0x10<<i); break;
                 case 2: simm[i] = SIMM_2MB_C; break;
                 case 8: simm[i] = SIMM_8MB_C; break;
@@ -806,7 +806,7 @@ void nvram_init(void) {
         
     } else {
         for (i = 0; i<4; i++) {
-            switch (MemBank_Size[i]>>20) {
+            switch (ConfigureParams.Memory.nMemoryBankSize[i]) {
                 case 0: simm[i] = SIMM_EMPTY; parity &= ~(0x10<<i); break;
                 case 1: simm[i] = SIMM_1MB | SIMM_PAGE_MODE; break;
                 case 4: simm[i] = SIMM_4MB | SIMM_PAGE_MODE; break;

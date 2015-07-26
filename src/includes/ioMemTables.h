@@ -18,5 +18,6 @@ typedef struct
 } INTERCEPT_ACCESS_FUNC;
 
 extern const INTERCEPT_ACCESS_FUNC IoMemTable_NEXT[];
+extern const INTERCEPT_ACCESS_FUNC IoMemTable_Turbo[];
 
 #endif
