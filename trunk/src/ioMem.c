@@ -66,7 +66,11 @@ void IoMem_Init(void)
 	/* Set default IO access handler (-> bus error) */
 	IoMem_SetBusErrorRegion(0x02000000, 0x0201FFFF);
 
-	pInterceptAccessFuncs=IoMemTable_NEXT;
+	if (ConfigureParams.System.bTurbo) {
+		pInterceptAccessFuncs = IoMemTable_Turbo;
+	} else {
+		pInterceptAccessFuncs = IoMemTable_NEXT;
+	}
 
 	/* Now set the correct handlers */
 	for (addr=0x02000000; addr <= 0x0201FFFF; addr++)

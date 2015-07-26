@@ -148,12 +148,12 @@ static void ConvertHighRes_640x8Bit(void)
 	}
 
 	/* turbo color */
-	if ((ConfigureParams.System.bColor) && ((ConfigureParams.System.bTurbo)) ){
-		for (y = 0; y < 624; y++)
+	if ((ConfigureParams.System.bColor) && ((ConfigureParams.System.bTurbo))){
+		for (y = 0; y < 832; y++)
 		{
-			adr=y*208*8;
+			adr=y*280*8;
 
-			for (x = 0; x < 832; x++)
+			for (x = 0; x < 1120; x++)
 			{
 			   if ((buffer[adr]!=NEXTColorVideo[adr]) || (buffer[1+adr]!=NEXTColorVideo[1+adr])) {
 				col=(  (NEXTColorVideo[adr]<<8) |  (NEXTColorVideo[1+adr])  )>>4;

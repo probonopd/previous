@@ -28,13 +28,9 @@ extern void cache_free (uae_u8*);
 #define call_mem_get_func(func, addr) ((*func)(addr))
 #define call_mem_put_func(func, addr, v) ((*func)(addr, v))
 
-#define NEXT_SCREEN_SIZE        0x00040000
 extern uae_u8 NEXTVideo[256*1024];
 
-#define NEXT_COLORSCREEN_SIZE   0x00200000
 extern uae_u8 NEXTColorVideo[2*1024*1024];
-
-uae_u32 MemBank_Size[4]; // experimental, sizes for all 4 memory banks
 
 
 /* Enabling this adds one additional native memory reference per 68k memory
@@ -64,23 +60,6 @@ typedef struct {
 	/* These ones should be self-explanatory... */
 	mem_get_func lget, wget, bget;
 	mem_put_func lput, wput, bput;
-	/* Use xlateaddr to translate an Amiga address to a uae_u8 * that can
-	* be used to address memory without calling the wget/wput functions.
-	* This doesn't work for all memory banks, so this function may call
-	* abort(). */
-	xlate_func xlateaddr;
-	/* To prevent calls to abort(), use check before calling xlateaddr.
-	* It checks not only that the memory bank can do xlateaddr, but also
-	* that the pointer points to an area of at least the specified size.
-	* This is used for example to translate bitplane pointers in custom.c */
-	check_func check;
-	/* For those banks that refer to real memory, we can save the whole trouble
-	of going through function calls, and instead simply grab the memory
-	ourselves. This holds the memory address where the start of memory is
-	for this particular bank. */
-	uae_u8 *baseaddr;
-	TCHAR *name;
-	/* for instruction opcode/operand fetches */
 	mem_get_func lgeti, wgeti;
 	int flags;
 } addrbank;
@@ -167,16 +146,6 @@ static inline void put_word(uaecptr addr, uae_u32 w)
 static inline void put_byte(uaecptr addr, uae_u32 b)
 {
     byteput(addr, b);
-}
-
-static inline uae_u8 *get_real_address(uaecptr addr)
-{
-    return get_mem_bank(addr).xlateaddr(addr);
-}
-
-static inline int valid_address(uaecptr addr, uae_u32 size)
-{
-    return get_mem_bank(addr).check(addr, size);
 }
 
 static inline uae_u32 get_longi(uaecptr addr)

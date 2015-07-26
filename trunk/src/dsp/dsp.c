@@ -105,10 +105,10 @@ static void DSP_HandleHREQ(int set)
 		dsp_core.dma_request = 0;
         if (set) {
             Log_Printf(LOG_DSP_LEVEL, "[DSP] Set HREQ interrupt");
-            set_dsp_interrupt(SET_INT);
+			set_dsp_interrupt(SET_INT);
         } else {
             Log_Printf(LOG_DSP_LEVEL, "[DSP] Release HREQ interrupt");
-            set_dsp_interrupt(RELEASE_INT);
+			set_dsp_interrupt(RELEASE_INT);
         }
     }
 }
@@ -126,7 +126,7 @@ void DSP_SetIRQB(void)
 {
 #if ENABLE_DSP_EMU
     if (dsp_intr_at_block_end) {
-        dsp_add_interrupt(DSP_INTER_IRQB);
+		dsp_set_interrupt(DSP_INTER_IRQB, 1);
     }
 #endif
 }
@@ -535,18 +535,23 @@ void DSP_Info(Uint32 dummy)
 		fputs("\n", stderr);
 	}
 
-	fprintf(stderr, "- Interrupt IPL:");
-	for (i = 0; i < ARRAYSIZE(dsp_core.interrupt_ipl); i++) {
-		fprintf(stderr, " %04hx", dsp_core.interrupt_ipl[i]);
+	fprintf(stderr, "- Interrupts:\n");
+	for (i = 0; i < 32; i++) {
+		fprintf(stderr, "%s: ", dsp_interrupt_name[i]);
+		if ((1<<i) & dsp_core.interrupt_status & (dsp_core.interrupt_mask|DSP_INTER_NMI_MASK)) {
+			fprintf(stderr, "Pending ");
+		}
+		if ((1<<i) & DSP_INTER_NMI_MASK) {
+			fprintf(stderr, "at level 3");
+		} else {
+			for (j = 2; j>=0; j--) {
+				if ((1<<i) & dsp_core.interrupt_mask_level[j]) {
+					fprintf(stderr, "at level %i", j);
+				}
+			}
+		}
+		fputs("\n", stderr);
 	}
-	fputs("\n", stderr);
-
-	fprintf(stderr, "- Pending ints: ");
-	for (i = 0; i < ARRAYSIZE(dsp_core.interrupt_isPending); i++) {
-		fprintf(stderr, " %04hx", dsp_core.interrupt_isPending[i]);
-	}
-	fputs("\n", stderr);
-
 	fprintf(stderr, "- Hostport:");
 	for (i = 0; i < ARRAYSIZE(dsp_core.hostport); i++) {
 		fprintf(stderr, " %02x", dsp_core.hostport[i]);

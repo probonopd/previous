@@ -756,6 +756,8 @@ void dma_sndout_read_memory(void) {
 #define EN_BOP      0x40000000 /* beginning of packet */
 #define ENADDR(x)   ((x)&~(EN_EOP|EN_BOP))
 
+Uint32 saved_next_turbo = 0;
+
 void dma_enet_interrupt(int channel) {
     int interrupt = get_interrupt_type(channel);
     
@@ -763,6 +765,7 @@ void dma_enet_interrupt(int channel) {
     
     if (dma[channel].csr & DMA_SUPDATE) { /* if we are in chaining mode */
         /* Update pointers */
+		saved_next_turbo = dma[channel].next;
         dma[channel].next = dma[channel].start;
         dma[channel].limit = dma[channel].stop;
         /* Set bits in CSR */
@@ -999,4 +1002,137 @@ void dma_scc_read_memory(void) {
     }
     
     dma_interrupt(CHANNEL_SCC);
+}
+
+
+/* DMA CSR on Turbo systems */
+
+/* CSR read bits */
+#define TDMA_BYTECOUNT_MASK	0x00000007
+#define TDMA_WRITEPTR_MASK	0x00000018
+#define TDMA_READPTR_MASK	0x00000060
+#define TDMA_DIRTY_MASK		0x00000180
+#define TDMA_BUFSEL			0x00000200
+
+#define TDMA_ENABLE			0x01000000
+#define TDMA_SUPDATE		0x02000000
+#define TDMA_COMPLETE		0x08000000
+#define TDMA_BUSEXC			0x10000000
+
+/* CSR write bits */
+#define TDMA_SETENABLE		0x00010000
+#define TDMA_SETSUPDATE		0x00020000
+#define TDMA_DEV2M			0x00040000
+#define TDMA_CLRCOMPLETE	0x00080000
+#define TDMA_RESET			0x00100000
+#define TDMA_SETCOMPLETE	0x00200000
+#define TDMA_FLUSH			0x00400000
+#define TDMA_BUFRESET		0x00800000
+
+/* CSR masks */
+#define TDMA_CMD_MASK    0x00FB0000
+
+void TDMA_CSR_Read(void) { // 0x02000010, length of register is byte on 68030 based NeXT Computer
+	int channel = get_channel(IoAccessCurrentAddress);
+	
+	IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, dma[channel].csr<<24);
+
+	Log_Printf(LOG_DMA_LEVEL,"DMA CSR read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, dma[channel].csr<<24, m68k_getpc());
+}
+
+void TDMA_CSR_Write(void) {
+	int channel = get_channel(IoAccessCurrentAddress);
+	int interrupt = get_interrupt_type(channel);
+	Uint32 writecsr = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
+
+	Log_Printf(LOG_DMA_LEVEL,"DMA CSR write at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, writecsr, m68k_getpc());
+	
+	/* For debugging */
+	if(writecsr&TDMA_DEV2M)
+		Log_Printf(LOG_DMA_LEVEL,"DMA from dev to mem");
+	else
+		Log_Printf(LOG_DMA_LEVEL,"DMA from mem to dev");
+	
+	switch (writecsr&TDMA_CMD_MASK) {
+		case TDMA_RESET:
+			Log_Printf(LOG_DMA_LEVEL,"DMA reset"); break;
+		case (TDMA_RESET | TDMA_BUFRESET):
+		case (TDMA_RESET | TDMA_BUFRESET | TDMA_CLRCOMPLETE):
+			Log_Printf(LOG_DMA_LEVEL,"DMA reset and initialize buffers"); break;
+		case TDMA_CLRCOMPLETE:
+			Log_Printf(LOG_DMA_LEVEL,"DMA end chaining"); break;
+		case (TDMA_SETSUPDATE | TDMA_CLRCOMPLETE):
+			Log_Printf(LOG_DMA_LEVEL,"DMA continue chaining"); break;
+		case TDMA_SETENABLE:
+			Log_Printf(LOG_DMA_LEVEL,"DMA start single transfer"); break;
+		case (TDMA_SETENABLE | TDMA_SETSUPDATE):
+		case (TDMA_SETENABLE | TDMA_SETSUPDATE | TDMA_CLRCOMPLETE):
+			Log_Printf(LOG_DMA_LEVEL,"DMA start chaining"); break;
+		case 0:
+			Log_Printf(LOG_DMA_LEVEL,"DMA no command"); break;
+		default:
+			Log_Printf(LOG_WARN,"DMA: unknown command!"); break;
+	}
+	
+	/* Handle CSR bits */
+	dma[channel].direction = (writecsr>>16)&DMA_DEV2M;
+	
+	if (writecsr&TDMA_RESET) {
+		dma[channel].csr &= ~(DMA_COMPLETE | DMA_SUPDATE | DMA_ENABLE);
+	}
+	if (writecsr&TDMA_BUFRESET) {
+		dma_initialize_buffer(channel, 0);
+	}
+	if (writecsr&TDMA_SETSUPDATE) {
+		dma[channel].csr |= DMA_SUPDATE;
+	}
+	if (writecsr&TDMA_SETENABLE) {
+		dma[channel].csr |= DMA_ENABLE;
+	}
+	if (writecsr&TDMA_CLRCOMPLETE) {
+		dma[channel].csr &= ~DMA_COMPLETE;
+	}
+	
+	set_interrupt(interrupt, RELEASE_INT);
+}
+
+void TDMA_Saved_Next_Read(void) { // 0x02004050
+	IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, saved_next_turbo);
+	Log_Printf(LOG_DMA_LEVEL,"TDMA SNext read at $%08x val=$%08x PC=$%08x\n", IoAccessCurrentAddress, saved_next_turbo, m68k_getpc());
+}
+
+/* Flush DMA buffer */
+/* FIXME: Implement function for all buffered channels */
+void tdma_flush_buffer(int channel) {
+	int i;
+	
+	if (!(dma[CHANNEL_SCSI].csr&DMA_ENABLE)) {
+		Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Not flushing buffer. DMA not enabled.");
+		return;
+	}
+	if (dma[CHANNEL_SCSI].direction!=DMA_DEV2M) {
+		Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Not flushing buffer. Bad direction!");
+		return;
+	}
+	
+	TRY(prb) {
+		Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel SCSI: Flush buffer to memory at $%08x, %i bytes",
+				   dma[CHANNEL_SCSI].next,espdma_buf_size);
+		
+		for (i = 0; i < DMA_BURST_SIZE; i+=4) {
+			if (dma[CHANNEL_SCSI].next<dma[CHANNEL_SCSI].limit) {
+				if (espdma_buf_size) {
+					NEXTMemory_WriteLong(dma[CHANNEL_SCSI].next, dma_getlong(espdma_buf, espdma_buf_limit-espdma_buf_size));
+					espdma_buf_size-=4;
+				}
+				dma[CHANNEL_SCSI].next+=4;
+			}
+		}
+	} CATCH(prb) {
+		Log_Printf(LOG_WARN, "[DMA] Channel SCSI: Bus error while flushing to %08x",dma[CHANNEL_SCSI].next);
+		dma[CHANNEL_SCSI].csr &= ~DMA_ENABLE;
+		dma[CHANNEL_SCSI].csr |= (DMA_COMPLETE|DMA_BUSEXC);
+	} ENDTRY
+	
+	dma_interrupt(CHANNEL_SCSI);
 }

@@ -42,3 +42,7 @@ struct {
 void ENET_IO_Handler(void);
 void Ethernet_Reset(bool hard);
 void enet_receive(Uint8 *pkt, int len);
+
+/* Turbo ethernet controller */
+void EN_Control_Read(void);
+void EN_Control_Write(void);

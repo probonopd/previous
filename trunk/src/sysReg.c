@@ -22,7 +22,6 @@
 int SCR_ROM_overlay=0;
 
 static Uint32 scr1=0x00000000;
-static Uint32 turboscr1=0x00000000;
 
 static Uint8 scr2_0=0x00;
 static Uint8 scr2_1=0x00;
@@ -93,16 +92,20 @@ void SCR_Reset(void) {
     
     scr2_0=0x00;
     scr2_1=0x00;
-    scr2_2=0x00;
-    scr2_3=0x00;
-    
+	if (ConfigureParams.System.bTurbo) {
+		scr2_2=0x10;
+		scr2_3=0x80;
+	} else {
+		scr2_2=0x00;
+		scr2_3=0x00;
+	}
+	
     intStat=0x00000000;
     intMask=0x00000000;
 
     if (ConfigureParams.System.bTurbo) {
         scr1 = SCR1_TURBO;
         scr1 |= (ConfigureParams.System.nMachineType==NEXT_CUBE040)?0:0xF0000000;
-        TurboSCR1_Reset();
         return;
     } else {
         switch (ConfigureParams.System.nMachineType) {
@@ -140,7 +143,6 @@ void SCR_Reset(void) {
         case MEMORY_120NS: memory_speed = 0x00; break;
         case MEMORY_100NS: memory_speed = 0x50; break;
         case MEMORY_80NS: memory_speed = 0xA0; break;
-        case MEMORY_70NS: memory_speed = 0xA0; break;
         case MEMORY_60NS: memory_speed = 0xF0; break;
         default: Log_Printf(LOG_WARN, "SCR1 error: unknown memory speed\n"); break;
     }
@@ -167,81 +169,6 @@ void SCR1_Read3(void)
 	Log_Printf(LOG_WARN,"SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
     IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = scr1&0x000000FF;
 }
-
-
-/* Additional System Control Register for Turbo systems:
- * -------- -------- -------- -----xxx  bits 0:2   --> cpu speed
- * -------- -------- -------- --xx----  bits 4:5   --> main memory speed
- * -------- -------- -------- xx------  bits 6:7   --> video memory speed
- * -------- -------- ----xxxx --------  bits 8:11  --> cpu revision
- * -------- -------- xxxx---- --------  bits 12:15 --> cpu type
- * xxxx---- -------- -------- --------  bits 28:31 --> slot id
- * ----xxxx xxxxxxxx -------- ----x---  all other bits: 1
- *
- * cpu speed:       7 = 33MHz?
- * main mem speed:  0 = 60ns, 1 = 70ns, 2 = 80ns, 3 = 100ns
- * video mem speed: 3 on all Turbo systems (100ns)?
- * cpu revision:    0xF = rev 0
- *                  0xE = rev 1
- *                  0xD = rev 2
- *                  0xC - 0x0: rev 3 - 15
- * cpu type:        4 = NeXTstation turbo monochrome
- *                  5 = NeXTstation turbo color
- *                  8 = NeXTcube turbo
- */
-
-#define TURBOSCR_FMASK   0x0FFF0F08
-
-void TurboSCR1_Reset(void) {
-    Uint8 memory_speed;
-    Uint8 cpu_speed = 0x07; // 33 MHz
-    
-    if (ConfigureParams.System.nCpuFreq<20) {
-        cpu_speed = 4;
-    } else if (ConfigureParams.System.nCpuFreq<25) {
-        cpu_speed = 5;
-    } else if (ConfigureParams.System.nCpuFreq<33) {
-        cpu_speed = 6;
-    } else {
-        cpu_speed = 7;
-    }
-
-    switch (ConfigureParams.Memory.nMemorySpeed) {
-        case MEMORY_120NS: memory_speed = 0xF0; break;
-        case MEMORY_100NS: memory_speed = 0xF0; break;
-        case MEMORY_80NS: memory_speed = 0xA0; break;
-        case MEMORY_70NS: memory_speed = 0x50; break;
-        case MEMORY_60NS: memory_speed = 0x00; break;
-        default: Log_Printf(LOG_WARN, "Turbo SCR1 error: unknown memory speed\n"); break;
-    }
-    turboscr1 = ((memory_speed&0xF0)|(cpu_speed&0x07));
-    if (ConfigureParams.System.nMachineType == NEXT_CUBE040)
-        turboscr1 |= 0x8000;
-    else if (ConfigureParams.System.bColor) {
-        turboscr1 |= 0x5000;
-    } else {
-        turboscr1 |= 0x4000;
-    }
-    turboscr1 |= TURBOSCR_FMASK;
-}
-
-void TurboSCR1_Read0(void) {
-    Log_Printf(LOG_WARN,"Turbo SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (turboscr1&0xFF000000)>>24;
-}
-void TurboSCR1_Read1(void) {
-    Log_Printf(LOG_WARN,"Turbo SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (turboscr1&0x00FF0000)>>16;
-}
-void TurboSCR1_Read2(void) {
-    Log_Printf(LOG_WARN,"Turbo SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = (turboscr1&0x0000FF00)>>8;
-}
-void TurboSCR1_Read3(void) {
-    Log_Printf(LOG_WARN,"Turbo SCR1 read at $%08x PC=$%08x\n", IoAccessCurrentAddress,m68k_getpc());
-    IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = turboscr1&0x000000FF;
-}
-
 
 
 /* System Control Register 2 
@@ -436,14 +363,11 @@ void IntRegStatWrite(void) {
 }
 
 void set_dsp_interrupt(Uint8 state) {
-    Uint32 intr;
-    
-    if (scr2_3&SCR2_DSP_INT_EN) {
-        intr = INT_DSP_L4;
+    if (scr2_3&SCR2_DSP_INT_EN || ConfigureParams.System.bTurbo) {
+		set_interrupt(INT_DSP_L4, state);
     } else {
-        intr = INT_DSP_L3;
+		set_interrupt(INT_DSP_L3, state);
     }
-    set_interrupt(intr, state);
 }
 
 void set_interrupt(Uint32 intr, Uint8 state) {
@@ -504,7 +428,7 @@ void IntRegMaskWrite(void) {
 Uint8 hardclock_csr=0;
 Uint8 hardclock1=0;
 Uint8 hardclock0=0;
-int pseudo_counter=0;
+int hardclock_delay=0;
 int latch_hardclock=0;
 
 void Hardclock_InterruptHandler ( void )
@@ -513,20 +437,17 @@ void Hardclock_InterruptHandler ( void )
 	if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
 		// Log_Printf(LOG_WARN,"[INT] throwing hardclock");
         set_interrupt(INT_TIMER,SET_INT);
-        CycInt_AddRelativeInterrupt(latch_hardclock, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
-		pseudo_counter=latch_hardclock;
+        CycInt_AddRelativeInterrupt(hardclock_delay, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
 	}
 }
 
 
 void HardclockRead0(void){
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=(pseudo_counter>>8);
-	//if (pseudo_counter>0) pseudo_counter--;
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=(latch_hardclock>>8);
 	Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
 }
 void HardclockRead1(void){
-	IoMem[IoAccessCurrentAddress & 0x1FFFF]=pseudo_counter&0xff;
-	//if (pseudo_counter>0) pseudo_counter--;
+	IoMem[IoAccessCurrentAddress & 0x1FFFF]=latch_hardclock&0xff;
 	Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] read at $%08x val=%02x PC=$%08x", IoAccessCurrentAddress,IoMem[IoAccessCurrentAddress & 0x1FFFF],m68k_getpc());
 }
 
@@ -545,11 +466,11 @@ void HardclockWriteCSR(void) {
 	if (hardclock_csr&HARDCLOCK_LATCH) {
         hardclock_csr&= ~HARDCLOCK_LATCH;
 		latch_hardclock=(hardclock0<<8)|hardclock1;
-		pseudo_counter=latch_hardclock;
+		hardclock_delay=latch_hardclock*11;
 	}
 	if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
         Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] enable periodic interrupt (%i microseconds).", latch_hardclock);
-        CycInt_AddRelativeInterrupt(latch_hardclock, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
+        CycInt_AddRelativeInterrupt(hardclock_delay, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
 	} else {
         Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] disable periodic interrupt.");
     }
@@ -607,3 +528,28 @@ void System_Timer_Read(void) { // tuned for power-on test
 //  printf("DIFFERENCE = %i PC = %08X\n",eventcounter-lasteventc,m68k_getpc());
 }
 #endif
+
+
+/* Color Video Interrupt Register */
+
+#define VID_CMD_CLEAR_INT    0x01
+#define VID_CMD_ENABLE_INT   0x02
+#define VID_CMD_UNBLANK      0x04
+
+Uint8 col_vid_intr = 0;
+
+void ColorVideo_CMD_Write(void) {
+	col_vid_intr=IoMem[IoAccessCurrentAddress & 0x1FFFF];
+	Log_Printf(LOG_DEBUG,"[Color Video] Command write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+	
+	if (col_vid_intr&VID_CMD_CLEAR_INT) {
+		set_interrupt(INT_DISK, RELEASE_INT);
+	}
+}
+
+void color_video_interrupt(void) {
+	if (col_vid_intr&VID_CMD_ENABLE_INT) {
+		set_interrupt(INT_DISK, SET_INT);
+		col_vid_intr &= ~VID_CMD_ENABLE_INT;
+	}
+}
