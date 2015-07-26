@@ -428,7 +428,7 @@ fork_exec(so, ex, do_pty)
 }
 #endif
 
-#ifndef HAVE_STRDUP
+#if !(defined HAVE_STRDUP || defined __GNUC__)
 char *
 strdup(str)
 	const char *str;
