@@ -14,6 +14,7 @@ const char ShortCut_fileid[] = "Hatari shortcut.c : " __DATE__ " " __TIME__;
 #include "dialog.h"
 #include "file.h"
 #include "m68000.h"
+#include "dimension.h"
 #include "memorySnapShot.h"
 #include "reset.h"
 #include "screen.h"
@@ -167,8 +168,20 @@ static void ShortCut_Pause(void)
 /**
  * Shorcut to load a disk image
  */
-static void ShortCut_InsertDisk(int drive)
+static void ShortCut_Dimension(void)
 {
+#if ENABLE_DIMENSION
+    enable_dimension_screen = !enable_dimension_screen;        /* Toggle flag */
+    
+    if (enable_dimension_screen)
+    {
+        Main_SetTitle("NeXTdimension - Press ctrl-alt-n to return.");
+    }
+    else
+    {
+        Main_SetTitle(NULL);
+    }
+#endif
 }
 
 
@@ -241,10 +254,10 @@ void ShortCut_ActKey(void)
 	 case SHORTCUT_SAVEMEM:
 		MemorySnapShot_Capture(ConfigureParams.Memory.szMemoryCaptureFileName, true);
 		break;
-	 case SHORTCUT_INSERTDISKA:
-		ShortCut_InsertDisk(0);
-		break;
 #endif
+	 case SHORTCUT_DIMENSION:
+		ShortCut_Dimension();
+		break;
 	 case SHORTCUT_KEYS:
 	 case SHORTCUT_NONE:
 		/* ERROR: cannot happen, just make compiler happy */

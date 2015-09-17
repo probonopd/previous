@@ -70,7 +70,8 @@ Uint8 Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode) {
         case SDL_SCANCODE_P: return 0x08;
         case SDL_SCANCODE_LEFTBRACKET: return 0x05;
         case SDL_SCANCODE_RIGHTBRACKET: return 0x04;
-            
+        case SDL_SCANCODE_BACKSLASH: return 0x03;
+			
         case SDL_SCANCODE_A: return 0x39;
         case SDL_SCANCODE_S: return 0x3a;
         case SDL_SCANCODE_D: return 0x3b;

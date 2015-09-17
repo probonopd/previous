@@ -267,14 +267,18 @@ void floppy_reset(bool hard) {
     flp.srb &= ~(SRB_R_TOGGLE|SRB_W_TOGGLE);
     flp.msr |= STAT_RQM;
     flp.msr &= ~STAT_DIO;
-    flp_io_state=FLP_STATE_DONE;
-    
+	
     if (hard) {
+        flp_io_state = FLP_STATE_DONE;
         flp.dor &= ~DOR_RESET_N;
         flp.srb &= ~(SRB_MOTEN_MASK|SRB_DRVSEL0_N);
         flp.din &= ~DIR_HIDENS_N;
         flp.st[0]=flp.st[1]=flp.st[2]=flp.st[3]=0;
         flp.pcn=0;
+    } else {
+        /* Single poll interrupt after reset (FIXME: delay should be 250 ms) */
+        flp_io_state = FLP_STATE_INTERRUPT;
+        CycInt_AddRelativeInterrupt(1000000, INT_CPU_CYCLE, INTERRUPT_FLP_IO);
     }
 }
 
@@ -683,6 +687,13 @@ void floppy_configure(void) {
     
     flp.eis = cmd_data[1]&0x40; /* Enable or disable implied seek */
 
+    if (cmd_data[1]&0x10) {
+        Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Configure: disable polling");
+        if (CycInt_InterruptActive(INTERRUPT_FLP_IO)) {
+            Log_Printf(LOG_WARN, "[Floppy] Disable pending reset poll interrupt");
+            CycInt_RemovePendingInterrupt(INTERRUPT_FLP_IO);
+        }
+    }
     if (cmd_data[2]) {
         abort();
     }
@@ -947,7 +958,8 @@ void floppy_read_sector(void) {
     }
     
     if (flp_sector_counter==0) {
-        flp.st[0] = IC_NORMAL;
+        flp.st[0] = IC_ABNORMAL; /* Strange behavior of NeXT hardware */
+        flp.st[1] |= ST1_EN;
         send_rw_status(drive);
     }
 }
@@ -977,7 +989,8 @@ void floppy_write_sector(void) {
     }
     
     if (flp_sector_counter==0) {
-        flp.st[0] = IC_NORMAL;
+        flp.st[0] = IC_ABNORMAL; /* Strange behavior of NeXT hardware */
+        flp.st[1] |= ST1_EN;
         send_rw_status(drive);
     }
 }

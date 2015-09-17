@@ -52,7 +52,7 @@ static const char* Reset_ST(bool bCold)
 	SCSI_Reset();                 /* Reset SCSI disks */
 	MO_Reset();                   /* Reset MO disks */
 	Floppy_Reset();               /* Reset Floppy disks */
-	SCC_Reset();                  /* Reset SCC */
+	SCC_Reset(2);                 /* Reset SCC */
 	Ethernet_Reset(true);         /* Reset Ethernet */
 	Sound_Reset();                /* Reset Sound */
 	Screen_Reset();               /* Reset screen */

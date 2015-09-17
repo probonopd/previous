@@ -374,11 +374,27 @@ void KMS_Data_Read(void) {
 #define KBD_KEY_UP      0x00000080
 #define KBD_KEY_MASK    0x0000007F
 
+
+bool m_button_right = false;
+bool m_button_left = false;
+bool m_move_left = false;
+bool m_move_up = false;
+Uint8 m_move_x = 0;
+Uint8 m_move_y = 0;
+
+#define MOUSE_STEP_MAX	7
+void kms_mouse_move_step(void);
+
+
 void KMS_KM_Data_Read(void) {
     IoMem_WriteLong(IoAccessCurrentAddress & IO_SEG_MASK, kms.km_data);
     
     kms.status.km &= ~(KBD_RECEIVED|KBD_INT);
     set_interrupt(INT_KEYMOUSE, RELEASE_INT);
+    
+    if (m_move_x || m_move_y) {
+        kms_mouse_move_step();
+    }
 }
 
 void kms_interrupt(void) {
@@ -445,21 +461,18 @@ void kms_keyup(Uint8 modkeys, Uint8 keycode) {
     }
 }
 
-bool m_right = false;
-bool m_left = false;
-
 void kms_mouse_button(bool left, bool down) {
     if (left) {
-        m_left = down;
+        m_button_left = down;
     } else {
-        m_right = down;
+        m_button_right = down;
     }
     
     if (kms_device_enabled(km_address|KM_ADDR_MOUSE)) {
         kms.km_data = (km_address|KM_ADDR_MOUSE)<<24; /* mouse */
         
-        kms.km_data |= m_left?0:MOUSE_LEFT_UP;
-        kms.km_data |= m_right?0:MOUSE_RIGHT_UP;
+        kms.km_data |= m_button_left?0:MOUSE_LEFT_UP;
+        kms.km_data |= m_button_right?0:MOUSE_RIGHT_UP;
         
         kms_interrupt();
     }
@@ -475,20 +488,52 @@ void kms_mouse_move(int x, bool left, int y, bool up) {
         x=0x3F;
     if (y>0x3F)
         y=0x3F;
+    
+    m_move_left = left;
+    m_move_up = up;
+    
+    m_move_x = x;
+    m_move_y = y;
+    
+    kms_mouse_move_step();
+}
 
-    if (!left && x>0)  /* right */
-        x=(0x3F-x)|0x40;
-    if (!up && y>0)    /* down */
-        y=(0x3F-y)|0x40;
+void kms_mouse_move_step(void) {
+    int x = 0;
+    int y = 0;
+    
+    if (m_move_x>0) {
+        if (m_move_x>MOUSE_STEP_MAX) {
+            x = MOUSE_STEP_MAX;
+            m_move_x-=MOUSE_STEP_MAX;
+        } else {
+            x = m_move_x;
+            m_move_x = 0;
+        }
+    }
+    if (m_move_y>0) {
+        if (m_move_y>MOUSE_STEP_MAX) {
+            y = MOUSE_STEP_MAX;
+            m_move_y-=MOUSE_STEP_MAX;
+        } else {
+            y = m_move_y;
+            m_move_y = 0;
+        }
+    }
+    
+    if (!m_move_left && x>0)  /* right */
+        x=(0x40-x)|0x40;
+    if (!m_move_up && y>0)    /* down */
+        y=(0x40-y)|0x40;
     
     if (kms_device_enabled(km_address|KM_ADDR_MOUSE)) {
         kms.km_data = (km_address|KM_ADDR_MOUSE)<<24; /* mouse */
-
+        
         kms.km_data |= (x<<1)&MOUSE_X;
         kms.km_data |= (y<<9)&MOUSE_Y;
         
-        kms.km_data |= m_left?0:MOUSE_LEFT_UP;
-        kms.km_data |= m_right?0:MOUSE_RIGHT_UP;
+        kms.km_data |= m_button_left?0:MOUSE_LEFT_UP;
+        kms.km_data |= m_button_right?0:MOUSE_RIGHT_UP;
         
         kms_interrupt();
     }
