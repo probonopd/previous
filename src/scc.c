@@ -3,11 +3,9 @@
  This file is distributed under the GNU Public License, version 2 or at
  your option any later version. Read the file gpl.txt for details.
  
- Serial Communication Controller (Zilog 8530) Emulation.
+ Serial Communication Controller (AMD AM8530H) Emulation.
  
- Based on MESS source code.
- 
- Port to Previous incomplete. Hacked to pass power-on test --> see SCC_Reset()
+ Incomplete. Hacked to pass power-on test --> see SCC_Reset()
  
  */
 
@@ -19,295 +17,246 @@
 #include "sysReg.h"
 #include "dma.h"
 
-
-#define SCC_ENABLE_INTERRUPT 1
-
-#define LOG_SCC_LEVEL LOG_WARN
 #define IO_SEG_MASK	0x1FFFF
 
-#define SCC_BUFSIZE 10  // what is actual buffer size of our controller?
+#define LOG_SCC_LEVEL		LOG_WARN
+#define LOG_SCC_REG_LEVEL	LOG_DEBUG
 
 
-/* Variables */
-bool MasterIRQEnable;
-int lastIRQStat;
-typedef enum {
-    IRQ_NONE,
-    IRQ_B_TX,
-    IRQ_A_TX,
-    IRQ_B_EXT,
-    IRQ_A_EXT
-} IRQ_TYPES;
+/* Registers */
 
-IRQ_TYPES IRQType;
+Uint8 scc_control_read(Uint8 channel);
+void scc_control_write(Uint8 channel, Uint8 val);
+Uint8 scc_data_read(Uint8 channel);
+void scc_data_write(Uint8 channel, Uint8 val);
+
+
+void SCC_ControlB_Read(void) { // 0x02018000
+	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = scc_control_read(1);
+	Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Channel B control read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void SCC_ControlB_Write(void) {
+	scc_control_write(1, IoMem[IoAccessCurrentAddress & IO_SEG_MASK]);
+	Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Channel B control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void SCC_ControlA_Read(void) { // 0x02018001
+	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = scc_control_read(0);
+	Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Channel A control read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void SCC_ControlA_Write(void) {
+	scc_control_write(0, IoMem[IoAccessCurrentAddress & IO_SEG_MASK]);
+	Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Channel A control write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void SCC_DataB_Read(void) { // 0x02018002
+	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = scc_data_read(1);
+	Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Channel B data read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void SCC_DataB_Write(void) {
+	scc_data_write(1, IoMem[IoAccessCurrentAddress & IO_SEG_MASK]);
+	Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Channel B data write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void SCC_DataA_Read(void) { // 0x02018003
+	IoMem[IoAccessCurrentAddress & IO_SEG_MASK] = scc_data_read(0);
+	Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Channel A data read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+void SCC_DataA_Write(void) {
+	scc_data_write(0, IoMem[IoAccessCurrentAddress & IO_SEG_MASK]);
+	Log_Printf(LOG_SCC_REG_LEVEL,"[SCC] Channel A data write at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
+}
+
+
+/* SCC Registers */
 
 struct {
-    Uint8 rreg[16];
-    Uint8 wreg[16];
-    bool txIRQEnable;
-    bool txIRQPending;
-    bool extIRQEnable;
-    bool extIRQPending;
-    bool rxIRQEnable;
-    bool rxIRQPending;
-    bool rxEnable;
-    bool txEnable;
-    bool syncHunt;
-    bool txUnderrun;
-    
-    Uint8 rx_buf[SCC_BUFSIZE];
-    Uint8 tx_buf[SCC_BUFSIZE];
-    Uint32 rx_buf_size;
-    Uint32 tx_buf_size;
-} channel[2];
+	Uint8 rreg[16];
+	Uint8 wreg[16];
+} scc[2];
 
-int IRQV;
+Uint8 scc_register_pointer = 0;
 
-bool write_reg_pointer; // true --> byte written is number of register, false --> byte gets written to register
-Uint8 regnumber;
+/* Write function prototypes */
+void scc_write_init_command(Uint8 ch, Uint8 val);
+void scc_write_mode(Uint8 ch, Uint8 val);
+void scc_write_master_intr_reset(Uint8 val);
 
 
-void SCC_Read(void) {
-    bool data;
-    Uint8 ch;
-    Uint8 reg;
-        
-    if (IoAccessCurrentAddress&0x1)
-        ch = 1; // Channel A
-    else
-        ch = 0; // Channel B
-    
-    if (IoAccessCurrentAddress&0x2)
-        data = true;
-    else
-        data = false;
-    
-    if (data) {
-        IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = scc_buf[0];//channel[ch].rx_buf[0];
-        Log_Printf(LOG_SCC_LEVEL, "SCC %c, Data read: %02x\n", ch == 1?'A':'B', /*channel[ch].rx_buf[0]*/scc_buf[0]);
-    } else {
-        reg = regnumber;
-        IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = channel[ch].rreg[reg];
-        Log_Printf(LOG_SCC_LEVEL, "SCC %c, Reg%i read: %02x\n", ch == 1?'A':'B', reg, channel[ch].rreg[reg]);
-    }
-    write_reg_pointer = true;
+Uint8 scc_control_read(Uint8 ch) {
+	Uint8 val = 0;
+	
+	switch (scc_register_pointer) {
+		case 0:
+		case 1:
+		case 3:
+		case 10:
+			val = scc[ch].rreg[scc_register_pointer];
+			break;
+			
+		case 12:
+		case 13:
+		case 15:
+			val = scc[ch].wreg[scc_register_pointer];
+			break;
+			
+		case 2:
+			val = scc[0].wreg[2]; // FIXME: different for channel B
+			break;
+			
+		case 8:
+			val = 0; // FIXME: Data Read
+			break;
+			
+		default:
+			Log_Printf(LOG_WARN, "[SCC] Invalid register (%i) read\n",scc_register_pointer);
+			break;
+	}
+
+	Log_Printf(LOG_SCC_LEVEL,"[SCC] Channel %c: Register %i read %02X\n",
+			   ch?'B':'A',scc_register_pointer,val);
+
+	scc_register_pointer = 0;
+
+	return val;
 }
 
-
-void SCC_Write(void) {
-    bool data;
-    Uint8 ch;
-    Uint8 reg;
-    Uint8 val;
-    
-    if (IoAccessCurrentAddress&0x1)
-        ch = 1;
-    else
-        ch = 0;
-    
-    if (IoAccessCurrentAddress&0x2)
-        data = true;
-    else
-        data = false;
-    
-    if (data) {
-        /*channel[ch].rx_buf[0]*/scc_buf[0] = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
-        Log_Printf(LOG_SCC_LEVEL, "SCC %c, Data write: %02x\n", ch == 1?'A':'B', /*channel[ch].rx_buf[0]*/scc_buf[0]);
-        channel[ch].rreg[R_STATUS] = RR0_TXEMPTY|RR0_RXAVAIL; // Tx buffer empty | Rx Character Available
-        return;
-    }
-    
-    if (write_reg_pointer == true) {
-        regnumber = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
-        write_reg_pointer = false;
-        return;
-    } else if (write_reg_pointer == false) {
-        reg = regnumber;
-        val = channel[ch].wreg[reg] = IoMem[IoAccessCurrentAddress&IO_SEG_MASK];
-        Log_Printf(LOG_SCC_LEVEL, "SCC %c, Reg%i write: %02x\n", ch == 1?'A':'B', reg, channel[ch].wreg[reg]);
-    
-        switch (reg) {
-            case W_INIT:
-                switch ((val>>3) & 7) {
-                    case 2: SCC_Interrupt(); break; // Reset Ext/Status Interrupts
-                    case 5: channel[0].txIRQPending = false; break; // Reset pending Tx Interrupt
-                    case 0: // Nothing
-                    case 3: // Send SDLC abort
-                    case 4: // Enable interrupt on next char Rx
-                    case 6: // Error reset
-                    case 7: // Reset Interrupt Under Service
-                        break; // Not handled
-                    default: break;
-                }
-                break;
-                
-            case W_MODE: // Tx/Rx IRQ and data transfer mode definition
-                channel[ch].extIRQEnable = (val&1)?true:false; // External Interrupt Enable
-                channel[ch].txIRQEnable = (val&2)?true:false; // Transmit Interrupt Enable
-                channel[ch].rxIRQEnable = ((val&0x18)==0x18)?true:false; // Interrupt on Special only
-                SCC_Interrupt();
-                
-                if (val&0x40 && val&0x80) {
-                    dma_scc_read_memory();
-                    channel[ch].rreg[R_STATUS] = RR0_RXAVAIL; // Rx Character Available
-                }
-                break;
-                
-            case W_INTVEC: // Interrupt vector
-                IRQV = channel[ch].rreg[R_INTVEC] = val;
-                break;
-                
-            case W_RECCONT: // Rx parameters and controls
-                channel[ch].rxEnable = channel[ch].wreg[reg]&1; // Rx Enable
-                channel[ch].syncHunt = (channel[ch].wreg[reg]&0x10)?true:false; // Enter Hunt Mode
-                break;
-                
-            case W_TRANSCONT: // Tx parameters and controls
-                channel[ch].rxEnable = channel[ch].wreg[reg]&8;
-                if (channel[ch].txEnable)
-                    channel[ch].rreg[R_STATUS] |= RR0_TXEMPTY; // Tx Empty
-                
-            case W_MISCMODE:  // Tx/Rx miscellaneous parameters and modes
-            case W_SYNCCHARA: // sync chars/SDLC address field
-            case W_SYNCCHARF: // sync char/SDLC flag
-                break;
-                
-            case W_TRANSBUF:
-                channel[ch].tx_buf[0] = val;
-                break;
-                
-            case W_MASTERINT: // Master Interrupt Control
-                MasterIRQEnable = (val&8)?true:false;
-                SCC_Interrupt();
-                
-                /* Reset channels */
-                switch ((val>>6)&3) {
-                    case 1: SCC_ResetChannel(0); break; // Reset Channel B
-                    case 2: SCC_ResetChannel(1); break; // Reset Channel A
-                    case 3: // Hardware Reset
-                        SCC_Reset();
-                        SCC_Interrupt();
-                        break;
-                    default: break;
-                }
-                break;
-                
-            case W_MISCCONT: // Miscellaneous transmitter/receiver control bits
-            case W_CLOCK:    // Clock mode control
-            case W_BRG_LOW:  // Lower byte of baud rate generator
-            case W_BRG_HIGH: // Upper byte of baud rate generator
-                break;
-                
-            case W_MISC: // Miscellaneous control bits
-                if (val&0x01) // Baud rate generator enable?
-                {} // later
-                break;
-                
-            case W_EXTSTAT: // later ...
-                break;
-        }        
-    }
-    write_reg_pointer = true;
-}
-
-
-
-/* Functions */
-
-void SCC_Interrupt(void)
-{
-	int irqstat;
-    
-	irqstat = 0;
-	if (MasterIRQEnable)
-	{
-		if ((channel[0].txIRQEnable) && (channel[0].txIRQPending))
-		{
-			IRQType = IRQ_B_TX;
-			irqstat = 1;
+void scc_control_write(Uint8 ch, Uint8 val) {
+	
+	if (scc_register_pointer==0) {
+		scc_register_pointer = val&7;
+		if ((val&0x38)==8) {
+			scc_register_pointer |= 8;
 		}
-		else if ((channel[1].txIRQEnable) && (channel[1].txIRQPending))
-		{
-			IRQType = IRQ_A_TX;
-			irqstat = 1;
+		if (val&0xF0) {
+			scc_write_init_command(ch, val);
 		}
-		else if ((channel[0].extIRQEnable) && (channel[0].extIRQPending))
-		{
-			IRQType = IRQ_B_EXT;
-			irqstat = 1;
+	} else {
+		Log_Printf(LOG_SCC_LEVEL,"[SCC] Channel %c: Register %i write %02X\n",
+				   ch?'B':'A',scc_register_pointer,val);
+		
+		switch (scc_register_pointer) {
+			case 1:
+				scc_write_mode(ch, val);
+				break;
+			case 9:
+				scc_write_master_intr_reset(val);
+				break;
+			case 2:
+			case 3:
+			case 4:
+			case 5:
+			case 6:
+			case 7:
+			case 8:
+			case 10:
+			case 11:
+			case 12:
+			case 13:
+			case 14:
+			case 15:
+				break;
+			
+			default:
+				Log_Printf(LOG_WARN, "[SCC] Invalid register (%i) write\n",scc_register_pointer);
+				break;
 		}
-		else if ((channel[1].extIRQEnable) && (channel[1].extIRQPending))
-		{
-			IRQType = IRQ_A_EXT;
-			irqstat = 1;
-		}
-	}
-	else
-	{
-		IRQType = IRQ_NONE;
-	}
-    
-    //  printf("SCC: irqstat %d, last %d\n", irqstat, lastIRQStat);
-    //  printf("ch0: en %d pd %d  ch1: en %d pd %d\n", channel[0].txIRQEnable, channel[0].txIRQPending, channel[1].txIRQEnable, channel[1].txIRQPending);
-    
-	// don't spam the driver with unnecessary transitions
-	if (irqstat != lastIRQStat)
-	{
-		lastIRQStat = irqstat;
-        
-		// tell the driver the new IRQ line status if possible
-		Log_Printf(LOG_SCC_LEVEL, "SCC8530 IRQ status => %d\n", irqstat);
-
-        if (irqstat) {
-#if SCC_ENABLE_INTERRUPT
-            set_interrupt(INT_SCC, SET_INT);
-            Log_Printf(LOG_SCC_LEVEL, "SCC: Raise IRQ");
-#else
-            Log_Printf(LOG_SCC_LEVEL, "SCC: Interrupt disabled (hack)!");
-#endif
-        }else{
-            set_interrupt(INT_SCC, RELEASE_INT);
-            Log_Printf(LOG_SCC_LEVEL, "SCC: Lower IRQ");
-        }
-        
-//		if(!intrq_cb.isnull())
-//			intrq_cb(irqstat);
+		
+		scc_register_pointer = 0;
 	}
 }
 
+Uint8 scc_data_read(Uint8 ch) {
+	Uint8 val = 0;
+	
+	val = scc_buf[0];
+	
+	Log_Printf(LOG_SCC_LEVEL,"[SCC] Channel %c: Data read %02X\n",
+			   ch?'B':'A',val);
 
-void SCC_ResetChannel(int ch)
-{
-//	emu_timer *timersave = channel[ch].baudtimer;
-#if 0 // find a better way to reset!
-	memset(&channel[ch], 0, sizeof(channel[ch]));
-#endif
-	channel[ch].txUnderrun = 1;
-//	channel[ch].baudtimer = timersave;
-    
-//	channel[ch].baudtimer->adjust(attotime::never, ch);
+	return val;
 }
 
-void SCC_InitChannel(int ch)
-{
-	channel[ch].syncHunt = 1;
+void scc_data_write(Uint8 ch, Uint8 val) {
+	
+	scc_buf[0] = val;
+	
+	scc[ch].rreg[R_STATUS] = RR0_TXEMPTY|RR0_RXAVAIL;
+
+	Log_Printf(LOG_SCC_LEVEL,"[SCC] Channel %c: Data write %02X\n",
+			   ch?'B':'A',val);
 }
 
-void SCC_Reset(void) {
-    Log_Printf(LOG_WARN, "SCC: Device Reset");
-    IRQType = IRQ_NONE;
-    MasterIRQEnable = false;
-    IRQV = 0;
-    
-    SCC_InitChannel(0);
-    SCC_InitChannel(1);
-    SCC_ResetChannel(0);
-    SCC_ResetChannel(1);
-    
-    write_reg_pointer = true;
-    regnumber = 0;
-    
-    /*--- Hack to pass power-on test ---*/
-    channel[0].rreg[R_STATUS] = 0xFF;
-    channel[1].rreg[R_STATUS] = 0xFF;
+
+/* Reset functions */
+void scc_channel_reset(Uint8 ch, bool hard) {
+	
+	Log_Printf(LOG_SCC_LEVEL, "[SCC] Reset channel %c\n", ch?'B':'A');
+	
+	scc[ch].wreg[0] = 0x00;
+	scc[ch].wreg[1] &= ~0xDB;
+	scc[ch].wreg[3] &= ~0x01;
+	scc[ch].wreg[4] |= 0x04;
+	scc[ch].wreg[5] &= ~0x9E;
+	scc[0].wreg[9] &= ~0x20;
+	scc[1].wreg[9] &= ~0x20;
+	scc[ch].wreg[10] &= ~0x9F;
+	scc[ch].wreg[14] = (scc[ch].wreg[14]&~0x3C)|0x20;
+	scc[ch].wreg[15] = 0xF8;
+ 
+	scc[ch].rreg[0] = (scc[ch].rreg[0]&~0xC7)|0x44;
+	scc[ch].rreg[1] = 0x06;
+	scc[ch].rreg[3] = 0x00;
+	scc[ch].rreg[10] = 0x00;
+ 
+	if (hard) {
+		scc[0].wreg[9] = (scc[0].wreg[9]&~0xFC)|0xC0;
+		scc[1].wreg[9] = (scc[1].wreg[9]&~0xFC)|0xC0;
+		scc[ch].wreg[10] = 0x00;
+		scc[ch].wreg[11] = 0x08;
+		scc[ch].wreg[14] = (scc[ch].wreg[14]&~0x3F)|0x20;
+	}
+}
+
+void SCC_Reset(Uint8 ch) {
+	if(ch==0 || ch==1) { // channel reset
+		scc_channel_reset(ch, false);
+	} else { // hard reset
+		scc_channel_reset(0, true);
+		scc_channel_reset(1, true);
+	}
+}
+
+/* Register write functions */
+
+void scc_write_init_command(Uint8 ch, Uint8 val) {
+	
+}
+
+void scc_write_mode(Uint8 ch, Uint8 val) {
+	if ((val&0xC0)==0xC0) {
+		dma_scc_read_memory();
+		scc[ch].rreg[R_STATUS] |= RR0_RXAVAIL;
+	}
+}
+
+void scc_write_master_intr_reset(Uint8 val) {
+	switch ((val>>6)&3) {
+		case 1:
+			SCC_Reset(1);
+			break;
+		case 2:
+			SCC_Reset(0);
+			break;
+		case 3:
+			SCC_Reset(2);
+			break;
+			
+		default:
+			break;
+	}
 }

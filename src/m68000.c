@@ -218,10 +218,18 @@ void M68000_CheckCpuSettings(void)
         ConfigureParams.System.nCpuFreq = 25;
         nCpuFreqDivider = 3;
     }
-    else
+    else if (ConfigureParams.System.nCpuFreq < 40)
     {
         ConfigureParams.System.nCpuFreq = 33;
         nCpuFreqDivider = 4;
+    } else {
+        if (ConfigureParams.System.bTurbo) {
+            ConfigureParams.System.nCpuFreq = 40;
+            nCpuFreqDivider = 5;
+        } else {
+            ConfigureParams.System.nCpuFreq = 33;
+            nCpuFreqDivider = 4;
+        }
     }
 #else
 	if (ConfigureParams.System.nCpuFreq < 12)

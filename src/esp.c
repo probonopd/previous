@@ -288,7 +288,7 @@ void ESP_IntStatus_Read(void) { // 0x02014005
     if (status&STAT_INT) {
             intstatus = 0x00;
             status &= ~(STAT_VGC | STAT_PE | STAT_GE);
-            seqstep = 0;
+            //seqstep = 0x00; /* FIXME: Is the data sheet really wrong with this? */
             esp_lower_irq();
     }
 }
@@ -486,7 +486,7 @@ void esp_start_command(Uint8 cmd) {
             abort();
             break;
         case CMD_SEL:
-            Log_Printf(LOG_WARN, "ESP Command: select without ATN sequence\n");
+            Log_Printf(LOG_ESPCMD_LEVEL, "ESP Command: select without ATN sequence\n");
             esp_select(false);
             break;
         case CMD_SELATN:
@@ -777,8 +777,25 @@ void esp_transfer_info(void) {
         esp_io_state=ESP_IO_STATE_TRANSFERING;
         CycInt_AddRelativeInterrupt(10000, INT_CPU_CYCLE, INTERRUPT_ESP_IO);
     } else {
-        Log_Printf(LOG_WARN, "[ESP] start PIO transfer (not implemented!)");
-        abort();
+        Log_Printf(LOG_ESPCMD_LEVEL, "[ESP] start PIO transfer");
+        switch (SCSIbus.phase) {
+            case PHASE_DI:
+                esp_fifo_write(SCSIdisk_Send_Data());
+                CycInt_AddRelativeInterrupt(500, INT_CPU_CYCLE, INTERRUPT_ESP);
+                break;
+            case PHASE_MI:
+                CycInt_AddRelativeInterrupt(500, INT_CPU_CYCLE, INTERRUPT_ESP);
+                break;
+            case PHASE_ST:
+                /* FIXME: What should happen here? */
+                Log_Printf(LOG_WARN, "[ESP] Error! Transfer info status phase");
+                CycInt_AddRelativeInterrupt(500, INT_CPU_CYCLE, INTERRUPT_ESP);
+                break;
+            default:
+                Log_Printf(LOG_WARN, "[ESP] PIO transfer (unimplemented)");
+                abort();
+                break;
+        }
     }
 }
 void ESP_IO_Handler(void) {

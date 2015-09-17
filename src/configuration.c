@@ -121,7 +121,7 @@ static const struct Config_Tag configs_ShortCutWithMod[] =
 	{ "keyQuit",       Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_QUIT] },
 	{ "keyLoadMem",    Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_LOADMEM] },
 	{ "keySaveMem",    Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_SAVEMEM] },
-	{ "keyInsertDiskA",Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_INSERTDISKA] },
+	{ "keyDimension",  Int_Tag, &ConfigureParams.Shortcut.withModifier[SHORTCUT_DIMENSION] },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -145,7 +145,7 @@ static const struct Config_Tag configs_ShortCutWithoutMod[] =
 	{ "keyQuit",       Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_QUIT] },
 	{ "keyLoadMem",    Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_LOADMEM] },
 	{ "keySaveMem",    Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_SAVEMEM] },
-	{ "keyInsertDiskA",Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_INSERTDISKA] },
+	{ "keyDimension",  Int_Tag, &ConfigureParams.Shortcut.withoutModifier[SHORTCUT_DIMENSION] },
 	{ NULL , Error_Tag, NULL }
 };
 
@@ -444,7 +444,7 @@ void Configuration_SetDefault(void)
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_QUIT] = SDLK_q;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_LOADMEM] = SDLK_l;
 	ConfigureParams.Shortcut.withModifier[SHORTCUT_SAVEMEM] = SDLK_k;
-	ConfigureParams.Shortcut.withModifier[SHORTCUT_INSERTDISKA] = SDLK_1;
+	ConfigureParams.Shortcut.withModifier[SHORTCUT_DIMENSION] = SDLK_n;
 
 	/* Set defaults for Memory */
 	memset(ConfigureParams.Memory.nMemoryBankSize, 16, 

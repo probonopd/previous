@@ -15,6 +15,7 @@ const char Screen_fileid[] = "Hatari screen.c : " __DATE__ " " __TIME__;
 #include "configuration.h"
 #include "log.h"
 #include "m68000.h"
+#include "dimension.h"
 #include "paths.h"
 #include "screen.h"
 #include "control.h"

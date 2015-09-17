@@ -78,7 +78,8 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
     }
     
     /* Did we change CPU type? */
-    if (current->System.nCpuLevel != changed->System.nCpuLevel) {
+    if ((current->System.nCpuLevel != changed->System.nCpuLevel) ||
+        (current->System.nCpuFreq != changed->System.nCpuFreq)) {
         printf("cpu type reset\n");
         return true;
     }

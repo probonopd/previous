@@ -1493,7 +1493,7 @@ static void Exception_mmu (int nr, uaecptr oldpc)
 			Exception_build_stack_frame(oldpc, currpc, regs.mmu_fslw, nr, 0x4);
 	} else if (nr == 3) { // address error
         Exception_build_stack_frame(last_fault_for_exception_3, currpc, 0, nr, 0x2);
-		write_log (_T("Exception %d (%x) at %x -> %x!\n"), nr, last_fault_for_exception_3, currpc, get_long (regs.vbr + 4 * nr));
+		write_log (_T("Exception %d (%x) at %x!\n"), nr, last_fault_for_exception_3, currpc);
 	} else if (nr == 5 || nr == 6 || nr == 7 || nr == 9) {
         Exception_build_stack_frame(oldpc, currpc, regs.mmu_ssw, nr, 0x2);
 	} else if (regs.m && nr >= 24 && nr < 32) { /* M + Interrupt */
@@ -1897,7 +1897,7 @@ uae_u32 REGPARAM2 op_illg (uae_u32 opcode)
 	static int warned;
 
 	if (warned < 20) {
-		write_log ("Illegal instruction: %04x at %08X -> %08X\n", opcode, pc, get_long (regs.vbr + 0x10));
+		write_log ("Illegal instruction: %04x at %08X\n", opcode, pc);
 		warned++;
 		//activate_debugger();
 	}

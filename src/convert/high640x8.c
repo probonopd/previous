@@ -110,7 +110,7 @@ static inline void putpixel(SDL_Surface * surface, Uint16 x, Uint16 y, Uint32 co
 
 }
 
-static char buffer[832*1152*2];
+static char buffer[832*1152*4];
 
 static void ConvertHighRes_640x8Bit(void)
 {
@@ -127,6 +127,29 @@ static void ConvertHighRes_640x8Bit(void)
 			hicolors[x]=SDL_MapRGB(sdlscrn->format,((x&0x0F00)>>4)|((x&0x0F00)>>8),(x&0x00F0)|((x&0x00F0)>>4),((x&0x000F)<<4)|(x&0x000F));
 	}
 
+#if ENABLE_DIMENSION
+    /* dimension */
+    if (enable_dimension_screen) {
+        for (y = 0; y < 832; y++)
+        {
+            adr=y*288*16;
+            
+            for (x = 0; x < 1120; x++)
+            {
+                if ((buffer[adr]!=ND_vram[adr]) || (buffer[adr+1]!=ND_vram[adr+1]) || (buffer[adr+2]!=ND_vram[adr+2])) {
+                    col=((ND_vram[adr]<<16) | (ND_vram[adr+1]<<8) | (ND_vram[adr+2]));
+                    putpixel(sdlscrn,x,y,col);
+                    buffer[adr]=ND_vram[adr];
+                    buffer[adr+1]=ND_vram[adr+1];
+                    buffer[adr+2]=ND_vram[adr+2];
+                }
+                adr+=4;
+            }
+        }
+        return;
+    }
+#endif
+    
 	/* non turbo color */
 	if ((ConfigureParams.System.bColor) && (!(ConfigureParams.System.bTurbo)) ){
 		for (y = 0; y < 832; y++)

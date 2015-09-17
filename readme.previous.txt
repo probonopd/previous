@@ -1,6 +1,6 @@
 
 
-                                 Previous 1.1
+                                 Previous 1.2
 
 
                     http://previous.alternative-system.com/
@@ -102,7 +102,7 @@ MMU		good
 FPU		good
 DSP		buggy
 DMA		good
-NeXTbus		missing
+NextBus		missing
 Memory		good
 2-bit graphics	good
 Color graphics	good
@@ -112,11 +112,13 @@ SCSI drive	good
 MO drive	good (single drive)
 Floppy drive	good
 Ethernet	good
-Serial		missing
+Serial		dummy
 Printer		missing
 Sound		partial (no microphone)
 Keyboard	good
 Mouse		good
+ADB		dummy
+Nitro		dummy
 
 
 There are remaining problems with the host to emulated machine interface for
@@ -127,13 +129,11 @@ input devices.
  ---------------
 
 - Un-emulated hardware may cause problems in certain situations (see above).
-- The kernel sometimes hangs during the boot process after printing "root on"
-  (this is called "root on hang"). NeXTstep 3.0 and later are affected.
 - The MO drive causes problems (mainly hangs) when both drives are used (disabled).
 - Shortcuts do not work properly or overlap with host commands on some platforms.
 - The clock does not tick accurately. Real time clock power-on test may fail
   sporadically on fast host systems.
-- Turbo systems are mistakenly identified as Nitro systems.
+- There is a lot of instability when running Mac OS via Daydream.
 - FPU only works on x86 hosts.
 - Slirp: In certain rare conditions Slirp may crash.
 - Mac OS X: When minimizing and maximizing the application window the mouse
@@ -150,6 +150,12 @@ input devices.
   > Adds Turbo chipset emulation.
   > Improves DSP interrupt handling.
   > Improves hardclock timing.
+
+  Previous v1.2:
+  > Adds support for running Mac OS via Daydream.
+  > Improves mouse movement handling.
+  > Adds dummy Nitro emulation.
+  > Improves dummy SCC emulation.
 
 
  7) Running Previous

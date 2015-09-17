@@ -3,6 +3,7 @@
 #include "m68000.h"
 #include "sysdeps.h"
 #include "sysReg.h"
+#include "adb.h"
 #include "tmc.h"
 
 #define LOG_TMC_LEVEL LOG_DEBUG
@@ -21,6 +22,7 @@ struct {
 	Uint32 horizontal;
 	Uint32 vertical;
 	Uint8 video_intr;
+	Uint32 nitro;
 } tmc;
 
 /* Additional System Control Register for Turbo systems:
@@ -312,17 +314,17 @@ Uint32 tmc_lget(uaecptr addr) {
 	
 	if (addr==0x02210000) {
 		Log_Printf(LOG_WARN, "[TMC] Nitro register lget from $%08X",addr);
-		Log_Printf(LOG_WARN, "[TMC] No nitro --> bus error!");
-		M68000_BusError(addr, 1);
-		return 0;
+		if (ConfigureParams.System.nCpuFreq==40) {
+			val = tmc.nitro;
+		} else {
+			Log_Printf(LOG_WARN, "[TMC] No nitro --> bus error!");
+			M68000_BusError(addr, 1);
+		}
+		return val;
 	}
 
 	if ((addr&0xFFFFF00)==TMC_ADB_ADDR_MASK) {
-		Log_Printf(LOG_WARN, "[ADB] lget at $%08X",addr);
-		if ((addr&0xFF) == 0) {
-			return 0x7FFFFFFF;
-		}
-		return 0;
+		return adb_lget(addr);
 	}
 	
 	Log_Printf(LOG_TMC_LEVEL, "[TMC] lget from %08X",addr);
@@ -353,8 +355,7 @@ Uint32 tmc_wget(uaecptr addr) {
 	}
 	
 	if ((addr&0xFFFFF00)==TMC_ADB_ADDR_MASK) {
-		Log_Printf(LOG_WARN, "[ADB] wget at $%08X",addr);
-		return 0xFFFF;
+		return adb_wget(addr);
 	}
 	
 	Log_Printf(LOG_TMC_LEVEL, "[TMC] wget from %08X",addr);
@@ -374,8 +375,7 @@ Uint32 tmc_wget(uaecptr addr) {
 
 Uint32 tmc_bget(uaecptr addr) {
 	if ((addr&0xFFFFF00)==TMC_ADB_ADDR_MASK) {
-		Log_Printf(LOG_WARN, "[ADB] bget at $%08X",addr);
-		return 0xFF;
+		return adb_bget(addr);
 	}
 	
 	Log_Printf(LOG_TMC_LEVEL, "[TMC] bget from %08X",addr);
@@ -399,13 +399,17 @@ void tmc_lput(uaecptr addr, Uint32 l) {
 	
 	if (addr==0x02210000) {
 		Log_Printf(LOG_WARN, "[TMC] Nitro register lput %08X at $%08X",l,addr);
-		Log_Printf(LOG_WARN, "[TMC] No nitro --> bus error!");
-		M68000_BusError(addr, 0);
+		if (ConfigureParams.System.nCpuFreq==40) {
+			tmc.nitro = l&0x0000011F;
+		} else {
+			Log_Printf(LOG_WARN, "[TMC] No nitro --> bus error!");
+			M68000_BusError(addr, 0);
+		}
 		return;
 	}
 	
 	if ((addr&0xFFFFF00)==TMC_ADB_ADDR_MASK) {
-		Log_Printf(LOG_WARN, "[ADB] lput %08X at $%08X",l,addr);
+		adb_lput(addr, l);
 		return;
 	}
 	
@@ -433,7 +437,7 @@ void tmc_wput(uaecptr addr, Uint32 w) {
 	}
 	
 	if ((addr&0xFFFFF00)==TMC_ADB_ADDR_MASK) {
-		Log_Printf(LOG_WARN, "[ADB] wput %04X at $%08X",w,addr);
+		adb_wput(addr, w);
 		return;
 	}
 	
@@ -452,7 +456,7 @@ void tmc_wput(uaecptr addr, Uint32 w) {
 
 void tmc_bput(uaecptr addr, Uint32 b) {
 	if ((addr&0xFFFFF00)==TMC_ADB_ADDR_MASK) {
-		Log_Printf(LOG_WARN, "[ADB] bput %02X at $%08X",b,addr);
+		adb_bput(addr, b);
 		return;
 	}
 	
@@ -475,4 +479,6 @@ void TMC_Reset(void) {
 	
 	tmc_video_reg_reset();
 	tmc.control = 0x0D17038F;
+	tmc.nitro = 0x00000000;
+	ADB_Reset();
 }

@@ -23,6 +23,7 @@ const char Memory_fileid[] = "Previous memory.c : " __DATE__ " " __TIME__;
 #include "ioMem.h"
 #include "bmap.h"
 #include "tmc.h"
+#include "nbic.h"
 #include "reset.h"
 #include "nextMemory.h"
 #include "m68000.h"
@@ -138,6 +139,12 @@ uae_u32 NEXT_ram_bank3_mask;
 #define NEXT_BMAP_MASK			0x0000003F
 
 #define NEXT_BMAP_MAP_SIZE		0x00010000
+
+#define NEXT_NBIC_START			0x02020000
+#define NEXT_NBIC_SIZE			0x00000008
+#define NEXT_NBIC_MASK			0x00000007
+
+#define NEXT_NBIC_MAP_SIZE		0x00010000
 
 /* Cache memory for nitro systems */
 #define NEXT_CACHE_TAG_START	0x03E00000
@@ -993,6 +1000,27 @@ static addrbank TMC_bank =
 	tmc_lget, tmc_wget, ABFLAG_IO
 };
 
+static addrbank NBIC_bank =
+{
+	nbic_reg_lget, nbic_reg_wget, nbic_reg_bget,
+	nbic_reg_lput, nbic_reg_wput, nbic_reg_bput,
+	nbic_reg_lget, nbic_reg_wget, ABFLAG_IO
+};
+
+static addrbank NEXTBUS_slot_bank =
+{
+	nextbus_slot_lget, nextbus_slot_wget, nextbus_slot_bget,
+	nextbus_slot_lput, nextbus_slot_wput, nextbus_slot_bput,
+	nextbus_slot_lget, nextbus_slot_wget, ABFLAG_IO
+};
+
+static addrbank NEXTBUS_board_bank =
+{
+	nextbus_board_lget, nextbus_board_wget, nextbus_board_bget,
+	nextbus_board_lput, nextbus_board_wput, nextbus_board_bput,
+	nextbus_board_lget, nextbus_board_wget, ABFLAG_IO
+};
+
 
 
 static void init_mem_banks (void)
@@ -1134,14 +1162,35 @@ const char* memory_init(int *nNewNEXTMemSize)
 	if (ConfigureParams.System.bTurbo) {
 		map_banks(&TMC_bank, NEXT_IO_TMC_START >> 16, NEXT_IO_SIZE>>16);
 		write_log("Mapping TMC device space at $%08X\n", NEXT_IO_TMC_START);
+
+		if (ConfigureParams.System.nCpuFreq==40) {
+			map_banks(&dummy_bank, NEXT_CACHE_START>>16, NEXT_CACHE_SIZE>>16);
+			write_log("Mapping cache memory at $%08x: %ikB\n", NEXT_CACHE_START, NEXT_CACHE_SIZE/1024);
+			map_banks(&dummy_bank, NEXT_CACHE_TAG_START>>16, NEXT_CACHE_TAG_SIZE>>16);
+			write_log("Mapping cache tag memory at $%08x: %ikB\n", NEXT_CACHE_TAG_START, NEXT_CACHE_TAG_SIZE/1024);
+		}
 	}
-#if 0 /* TODO: This is for Nitro systems */
-	/* Map cache memory (dummy) */
-	if (ConfigureParams.System.bNitro) {
-		map_banks(&dummy_bank, NEXT_CACHE_START>>16, NEXT_CACHE_SIZE>>16);
-		write_log("Mapping cache memory at $%08x: %ikB\n", NEXT_CACHE_START, NEXT_CACHE_SIZE/1024);
-		map_banks(&dummy_bank, NEXT_CACHE_TAG_START>>16, NEXT_CACHE_TAG_SIZE>>16);
-		write_log("Mapping cache tag memory at $%08x: %ikB\n", NEXT_CACHE_TAG_START, NEXT_CACHE_TAG_SIZE/1024);
+#if 0
+	/* Map NBIC and board spaces via NeXTbus */
+	if (ConfigureParams.System.nMachineType!=NEXT_STATION && ConfigureParams.System.bNBIC) {
+		if (!ConfigureParams.System.bTurbo) {
+			map_banks(&NBIC_bank, NEXT_NBIC_START>>16, NEXT_NBIC_MAP_SIZE>>16);
+			write_log("Mapping NeXTbus interface chip at $%08x\n", NEXT_NBIC_START);
+		}
+		for (i = 2; i < 15; i++) {
+			if (i==8 && ConfigureParams.System.nMachineType!=NEXT_CUBE030 && !ConfigureParams.System.bTurbo) {
+				/* FIXME: conflict with BMAP. Implement: only SCR2 ROM_OVERLAY enables NBIC */
+				continue;
+			}
+			map_banks(&NEXTBUS_board_bank, NEXTBUS_BOARD_START(i)>>16, NEXTBUS_BOARD_SIZE>>16);
+			write_log("Mapping NeXTbus board memory for slot %i at $%08x\n", i, NEXTBUS_BOARD_START(i));
+		}
+		for (i = 0; i < 16; i++) {
+			map_banks(&NEXTBUS_slot_bank, NEXTBUS_SLOT_START(i)>>16, NEXTBUS_SLOT_SIZE>>16);
+		}
+		write_log("Mapping NeXTbus slot memory at $%08x\n", NEXTBUS_SLOT_START(i));
+        
+        nextbus_init();
 	}
 #endif
 	
