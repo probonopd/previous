@@ -18,23 +18,22 @@ const char DlgMain_fileid[] = "Hatari dlgMain.c : " __DATE__ " " __TIME__;
 #define MAINDLG_ABOUT    2
 #define MAINDLG_SYSTEM   3
 #define MAINDLG_ROM      4
-#define MAINDLG_MEMORY   5
+#define MAINDLG_ENET     5
 #define MAINDLG_BOOT     6
 #define MAINDLG_SCSI     7
 #define MAINDLG_MO       8
 #define MAINDLG_FLOPPY   9
-#define MAINDLG_ENET     10
-#define MAINDLG_KEYBD    11
-#define MAINDLG_MOUSE    12
-#define MAINDLG_SOUND    13
+#define MAINDLG_KEYBD    10
+#define MAINDLG_MOUSE    11
+#define MAINDLG_SOUND    12
+#define MAINDLG_PRINTER  13
 #define MAINDLG_LOADCFG  14
 #define MAINDLG_SAVECFG  15
-#define MAINDLG_NORESET  16
-#define MAINDLG_RESET    17
-#define MAINDLG_SHOW     18
-#define MAINDLG_OK       19
-#define MAINDLG_QUIT     20
-#define MAINDLG_CANCEL   21
+#define MAINDLG_RESET    16
+#define MAINDLG_SHOW     17
+#define MAINDLG_OK       18
+#define MAINDLG_QUIT     19
+#define MAINDLG_CANCEL   20
 
 
 /* The main dialog: */
@@ -45,19 +44,18 @@ static SGOBJ maindlg[] =
 	{ SGBUTTON, 0, 0, 2,4, 13,1, "About" },
 	{ SGBUTTON, 0, 0, 2,6, 13,1, "System" },
 	{ SGBUTTON, 0, 0, 2,8, 13,1, "ROM" },
-	{ SGBUTTON, 0, 0, 2,10, 13,1, "Memory" },
+	{ SGBUTTON, 0, 0, 2,10, 13,1, "Ethernet" },
 	{ SGBUTTON, 0, 0, 17,4, 16,1, "Boot options" },
 	{ SGBUTTON, 0, 0, 17,6, 16,1, "SCSI disks" },
 	{ SGBUTTON, 0, 0, 17,8, 16,1, "MO disks" },
 	{ SGBUTTON, 0, 0, 17,10, 16,1, "Floppy disks" },
-	{ SGBUTTON, 0, 0, 35,4, 13,1, "Ethernet" },
-	{ SGBUTTON, 0, 0, 35,6, 13,1, "Keyboard" },
-	{ SGBUTTON, 0, 0, 35,8, 13,1, "Mouse" },
-	{ SGBUTTON, 0, 0, 35,10, 13,1, "Sound" },
+	{ SGBUTTON, 0, 0, 35,4, 13,1, "Keyboard" },
+	{ SGBUTTON, 0, 0, 35,6, 13,1, "Mouse" },
+	{ SGBUTTON, 0, 0, 35,8, 13,1, "Sound" },
+	{ SGBUTTON, 0, 0, 35,10, 13,1, "Printer" },
 	{ SGBUTTON, 0, 0, 7,13, 16,1, "Load config." },
 	{ SGBUTTON, 0, 0, 27,13, 16,1, "Save config." },
-	{ SGRADIOBUT, 0, 0, 3,15, 15,1, "No Reset" },
-	{ SGRADIOBUT, 0, 0, 3,16, 15,1, "Reset machine" },
+	{ SGCHECKBOX, 0, 0, 3,15, 15,1, "Reset machine" },
     { SGCHECKBOX, 0, 0, 3,17, 15,1, "Show at startup" },
 	{ SGBUTTON, SG_DEFAULT, 0, 21,15, 8,3, "OK" },
 	{ SGBUTTON, 0, 0, 36,15, 10,1, "Quit" },
@@ -88,7 +86,6 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 
 	SDLGui_CenterDlg(maindlg);
 
-	maindlg[MAINDLG_NORESET].state |= SG_SELECTED;
 	maindlg[MAINDLG_RESET].state &= ~SG_SELECTED;
     
     if(ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup)
@@ -122,13 +119,8 @@ int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot)
 		 case MAINDLG_SYSTEM:
 			Dialog_SystemDlg();
 			break;
-		 case MAINDLG_MEMORY:
-			if (Dialog_MemDlg())
-			{
-				/* Memory snapshot has been loaded - leave GUI immediately */
-				*bLoadedSnapshot = true;
-				return true;
-			}
+		 case MAINDLG_PRINTER:
+			DlgPrinter_Main();
 			break;
 		 case MAINDLG_BOOT:
 			DlgBoot_Main();

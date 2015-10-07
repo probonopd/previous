@@ -19,6 +19,7 @@
 #include "configuration.h"
 #include "ethernet.h"
 #include "floppy.h"
+#include "printer.h"
 #include "snd.h"
 #include "dsp.h"
 #include "mmu_common.h"
@@ -747,6 +748,35 @@ void dma_sndout_read_memory(void) {
         } ENDTRY
         
         dma_interrupt(CHANNEL_SOUNDOUT);
+    }
+}
+
+
+/* Channel Printer */
+void dma_printer_read_memory(void) {
+    if (dma[CHANNEL_PRINTER].csr&DMA_ENABLE) {
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Printer: Read from memory at $%08x, %i bytes",
+                   dma[CHANNEL_PRINTER].next,dma[CHANNEL_PRINTER].limit-dma[CHANNEL_PRINTER].next);
+        
+        if ((dma[CHANNEL_PRINTER].limit%4) || (dma[CHANNEL_PRINTER].next%4)) {
+            Log_Printf(LOG_WARN, "[DMA] Channel Printer: Error! Bad alignment! (Next: $%08X, Limit: $%08X)",
+                       dma[CHANNEL_PRINTER].next, dma[CHANNEL_PRINTER].limit);
+            abort();
+        }
+        
+        TRY(prb) {
+            while (dma[CHANNEL_PRINTER].next<dma[CHANNEL_PRINTER].limit && lp_buffer.size<lp_buffer.limit) {
+                lp_buffer.data[lp_buffer.size]=NEXTMemory_ReadByte(dma[CHANNEL_PRINTER].next);
+                lp_buffer.size++;
+                dma[CHANNEL_PRINTER].next++;
+            }
+        } CATCH(prb) {
+            Log_Printf(LOG_WARN, "[DMA] Channel Printer: Bus error reading from %08x",dma[CHANNEL_PRINTER].next);
+            dma[CHANNEL_PRINTER].csr &= ~DMA_ENABLE;
+            dma[CHANNEL_PRINTER].csr |= (DMA_COMPLETE|DMA_BUSEXC);
+        } ENDTRY
+        
+        dma_interrupt(CHANNEL_PRINTER);
     }
 }
 

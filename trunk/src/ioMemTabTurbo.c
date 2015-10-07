@@ -24,6 +24,7 @@ const char IoMemTabTurbo_fileid[] = "Previous ioMemTabTurbo.c : " __DATE__ " " _
 #include "scc.h"
 #include "mo.h"
 #include "kms.h"
+#include "printer.h"
 #include "ramdac.h"
 #include "floppy.h"
 #include "dsp.h"
@@ -153,14 +154,11 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_Turbo[] =
 	{ 0x0200e00c, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
 	
 	/* Printer */
-	{ 0x0200f000, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0200f001, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0200f002, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0200f003, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0200f004, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0200f005, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0200f006, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
-	{ 0x0200f007, SIZE_BYTE, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },
+    { 0x0200f000, SIZE_BYTE, LP_CSR0_Read, LP_CSR0_Write },
+    { 0x0200f001, SIZE_BYTE, LP_CSR1_Read, LP_CSR1_Write },
+    { 0x0200f002, SIZE_BYTE, LP_CSR2_Read, LP_CSR2_Write },
+    { 0x0200f003, SIZE_BYTE, LP_CSR3_Read, LP_CSR3_Write },
+    { 0x0200f004, SIZE_LONG, LP_Data_Read, LP_Data_Write },
 	
 	/* Brightness */
 	{ 0x02010000, SIZE_LONG, IoMem_ReadWithoutInterceptionButTrace, IoMem_WriteWithoutInterceptionButTrace },

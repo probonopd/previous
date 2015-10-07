@@ -874,3 +874,39 @@ bool SDLGui_FileConfSelect(char *dlgname, char *confname, int maxlen, bool bAllo
 	}
 	return false;
 }
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Let user browse for a directory, confname is used as default.
+ *
+ * If no directory is selected, or there's some problem with it,
+ * return false and clear dlgname & confname.
+ * Otherwise return true, set dlgname & confname to the directory name
+ * (dlgname is shrinked & limited to maxlen and confname is assumed
+ * to have FILENAME_MAX amount of space).
+ */
+
+bool SDLGui_DirectorySelect(char *dlgname, char *confname, int maxlen)
+{
+    char *selname;
+    
+    selname = SDLGui_FileSelect(confname, NULL, false);
+    if (selname)
+    {
+        File_MakeValidPathName(selname);
+        
+        if (File_DirExists(selname))
+        {
+            strncpy(confname, selname, FILENAME_MAX);
+            File_ShrinkName(dlgname, selname, maxlen);
+        }
+        else
+        {
+            dlgname[0] = confname[0] = 0;
+        }
+        free(selname);
+        return true;
+    }
+    return false;
+}

@@ -50,6 +50,8 @@ void dma_scc_read_memory(void);
 
 void dma_sndout_read_memory(void);
 
+void dma_printer_read_memory(void);
+
 /* Delayed DMA interrupt handlers */
 void M2RDMA_InterruptHandler(void);
 void R2MDMA_InterruptHandler(void);

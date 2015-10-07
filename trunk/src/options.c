@@ -1121,7 +1121,7 @@ bool Opt_ParseParameters(int argc, const char * const argv[])
 			/* "none" can be used to disable printer */
 			ok = Opt_StrCpy(OPT_PRINTER, false, ConfigureParams.Printer.szPrintToFileName,
 					argv[i], sizeof(ConfigureParams.Printer.szPrintToFileName),
-					&ConfigureParams.Printer.bEnablePrinting);
+					&ConfigureParams.Printer.bPrinterConnected);
 			break;
 			
 		case OPT_MIDI_IN:

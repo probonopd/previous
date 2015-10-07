@@ -85,6 +85,7 @@ static const struct Config_Tag configs_Screen[] =
 static const struct Config_Tag configs_Keyboard[] =
 {
 	{ "bDisableKeyRepeat", Bool_Tag, &ConfigureParams.Keyboard.bDisableKeyRepeat },
+    { "bSwapCmdAlt", Bool_Tag, &ConfigureParams.Keyboard.bSwapCmdAlt },
 	{ "nKeymapType", Int_Tag, &ConfigureParams.Keyboard.nKeymapType },
 	{ "szMappingFileName", String_Tag, ConfigureParams.Keyboard.szMappingFileName },
 	{ NULL , Error_Tag, NULL }
@@ -288,8 +289,8 @@ static const struct Config_Tag configs_Rs232[] =
 /* Used to load/save printer options */
 static const struct Config_Tag configs_Printer[] =
 {
-	{ "bEnablePrinting", Bool_Tag, &ConfigureParams.Printer.bEnablePrinting },
-	{ "bPrintToFile", Bool_Tag, &ConfigureParams.Printer.bPrintToFile },
+	{ "bPrinterConnected", Bool_Tag, &ConfigureParams.Printer.bPrinterConnected },
+	{ "nPaperSize", Int_Tag, &ConfigureParams.Printer.nPaperSize },
 	{ "szPrintToFileName", String_Tag, ConfigureParams.Printer.szPrintToFileName },
 	{ NULL , Error_Tag, NULL }
 };
@@ -412,6 +413,7 @@ void Configuration_SetDefault(void)
     
 	/* Set defaults for Keyboard */
 	ConfigureParams.Keyboard.bDisableKeyRepeat = false;
+    ConfigureParams.Keyboard.bSwapCmdAlt = false;
 	ConfigureParams.Keyboard.nKeymapType = KEYMAP_SCANCODE;
 	strcpy(ConfigureParams.Keyboard.szMappingFileName, "");
 
@@ -457,9 +459,9 @@ void Configuration_SetDefault(void)
 	        psHomeDir, PATHSEP);
 
 	/* Set defaults for Printer */
-	ConfigureParams.Printer.bEnablePrinting = false;
-	ConfigureParams.Printer.bPrintToFile = true;
-	sprintf(ConfigureParams.Printer.szPrintToFileName, "%s%chatari.prn",
+	ConfigureParams.Printer.bPrinterConnected = false;
+	ConfigureParams.Printer.nPaperSize = PAPER_A4;
+	sprintf(ConfigureParams.Printer.szPrintToFileName, "%s%c",
 	        psHomeDir, PATHSEP);
 
 	/* Set defaults for RS232 */
