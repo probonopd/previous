@@ -73,6 +73,7 @@ typedef enum
 typedef struct
 {
   bool bDisableKeyRepeat;
+  bool bSwapCmdAlt;
   KEYMAPTYPE nKeymapType;
   char szMappingFileName[FILENAME_MAX];
 } CNF_KEYBOARD;
@@ -266,10 +267,18 @@ typedef struct
 
 
 /* Printer configuration */
+typedef enum
+{
+    PAPER_A4,
+    PAPER_LETTER,
+    PAPER_B5,
+    PAPER_LEGAL
+} PAPER_SIZE;
+
 typedef struct
 {
-  bool bEnablePrinting;
-  bool bPrintToFile;
+  bool bPrinterConnected;
+  PAPER_SIZE nPaperSize;
   char szPrintToFileName[FILENAME_MAX];
 } CNF_PRINTER;
 

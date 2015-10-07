@@ -68,7 +68,7 @@ static SGOBJ memorydlg[] =
 	{ SGRADIOBUT, 0, 0, 23,8, 7,1, "80 ns" },
 	{ SGRADIOBUT, 0, 0, 23,9, 7,1, "60 ns" },
     
-    { SGBUTTON, SG_DEFAULT, 0, 10,15, 21,1, "Back to main menu" },
+    { SGBUTTON, SG_DEFAULT, 0, 10,15, 23,1, "Back to system menu" },
 #if GUI_SAVE_MEMORY
 	{ SGBOX, 0, 0, 1,14, 39,10, NULL },
 	{ SGTEXT, 0, 0, 2,15, 17,1, "Load/Save memory state (untested)" },

@@ -618,7 +618,7 @@ static const int nSoundFreqs[] =
     IMPORT_RADIO(cpuType, ConfigureParams.System.nCpuLevel);
 //	IMPORT_TEXTFIELD(defaultImagesLocation, ConfigureParams.DiskImage.szDiskImageDirectory);
     IMPORT_SWITCH(enableMidi, ConfigureParams.Midi.bEnableMidi);
-    IMPORT_SWITCH(enablePrinter, ConfigureParams.Printer.bEnablePrinting);
+    IMPORT_SWITCH(enablePrinter, ConfigureParams.Printer.bPrinterConnected);
     IMPORT_SWITCH(enableRS232, ConfigureParams.RS232.bEnableRS232);
     IMPORT_SWITCH(enableSound, ConfigureParams.Sound.bEnableSound);
     IMPORT_DROPDOWN(frameSkip, ConfigureParams.Screen.nFrameSkips);
@@ -829,7 +829,7 @@ static const int nSoundFreqs[] =
     EXPORT_RADIO(cpuType, ConfigureParams.System.nCpuLevel);
 //	EXPORT_TEXTFIELD(defaultImagesLocation, ConfigureParams.DiskImage.szDiskImageDirectory);
     EXPORT_SWITCH(enableMidi, ConfigureParams.Midi.bEnableMidi);
-    EXPORT_SWITCH(enablePrinter, ConfigureParams.Printer.bEnablePrinting);
+    EXPORT_SWITCH(enablePrinter, ConfigureParams.Printer.bPrinterConnected);
     EXPORT_SWITCH(enableRS232, ConfigureParams.RS232.bEnableRS232);
     EXPORT_SWITCH(enableSound, ConfigureParams.Sound.bEnableSound);
     EXPORT_DROPDOWN(frameSkip, ConfigureParams.Screen.nFrameSkips);

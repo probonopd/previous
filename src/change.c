@@ -184,6 +184,12 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
         }
     }
     
+    /* Did we change printer? */
+    if (current->Printer.bPrinterConnected != changed->Printer.bPrinterConnected) {
+        printf("printer reset\n");
+        return true;
+    }
+    
     /* Else no reset is required */
     printf("No Reset needed!\n");
     return false;

@@ -86,7 +86,7 @@ void Dialog_DeviceDlg(void)
 
 	/* Set up dialog from actual values: */
 
-	if (ConfigureParams.Printer.bEnablePrinting)
+	if (ConfigureParams.Printer.bPrinterConnected)
 		devicedlg[DEVDLG_PRNENABLE].state |= SG_SELECTED;
 	else
 		devicedlg[DEVDLG_PRNENABLE].state &= ~SG_SELECTED;
@@ -149,7 +149,7 @@ void Dialog_DeviceDlg(void)
 	       && but != SDLGUI_ERROR && !bQuitProgram);
 
 	/* Read values from dialog */
-	ConfigureParams.Printer.bEnablePrinting = (devicedlg[DEVDLG_PRNENABLE].state & SG_SELECTED);
+	ConfigureParams.Printer.bPrinterConnected = (devicedlg[DEVDLG_PRNENABLE].state & SG_SELECTED);
 	ConfigureParams.RS232.bEnableRS232 = (devicedlg[DEVDLG_RS232ENABLE].state & SG_SELECTED);
 	ConfigureParams.Midi.bEnableMidi = (devicedlg[DEVDLG_MIDIENABLE].state & SG_SELECTED);
 }

@@ -24,7 +24,9 @@ const char DlgSystem_fileid[] = "Previous dlgSystem.c : " __DATE__ " " __TIME__;
 #define DLGSYS_CUSTOMIZE  10
 #define DLGSYS_RESET      11
 
-#define DLGSYS_EXIT       30
+#define DLGSYS_MEMORY     30
+
+#define DLGSYS_EXIT       32
 
 /* Variable strings */
 char cpu_type[16] = "68030";
@@ -42,11 +44,8 @@ void update_system_selection(void);
 void get_default_values(void);
 
 
-#define GUI_TURBO 1
-
 static SGOBJ systemdlg[] =
 {
-#if GUI_TURBO
     { SGBOX, 0, 0, 0,0, 58,27, NULL },
     { SGTEXT, 0, 0, 22,1, 14,1, "System options" },
     
@@ -61,22 +60,7 @@ static SGOBJ systemdlg[] =
     
     { SGBUTTON, SG_DEFAULT, 0, 5,16, 19,1, "Customize" },
     { SGBUTTON, SG_DEFAULT, 0, 5,18, 19,1, "System defaults" },
-#else
-    { SGBOX, 0, 0, 0,0, 58,25, NULL },
-    { SGTEXT, 0, 0, 22,1, 14,1, "System options" },
-    
-    { SGBOX, 0, 0, 2,3, 25,15, NULL },
-    { SGTEXT, 0, 0, 3,4, 14,1, "Machine type" },
-    { SGRADIOBUT, 0, 0, 5,6, 15,1, "NeXT Computer" },
-    { SGRADIOBUT, 0, 0, 5,8, 10,1, "NeXTcube" },
-    { SGTEXT, 0, 0, 7,9, 7,1, "" },
-    { SGRADIOBUT, 0, 0, 5,10, 13,1, "NeXTstation" },
-    { SGTEXT, 0, 0, 7,12, 7,1, "" },
-    { SGCHECKBOX, 0, 0, 7,11, 7,1, "Color" },
-    
-    { SGBUTTON, 0, 0, 5,14, 19,1, "Customize" },
-    { SGBUTTON, 0, 0, 5,16, 19,1, "System defaults" },
-#endif
+
     { SGTEXT, 0, 0, 30,4, 13,1, "System overview:" },
     { SGTEXT, 0, 0, 30,6, 13,1, "CPU clock:" },
     { SGTEXT, 0, 0, 44,6, 13,1, cpu_clock },
@@ -94,15 +78,14 @@ static SGOBJ systemdlg[] =
     { SGTEXT, 0, 0, 44,12, 13,1, scsi_controller },
     { SGTEXT, 0, 0, 30,13, 13,1, "RTC chip:" },
     { SGTEXT, 0, 0, 44,13, 13,1, rtc_chip },
-#if GUI_TURBO
+    
+    { SGBOX, 0, 0, 29,15, 27,5, NULL },
+    { SGBUTTON, 0, 0, 32,16, 21,1, "Memory size" },
+
     { SGTEXT, 0, 0, 4,21, 13,1, "Changing machine type resets all advanced options." },
     
     { SGBUTTON, SG_DEFAULT, 0, 18,24, 21,1, "Back to main menu" },
-#else
-    { SGTEXT, 0, 0, 4,19, 13,1, "Changing machine type resets all advanced options." },
-    
-    { SGBUTTON, SG_DEFAULT, 0, 18,22, 21,1, "Back to main menu" },
-#endif
+
     { -1, 0, 0, 0,0, 0,0, NULL }
 };
 
@@ -322,6 +305,10 @@ void Dialog_SystemDlg(void)
                 
             case DLGSYS_RESET:
                 get_default_values();
+                break;
+                
+            case DLGSYS_MEMORY:
+                Dialog_MemDlg();
                 break;
 
             default:

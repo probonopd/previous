@@ -1,6 +1,6 @@
 
 
-                                 Previous 1.2
+                                 Previous 1.3
 
 
                     http://previous.alternative-system.com/
@@ -113,7 +113,7 @@ MO drive	good (single drive)
 Floppy drive	good
 Ethernet	good
 Serial		dummy
-Printer		missing
+Printer		good
 Sound		partial (no microphone)
 Keyboard	good
 Mouse		good
@@ -157,6 +157,10 @@ input devices.
   > Adds dummy Nitro emulation.
   > Improves dummy SCC emulation.
 
+  Previous v1.3:
+  > Adds Laser Printer emulation.
+  > Introduces option for swapping cmd and alt key.
+
 
  7) Running Previous
  -------------------
@@ -174,8 +178,8 @@ and initiate a clean shut down by pressing F10 (emulates the power button).
 
 Many thanks go to the members of the NeXT International Forums for their
 help. Special thanks go to Gavin Thomas Nicol, Piotr Twarecki, Toni Wilen,
-Michael Bosshard, Thomas Huth, Olivier Galibert, Jason Stevens, Vaughan Kaufman 
-and Peter Leonard!
+Michael Bosshard, Thomas Huth, Olivier Galibert, Simon Schubiger,
+Jason Stevens, Vaughan Kaufman and Peter Leonard!
 This emulator would not exist without their help.
 
 

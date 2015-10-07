@@ -97,6 +97,7 @@ Uint8 Keymap_GetKeyFromScancode(SDL_Scancode sdlscancode) {
         case SDL_SCANCODE_SLASH: return 0x30;
         case SDL_SCANCODE_SPACE: return 0x38;
             
+        case SDL_SCANCODE_GRAVE:
         case SDL_SCANCODE_NUMLOCKCLEAR: return 0x26;
         case SDL_SCANCODE_KP_EQUALS: return 0x27;
         case SDL_SCANCODE_KP_DIVIDE: return 0x28;
@@ -155,16 +156,16 @@ Uint8 Keymap_Keydown_GetModFromScancode(SDL_Scancode sdlscancode) {
             modifiers|=0x04;
             break;
         case SDL_SCANCODE_LGUI:
-            modifiers|=0x08;
+            modifiers|=ConfigureParams.Keyboard.bSwapCmdAlt?0x20:0x08;
             break;
         case SDL_SCANCODE_RGUI:
-            modifiers|=0x10;
+            modifiers|=ConfigureParams.Keyboard.bSwapCmdAlt?0x40:0x10;
             break;
         case SDL_SCANCODE_LALT:
-            modifiers|=0x20;
+            modifiers|=ConfigureParams.Keyboard.bSwapCmdAlt?0x08:0x20;
             break;
         case SDL_SCANCODE_RALT:
-            modifiers|=0x40;
+            modifiers|=ConfigureParams.Keyboard.bSwapCmdAlt?0x10:0x40;
             break;
         case SDL_SCANCODE_CAPSLOCK:
             capslock=capslock?false:true;
@@ -190,16 +191,16 @@ Uint8 Keymap_Keyup_GetModFromScancode(SDL_Scancode sdlscancode) {
             modifiers&=~0x04;
             break;
         case SDL_SCANCODE_LGUI:
-            modifiers&=~0x08;
+            modifiers&=~(ConfigureParams.Keyboard.bSwapCmdAlt?0x20:0x08);
             break;
         case SDL_SCANCODE_RGUI:
-            modifiers&=~0x10;
+            modifiers&=~(ConfigureParams.Keyboard.bSwapCmdAlt?0x40:0x10);
             break;
         case SDL_SCANCODE_LALT:
-            modifiers&=~0x20;
+            modifiers&=~(ConfigureParams.Keyboard.bSwapCmdAlt?0x08:0x20);
             break;
         case SDL_SCANCODE_RALT:
-            modifiers&=~0x40;
+            modifiers&=~(ConfigureParams.Keyboard.bSwapCmdAlt?0x10:0x40);
             break;
         case SDL_SCANCODE_CAPSLOCK:
             //capslock=false;
@@ -331,16 +332,16 @@ Uint8 Keymap_Keydown_GetModFromSymbol(SDL_Keycode sdl_modifier) {
             modifiers|=0x04;
             break;
         case SDLK_LGUI:
-            modifiers|=0x08;
+            modifiers|=ConfigureParams.Keyboard.bSwapCmdAlt?0x20:0x08;
             break;
         case SDLK_RGUI:
-            modifiers|=0x10;
+            modifiers|=ConfigureParams.Keyboard.bSwapCmdAlt?0x40:0x10;
             break;
         case SDLK_LALT:
-            modifiers|=0x20;
+            modifiers|=ConfigureParams.Keyboard.bSwapCmdAlt?0x08:0x20;
             break;
         case SDLK_RALT:
-            modifiers|=0x40;
+            modifiers|=ConfigureParams.Keyboard.bSwapCmdAlt?0x10:0x40;
             break;
         case SDLK_CAPSLOCK:
             capslock=capslock?false:true;
@@ -366,16 +367,16 @@ Uint8 Keymap_Keyup_GetModFromSymbol(SDL_Keycode sdl_modifier) {
             modifiers&=~0x04;
             break;
         case SDLK_LGUI:
-            modifiers&=~0x08;
+            modifiers&=~(ConfigureParams.Keyboard.bSwapCmdAlt?0x20:0x08);
             break;
         case SDLK_RGUI:
-            modifiers&=~0x10;
+            modifiers&=~(ConfigureParams.Keyboard.bSwapCmdAlt?0x40:0x10);
             break;
         case SDLK_LALT:
-            modifiers&=~0x20;
+            modifiers&=~(ConfigureParams.Keyboard.bSwapCmdAlt?0x08:0x20);
             break;
         case SDLK_RALT:
-            modifiers&=~0x40;
+            modifiers&=~(ConfigureParams.Keyboard.bSwapCmdAlt?0x10:0x40);
             break;
         case SDLK_CAPSLOCK:
             //capslock=false;

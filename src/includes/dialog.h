@@ -21,6 +21,7 @@ extern void DlgSCSI_Main(void);
 extern void DlgOptical_Main(void);
 extern void DlgEthernet_Main(void);
 extern void DlgSound_Main(void);
+extern void DlgPrinter_Main(void);
 extern void Dialog_JoyDlg(void);
 extern void Dialog_KeyboardDlg(void);
 extern void Dialog_MouseDlg(void);

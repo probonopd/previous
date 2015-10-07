@@ -7,6 +7,7 @@ add_library(GuiSdl
     dlgAbout.c dlgAdvanced.c dlgAlert.c dlgBoot.c dlgDevice.c
     dlgDiskSelect.c dlgEthernet.c dlgFileSelect.c dlgFloppy.c
     dlgKeyboard.c dlgMain.c dlgMemory.c dlgMemoryAdvanced.c
-    dlgMissingFile.c dlgMouse.c dlgOpticalDisk.c dlgRom.c
-    dlgScreen.c dlgSCSI.c dlgSound.c dlgSystem.c sdlgui.c
+    dlgMissingFile.c dlgMouse.c dlgOpticalDisk.c dlgPrinter.c
+    dlgRom.c dlgScreen.c dlgSCSI.c dlgSound.c dlgSystem.c
+    sdlgui.c
 )
