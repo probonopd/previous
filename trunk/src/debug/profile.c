@@ -11,6 +11,7 @@
 const char Profile_fileid[] = "Hatari profile.c : " __DATE__ " " __TIME__;
 
 #include <stdio.h>
+#include "host.h"
 #include "main.h"
 #include "debug_priv.h"
 #include "m68000.h"
@@ -109,18 +110,7 @@ bool Profile_CpuAddressData(Uint32 addr, Uint32 *count, Uint32 *cycles)
  */
 static Uint32 index2address(Uint32 idx)
 {
-	idx <<= 1;
-	/* RAM */
-//	if (idx < nextRamEnd) {
-//		return idx;
-//	}
-	/* ROM */
-//	idx -= nextRamEnd;
-//	if (idx < 0x20000) {
-//		return idx + 0xFA0000;
-//	}
-	/* TOS */
-//	return idx - 0x20000 + TosAddress;
+    return 0;
 }
 
 
@@ -139,10 +129,10 @@ static void show_cpu_area_stats(profile_area_t *area)
 	fprintf(stderr, "- active instruction addresses:\n  %d (%.2f%% of all)\n",
 		area->active,
 		(float)area->active/cpu_profile.active*100);
-	fprintf(stderr, "- executed instructions:\n  %llu (%.2f%% of all)\n",
+	fprintf(stderr, "- executed instructions:\n  %"FMT_ll"d (%.2f%% of all)\n",
 		area->all_count,
 		(float)area->all_count/cpu_profile.all_count*100);
-	fprintf(stderr, "- used cycles:\n  %llu (%.2f%% of all)\n",
+	fprintf(stderr, "- used cycles:\n  %"FMT_ll"u (%.2f%% of all)\n",
 		area->all_cycles,
 		(float)area->all_cycles/cpu_profile.all_cycles*100);
 	fprintf(stderr, "- address with most cycles:\n  0x%06x, %d cycles (%.2f%% of all in area)\n",
@@ -349,6 +339,7 @@ bool Profile_CpuStart(void)
  */
 void Profile_CpuUpdate(void)
 {
+#if 0
 	Uint32 idx, opcode, cycles;
 	
 	idx = address2index(M68000_GetPC());
@@ -358,11 +349,12 @@ void Profile_CpuUpdate(void)
 	}
 	
 	opcode = get_iword_prefetch (0);
-	cycles = (*cpufunctbl[opcode])(opcode) + nWaitStateCycles;
+	cycles = (*cpufunctbl[opcode])(opcode);
 	
 	if (likely(cpu_profile.data[idx].cycles < MAX_PROFILE_VALUE - cycles)) {
 			cpu_profile.data[idx].cycles += cycles;
 	}
+#endif
 }
 
 
@@ -441,7 +433,7 @@ void Profile_CpuStop(void)
 	memset(area, 0, sizeof(profile_area_t));
 	area->lowest = cpu_profile.size;
 
-	for (; i < cpu_profile.size; i++, item++) {
+	for (i = 0; i < cpu_profile.size; i++, item++) {
 		update_area(i, item, area);
 	}
 
@@ -529,9 +521,9 @@ void Profile_DspShowStats(void)
 		area->lowest, area->highest);
 	fprintf(stderr, "- active instruction addresses:\n  %d\n",
 		area->active);
-	fprintf(stderr, "- executed instructions:\n  %llu\n",
+	fprintf(stderr, "- executed instructions:\n  %"FMT_ll"u\n",
 		area->all_count);
-	fprintf(stderr, "- used cycles:\n  %llu\n",
+	fprintf(stderr, "- used cycles:\n  %"FMT_ll"u\n",
 		area->all_cycles);
 	fprintf(stderr, "- address with most cycles:\n  0x%04x, %d cycles (%.2f%% of all)\n",
 		area->max_cycles_addr,

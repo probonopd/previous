@@ -1,10 +1,10 @@
 set(SOURCES
-	adb.c audio.c bmap.c cfgopts.c clocks_timings.c configuration.c options.c change.c
-	control.c cycInt.c cycles.c dialog.c dma.c esp.c enet_slirp.c ethernet.c
-	file.c floppy.c ioMem.c ioMemTabNEXT.c ioMemTabTurbo.c memorySnapShot.c 
+	adb.c audio.c bmap.c cfgopts.c configuration.c options.c change.c
+	control.c cycInt.c dialog.c dma.c esp.c enet_slirp.c ethernet.c
+	file.c floppy.c ioMem.c ioMemTabNEXT.c ioMemTabTurbo.c 
 	keymap.c kms.c m68000.c main.c mo.c nbic.c nextMemory.c paths.c printer.c queue.c 
-	ramdac.c resolution.c reset.c rs.c rtcnvram.c scandir.c scc.c screen.c 
-	screenSnapShot.c scsi.c shortcut.c snd.c statusbar.c str.c sysReg.c tmc.c unzip.c 
+	ramdac.c reset.c rs.c rtcnvram.c scandir.c scc.c fast_screen.c host.c
+    scsi.c shortcut.c snd.c statusbar.c str.c sysReg.c tmc.c unzip.c
 	utils.c video.c zip.c)
 
 # When building for OSX, define specific sources for gui and ressources
@@ -28,8 +28,8 @@ endif(WIN32)
 
 	set(CPUDIR cpu)
 
-include_directories(${CMAKE_BINARY_DIR} includes debug ${CPUDIR} dsp slirp
-		    ${SDL2_INCLUDE_DIR})
+include_directories(${CMAKE_BINARY_DIR} includes debug softfloat ${CPUDIR} 
+		    dsp dimension slirp ${SDL2_INCLUDE_DIR})
 
 if(ZLIB_FOUND)
 	include_directories(${ZLIB_INCLUDE_DIR})
@@ -44,12 +44,14 @@ if(X11_FOUND)
 endif(X11_FOUND)
 
 
-link_directories(${CMAKE_CURRENT_BINARY_DIR}/debug ${CMAKE_CURRENT_BINARY_DIR}/gui-sdl ${CMAKE_CURRENT_BINARY_DIR}/${CPUDIR} ${CMAKE_CURRENT_BINARY_DIR}/dsp ${CMAKE_CURRENT_BINARY_DIR}/slirp) 
+link_directories(${CMAKE_CURRENT_BINARY_DIR}/debug ${CMAKE_CURRENT_BINARY_DIR}/softfloat ${CMAKE_CURRENT_BINARY_DIR}/gui-sdl ${CMAKE_CURRENT_BINARY_DIR}/${CPUDIR} ${CMAKE_CURRENT_BINARY_DIR}/dsp ${CMAKE_CURRENT_BINARY_DIR}/dimension ${CMAKE_CURRENT_BINARY_DIR}/slirp) 
 
 add_subdirectory(debug)
+add_subdirectory(softfloat)
 add_subdirectory(gui-sdl)
 add_subdirectory(${CPUDIR})
 add_subdirectory(dsp)
+add_subdirectory(dimension)
 add_subdirectory(slirp)
 
 # When building for OSX, add specific sources
@@ -87,7 +89,7 @@ else()
 	add_executable(Previous ${SOURCES})
 endif(ENABLE_OSX_BUNDLE)
 
-target_link_libraries(Previous Debug GuiSdl UaeCpu DSP Slirp ${SDL2_LIBRARY})
+target_link_libraries(Previous Debug SoftFloat GuiSdl UaeCpu DSP Dimension Slirp ${SDL2_LIBRARY})
 
 if(MATH_FOUND AND NOT APPLE)
 	target_link_libraries(Previous ${MATH_LIBRARY})
@@ -119,7 +121,7 @@ endif(PORTAUDIO_FOUND)
 
 if(WIN32)
 	# Needed for socket() on Windows
-	target_link_libraries(Previous ws2_32)
+	target_link_libraries(Previous ws2_32 Iphlpapi)
 endif(WIN32)
 
 if(ENABLE_OSX_BUNDLE)
@@ -127,8 +129,8 @@ if(ENABLE_OSX_BUNDLE)
 else()
 	install(TARGETS Previous RUNTIME DESTINATION ${BINDIR})
 	install(FILES Previous-icon.bmp DESTINATION ${DATADIR})
-	file(GLOB TOS_IMG_FILE tos.img)
-	if(TOS_IMG_FILE)
-		install(FILES tos.img DESTINATION ${DATADIR})
-	endif(TOS_IMG_FILE)
+	install(FILES dimension_eeprom.bin DESTINATION ${BINDIR})
+	install(FILES Rev_1.0_v41.BIN DESTINATION ${BINDIR})
+	install(FILES Rev_2.5_v66.BIN DESTINATION ${BINDIR})
+	install(FILES Rev_3.3_v74.BIN DESTINATION ${BINDIR})
 endif(ENABLE_OSX_BUNDLE)

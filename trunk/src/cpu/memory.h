@@ -21,8 +21,8 @@ extern int special_mem;
 #define S_READ 1
 #define S_WRITE 2
 
-extern uae_u8 *cache_alloc (int);
-extern void cache_free (uae_u8*);
+uae_u8 *cache_alloc (int);
+void cache_free (uae_u8*);
 #endif
 
 #define call_mem_get_func(func, addr) ((*func)(addr))
@@ -41,7 +41,7 @@ extern uae_u8 NEXTColorVideo[2*1024*1024];
 #define SAVE_MEMORY_BANKS
 #endif
 
-extern void memory_hardreset (void);
+void memory_hardreset (void);
 
 typedef uae_u32 (*mem_get_func)(uaecptr) REGPARAM;
 typedef void (*mem_put_func)(uaecptr, uae_u32) REGPARAM;
@@ -50,10 +50,10 @@ typedef int (*check_func)(uaecptr, uae_u32) REGPARAM;
 
 extern char *address_space, *good_address_map;
 
-extern uae_u32 wait_cpu_cycle_read (uaecptr addr, int mode);
-extern void wait_cpu_cycle_write (uaecptr addr, int mode, uae_u32 v);
-extern uae_u32 wait_cpu_cycle_read_ce020 (uaecptr addr, int mode);
-extern void wait_cpu_cycle_write_ce020 (uaecptr addr, int mode, uae_u32 v);
+uae_u32 wait_cpu_cycle_read (uaecptr addr, int mode);
+void wait_cpu_cycle_write (uaecptr addr, int mode, uae_u32 v);
+uae_u32 wait_cpu_cycle_read_ce020 (uaecptr addr, int mode);
+void wait_cpu_cycle_write_ce020 (uaecptr addr, int mode, uae_u32 v);
 
 enum { ABFLAG_UNK = 0, ABFLAG_RAM = 1, ABFLAG_ROM = 2, ABFLAG_ROMIN = 4, ABFLAG_IO = 8, ABFLAG_NONE = 16, ABFLAG_SAFE = 32 };
 typedef struct {
@@ -64,12 +64,7 @@ typedef struct {
 	int flags;
 } addrbank;
 
-#define CE_MEMBANK_FAST 0
-#define CE_MEMBANK_CHIP 1
-#define CE_MEMBANK_CIA 2
-#define CE_MEMBANK_FAST16BIT 3
-extern uae_u8 ce_banktype[65536], ce_cachable[65536];
-
+extern uae_u8 ce_cachable[65536];
 
 #define bankindex(addr) (((uaecptr)(addr)) >> 16)
 
@@ -83,9 +78,9 @@ extern addrbank mem_banks[65536];
 #define put_mem_bank(addr, b) (mem_banks[bankindex(addr)] = *(b))
 #endif
 
-extern const char* memory_init(int *membanks);
-extern void memory_uninit (void);
-extern void map_banks(addrbank *bank, int first, int count);
+const char* memory_init(int *membanks);
+void memory_uninit (void);
+void map_banks(addrbank *bank, int first, int count);
 
 #ifndef NO_INLINE_MEMORY_ACCESS
 
@@ -98,14 +93,14 @@ extern void map_banks(addrbank *bank, int first, int count);
 
 #else
 
-extern uae_u32 alongget(uaecptr addr);
-extern uae_u32 awordget(uaecptr addr);
-extern uae_u32 longget(uaecptr addr);
-extern uae_u32 wordget(uaecptr addr);
-extern uae_u32 byteget(uaecptr addr);
-extern void longput(uaecptr addr, uae_u32 l);
-extern void wordput(uaecptr addr, uae_u32 w);
-extern void byteput(uaecptr addr, uae_u32 b);
+uae_u32 alongget(uaecptr addr);
+uae_u32 awordget(uaecptr addr);
+uae_u32 longget(uaecptr addr);
+uae_u32 wordget(uaecptr addr);
+uae_u32 byteget(uaecptr addr);
+void longput(uaecptr addr, uae_u32 l);
+void wordput(uaecptr addr, uae_u32 w);
+void byteput(uaecptr addr, uae_u32 b);
 
 #endif
 

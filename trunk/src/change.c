@@ -83,7 +83,13 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
         printf("cpu type reset\n");
         return true;
     }
-    
+
+    /* Did we change the realtime flag? */
+    if(current->System.bRealtime != changed->System.bRealtime) {
+        printf("realtime flag reset\n");
+        return true;
+    }
+
     /* Did we change FPU type? */
     if (current->System.n_FPUType != changed->System.n_FPUType) {
         printf("fpu type reset\n");
@@ -109,9 +115,9 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
         return true;
     }
     
-    /* Did we change ADB emulation? */
-    if (current->System.bADB != changed->System.bADB) {
-        printf("adb reset\n");
+    /* Did we change NBIC emulation? */
+    if (current->System.bNBIC != changed->System.bNBIC) {
+        printf("nbic reset\n");
         return true;
     }
     
@@ -167,6 +173,10 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
                  return true;
              }
     }
+    if(current->SCSI.nWriteProtection != changed->SCSI.nWriteProtection) {
+        printf("scsi disk reset\n");
+        return true;
+    }
     
     /* Did we change MO drive? */
     for (i = 0; i < MO_MAX_DRIVES; i++) {
@@ -190,6 +200,29 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
         return true;
     }
     
+    /* Did we change NeXTdimension? */
+    if (current->Dimension.bEnabled != changed->Dimension.bEnabled ||
+        current->Dimension.bI860Thread != changed->Dimension.bI860Thread ||
+		current->Dimension.bMainDisplay != changed->Dimension.bMainDisplay ||
+        strcmp(current->Dimension.szRomFileName, changed->Dimension.szRomFileName)) {
+        printf("dimension reset\n");
+		return true;
+    }
+    for (i = 0; i < 4; i++) {
+        if (current->Dimension.nMemoryBankSize[i] != changed->Dimension.nMemoryBankSize[i]) {
+            printf("dimension memory size reset\n");
+            return true;
+        }
+    }
+	
+	/* Did we change monitor count? */
+	if (current->Screen.nMonitorType != changed->Screen.nMonitorType &&
+		(current->Screen.nMonitorType == MONITOR_TYPE_DUAL ||
+		 changed->Screen.nMonitorType == MONITOR_TYPE_DUAL)) {
+			printf("monitor reset\n");
+			return true;
+	}
+	
     /* Else no reset is required */
     printf("No Reset needed!\n");
     return false;
@@ -241,6 +274,11 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
          current->Sound.bEnableMicrophone != changed->Sound.bEnableMicrophone)) {
         bReInitSoundEmu = true;
     }
+    
+    /* Do we need to change Screen configuration? */
+    if (!NeedReset &&
+        current->Screen.nMonitorType != changed->Screen.nMonitorType) {
+    }
 
 	/* Copy details to configuration,
 	 * so it can be saved out or set on reset
@@ -285,7 +323,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
         Dprintf("- Sound<\n");
         Sound_Reset();
     }
-
+    
 	/* Force things associated with screen change */
 	if (bScreenModeChange)
 	{
@@ -296,13 +334,8 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Do we need to perform reset? */
 	if (NeedReset)
 	{
-		const char *err_msg;
 		Dprintf("- reset\n");
-		err_msg=Reset_Cold();
-//		if (err_msg!=NULL) {
-//			DlgAlert_Notice(err_msg);
-//			return false;
-//		}
+		Reset_Cold();
 	}
 
 	/* Go into/return from full screen if flagged */

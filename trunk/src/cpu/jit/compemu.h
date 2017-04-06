@@ -50,7 +50,7 @@ extern signed long pissoff;
 #endif
 
 #define SCALE 2
-#define MAXCYCLES (1000 * CYCLE_UNIT)
+#define MAXCYCLES 1000
 #define MAXREGOPT 65536
 
 #define BYTES_PER_INST 10240  /* paranoid ;-) */
@@ -85,21 +85,21 @@ extern signed long pissoff;
 
 /* Functions exposed to newcpu, or to what was moved from newcpu.c to
  * compemu_support.c */
-extern void init_comp(void);
-extern void flush(int save_regs);
-extern void small_flush(int save_regs);
-extern void set_target(uae_u8* t);
-extern void freescratch(void);
-extern void build_comp(void);
-extern void set_cache_state(int enabled);
-extern int get_cache_state(void);
-extern uae_u32 get_jitted_size(void);
+void init_comp(void);
+void flush(int save_regs);
+void small_flush(int save_regs);
+void set_target(uae_u8* t);
+void freescratch(void);
+void build_comp(void);
+void set_cache_state(int enabled);
+int get_cache_state(void);
+uae_u32 get_jitted_size(void);
 #ifdef JIT
-extern void flush_icache(uaecptr ptr, int n);
+void flush_icache(uaecptr ptr, int n);
 #endif
-extern void alloc_cache(void);
-extern void compile_block(cpu_history* pc_hist, int blocklen, int totcyles);
-extern int check_for_cache_miss(void);
+void alloc_cache(void);
+void compile_block(cpu_history* pc_hist, int blocklen, int totcyles);
+int check_for_cache_miss(void);
 
 
 #define scaled_cycles(x) (currprefs.m68k_speed==-1?(((x)/SCALE)?(((x)/SCALE<MAXCYCLES?((x)/SCALE):MAXCYCLES)):1):(x))
@@ -496,23 +496,23 @@ extern int failure;
 
 /* Convenience functions exposed to gencomp */
 extern uae_u32 m68k_pc_offset;
-extern void readbyte(int address, int dest, int tmp);
-extern void readword(int address, int dest, int tmp);
-extern void readlong(int address, int dest, int tmp);
-extern void writebyte(int address, int source, int tmp);
-extern void writeword(int address, int source, int tmp);
-extern void writelong(int address, int source, int tmp);
-extern void writeword_clobber(int address, int source, int tmp);
-extern void writelong_clobber(int address, int source, int tmp);
-extern void get_n_addr(int address, int dest, int tmp);
-extern void get_n_addr_jmp(int address, int dest, int tmp);
-extern void calc_disp_ea_020(int base, uae_u32 dp, int target, int tmp);
-extern int kill_rodent(int r);
-extern void sync_m68k_pc(void);
-extern uae_u32 get_const(int r);
-extern int  is_const(int r);
-extern void register_branch(uae_u32 not_taken, uae_u32 taken, uae_u8 cond);
-extern void empty_optimizer(void);
+void readbyte(int address, int dest, int tmp);
+void readword(int address, int dest, int tmp);
+void readlong(int address, int dest, int tmp);
+void writebyte(int address, int source, int tmp);
+void writeword(int address, int source, int tmp);
+void writelong(int address, int source, int tmp);
+void writeword_clobber(int address, int source, int tmp);
+void writelong_clobber(int address, int source, int tmp);
+void get_n_addr(int address, int dest, int tmp);
+void get_n_addr_jmp(int address, int dest, int tmp);
+void calc_disp_ea_020(int base, uae_u32 dp, int target, int tmp);
+int kill_rodent(int r);
+void sync_m68k_pc(void);
+uae_u32 get_const(int r);
+int  is_const(int r);
+void register_branch(uae_u32 not_taken, uae_u32 taken, uae_u8 cond);
+void empty_optimizer(void);
 
 #define comp_get_ibyte(o) do_get_mem_byte((uae_u8 *)(comp_pc_p + (o) + 1))
 #define comp_get_iword(o) do_get_mem_word((uae_u16 *)(comp_pc_p + (o)))

@@ -50,7 +50,7 @@ static SGOBJ mousedlg[] =
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
 
-float read_float_string(char *s, float min, float max, int prec)
+static float read_float_string(char *s, float min, float max, int prec)
 {
     int i;
     float result=0.0;

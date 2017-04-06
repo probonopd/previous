@@ -64,15 +64,6 @@ extern char *Log_MatchTrace(const char *text, int state);
 #include "config.h"
 
 /* Up to 64 levels when using Uint32 for HatariTraceFlags */
-#define	TRACE_VIDEO_SYNC	 (1<<0)
-#define	TRACE_VIDEO_RES 	 (1<<1)
-#define	TRACE_VIDEO_COLOR	 (1<<2)
-#define	TRACE_VIDEO_BORDER_V	 (1<<3)
-#define	TRACE_VIDEO_BORDER_H	 (1<<4)
-#define	TRACE_VIDEO_ADDR	 (1<<5)
-#define	TRACE_VIDEO_VBL 	 (1<<6)
-#define	TRACE_VIDEO_HBL 	 (1<<7)
-#define	TRACE_VIDEO_STE 	 (1<<8)
 
 #define	TRACE_MFP_EXCEPTION	 (1<<9)
 #define	TRACE_MFP_START 	 (1<<10)
@@ -94,21 +85,8 @@ extern char *Log_MatchTrace(const char *text, int state);
 #define	TRACE_IKBD_ACIA 	 (1<<21)
 #define	TRACE_IKBD_EXEC 	 (1<<22)
 
-#define TRACE_BLITTER		 (1<<23)
-
-#define TRACE_OS_BIOS		 (1<<24)
-#define TRACE_OS_XBIOS  	 (1<<25)
-#define TRACE_OS_GEMDOS 	 (1<<26)
-#define TRACE_OS_VDI		 (1<<27)
-#define TRACE_OS_AES		 (1<<28)
-
 #define TRACE_IOMEM_RD  	 (1<<29)
 #define TRACE_IOMEM_WR  	 (1<<30)
-
-#define TRACE_DMASND		 (1<<31)
-
-#define TRACE_CROSSBAR		 (1ll<<32)
-#define TRACE_VIDEL		 (1ll<<33)
 
 #define TRACE_DSP_HOST_INTERFACE (1ll<<34)
 #define TRACE_DSP_HOST_COMMAND	 (1ll<<35)
@@ -122,20 +100,9 @@ extern char *Log_MatchTrace(const char *text, int state);
 #define	TRACE_NONE		 (0)
 #define	TRACE_ALL		 (~0)
 
-
-#define	TRACE_VIDEO_ALL		( TRACE_VIDEO_SYNC | TRACE_VIDEO_RES | TRACE_VIDEO_COLOR \
-		| TRACE_VIDEO_BORDER_V | TRACE_VIDEO_BORDER_H | TRACE_VIDEO_ADDR \
-		| TRACE_VIDEO_VBL | TRACE_VIDEO_HBL | TRACE_VIDEO_STE )
-
-#define TRACE_MFP_ALL		( TRACE_MFP_EXCEPTION | TRACE_MFP_START | TRACE_MFP_READ | TRACE_MFP_WRITE )
-
 #define	TRACE_PSG_ALL		( TRACE_PSG_READ | TRACE_PSG_WRITE )
 
 #define	TRACE_CPU_ALL		( TRACE_CPU_PAIRING | TRACE_CPU_DISASM | TRACE_CPU_EXCEPTION )
-
-#define	TRACE_IKBD_ALL		( TRACE_IKBD_CMDS | TRACE_IKBD_ACIA | TRACE_IKBD_EXEC | TRACE_OS_VDI )
-
-#define	TRACE_OS_ALL		( TRACE_OS_BIOS | TRACE_OS_XBIOS | TRACE_OS_GEMDOS | TRACE_OS_VDI )
 
 #define	TRACE_IOMEM_ALL		( TRACE_IOMEM_RD | TRACE_IOMEM_WR )
 

@@ -192,7 +192,7 @@ const INTERCEPT_ACCESS_FUNC IoMemTable_Turbo[] =
 	{ 0x02014021, SIZE_BYTE, ESP_DMA_FIFO_STAT_Read, ESP_DMA_FIFO_STAT_Write },
 	
 	/* Event Counter */
-	{ 0x0201a000, SIZE_BYTE, System_Timer_Read, IoMem_WriteWithoutInterception },
+	{ 0x0201a000, SIZE_BYTE, System_Timer_Read, System_Timer_Write },
 	{ 0x0201a001, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x0201a002, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterceptionButTrace },
 	{ 0x0201a003, SIZE_BYTE, IoMem_ReadWithoutInterception, IoMem_WriteWithoutInterceptionButTrace },

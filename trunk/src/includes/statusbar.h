@@ -18,18 +18,19 @@ typedef enum {
     NUM_DEVICE_LEDS
 } drive_index_t;
 
-extern int Statusbar_SetHeight(int ScreenWidth, int ScreenHeight);
-extern int Statusbar_GetHeightForSize(int width, int height);
-extern int Statusbar_GetHeight(void);
-extern void Statusbar_BlinkLed(drive_index_t drive);
-extern void Statusbar_SetSystemLed(bool state);
-extern void Statusbar_SetDspLed(bool state);
+int Statusbar_SetHeight(int ScreenWidth, int ScreenHeight);
+int Statusbar_GetHeightForSize(int width, int height);
+int Statusbar_GetHeight(void);
+void Statusbar_BlinkLed(drive_index_t drive);
+void Statusbar_SetSystemLed(bool state);
+void Statusbar_SetDspLed(bool state);
+void Statusbar_SetNdLed(int state);
 
-extern void Statusbar_Init(SDL_Surface *screen);
-extern void Statusbar_UpdateInfo(void);
-extern void Statusbar_AddMessage(const char *msg, Uint32 msecs);
-extern void Statusbar_OverlayBackup(SDL_Surface *screen);
-extern void Statusbar_Update(SDL_Surface *screen);
-extern void Statusbar_OverlayRestore(SDL_Surface *screen);
+void Statusbar_Init(SDL_Surface *screen);
+void Statusbar_UpdateInfo(void);
+void Statusbar_AddMessage(const char *msg, Uint32 msecs);
+void Statusbar_OverlayBackup(SDL_Surface *screen);
+void Statusbar_Update(SDL_Surface *screen);
+void Statusbar_OverlayRestore(SDL_Surface *screen);
 
 #endif /* HATARI_STATUSBAR_H */

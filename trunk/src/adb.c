@@ -73,19 +73,19 @@ struct {
 #define ADB_CNT_MASK		0x7F
 
 
-void adb_interrupt(Uint32 intr) {
+static void adb_interrupt(Uint32 intr) {
 	adb.intstatus |= intr;
 	if (intr&adb.intmask) {
 		set_interrupt(INT_DISK, SET_INT);
 	}
 }
 
-Uint32 adb_intstatus_read(Uint32 addr) {
+static Uint32 adb_intstatus_read(Uint32 addr) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Interrupt status read at $%08X val=$%08X",addr,adb.intstatus);
 	return adb.intstatus;
 }
 
-void adb_intstatus_write(Uint32 addr, Uint32 val) {
+static void adb_intstatus_write(Uint32 addr, Uint32 val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Interrupt status write at $%08X val=$%08X",addr,val);
 	adb.intstatus &= ~val;
 	if (!(adb.intstatus&adb.intmask)) {
@@ -93,12 +93,12 @@ void adb_intstatus_write(Uint32 addr, Uint32 val) {
 	}
 }
 
-Uint32 adb_intmask_read(Uint32 addr) {
+static Uint32 adb_intmask_read(Uint32 addr) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Interrupt mask read at $%08X val=$%08X",addr,adb.intmask);
 	return adb.intmask;
 }
 
-void adb_intmask_write(Uint32 addr, Uint32 val) {
+static void adb_intmask_write(Uint32 addr, Uint32 val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Interrupt mask write at $%08X val=$%08X",addr,val);
 	adb.intmask = val;
 	if (adb.intstatus&adb.intmask) {
@@ -108,7 +108,7 @@ void adb_intmask_write(Uint32 addr, Uint32 val) {
 	}
 }
 
-void adb_setint_write(Uint32 addr, Uint32 val) {
+static void adb_setint_write(Uint32 addr, Uint32 val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Set interrupt write at $%08X val=$%08X",addr,val);
 	adb.intstatus |= val;
 	if (adb.intstatus&adb.intmask) {
@@ -116,17 +116,17 @@ void adb_setint_write(Uint32 addr, Uint32 val) {
 	}
 }
 
-Uint32 adb_config_read(Uint32 addr) {
+static Uint32 adb_config_read(Uint32 addr) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Configuration read at $%08X val=$%08X",addr,adb.config);
 	return adb.config;
 }
 
-void adb_config_write(Uint32 addr, Uint32 val) {
+static void adb_config_write(Uint32 addr, Uint32 val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Configuration write at $%08X val=$%08X",addr,val);
 	adb.config = val;
 }
 
-void adb_control_write(Uint32 addr, Uint32 val) {
+static void adb_control_write(Uint32 addr, Uint32 val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Control write at $%08X val=$%08X",addr,val);
 	
 	if (val&ADB_CTRL_RESET_ADB) {
@@ -155,53 +155,53 @@ void adb_control_write(Uint32 addr, Uint32 val) {
 	}
 }
 
-Uint32 adb_status_read(Uint32 addr) {
+static Uint32 adb_status_read(Uint32 addr) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Status read at $%08X val=$%08X",addr,adb.status);
 	return adb.status;
 }
 
-Uint32 adb_command_read(Uint32 addr) {
+static Uint32 adb_command_read(Uint32 addr) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Command read at $%08X val=$%08X",addr,adb.command);
 	return adb.command;
 }
 
-void adb_command_write(Uint32 addr, Uint32 val) {
+static void adb_command_write(Uint32 addr, Uint32 val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Command write at $%08X val=$%08X",addr,val);
 	adb.command = val;
 }
 
-Uint32 adb_bitcount_read(Uint32 addr) {
+static Uint32 adb_bitcount_read(Uint32 addr) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Bitcount read at $%08X val=$%08X",addr,adb.bitcount);
 	return adb.bitcount;
 }
 
-void adb_bitcount_write(Uint32 addr, Uint32 val) {
+static void adb_bitcount_write(Uint32 addr, Uint32 val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Bitcount write at $%08X val=$%08X",addr,val);
 	adb.bitcount = val;
 }
 
-Uint32 adb_data0_read(Uint32 addr) {
+static Uint32 adb_data0_read(Uint32 addr) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Data0 read at $%08X val=$%08X",addr,adb.data0);
 	return adb.data0;
 }
 
-void adb_data0_write(Uint32 addr, Uint32 val) {
+static void adb_data0_write(Uint32 addr, Uint32 val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Data0 write at $%08X val=$%08X",addr,val);
 	adb.data0 = val;
 }
 
-Uint32 adb_data1_read(Uint32 addr) {
+static Uint32 adb_data1_read(Uint32 addr) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Data1 read at $%08X val=$%08X",addr,adb.data1);
 	return adb.data1;
 }
 
-void adb_data1_write(Uint32 addr, Uint32 val) {
+static void adb_data1_write(Uint32 addr, Uint32 val) {
 	Log_Printf(LOG_ADB_LEVEL, "[ADB] Data1 write at $%08X val=$%08X",addr,val);
 	adb.data1 = val;
 }
 
 
-Uint32 adb_read_register(Uint32 addr) {
+static Uint32 adb_read_register(Uint32 addr) {
 	switch (addr&0xFF) {
 		case ADB_INTSTATUS:
 			return adb_intstatus_read(addr);
@@ -227,7 +227,7 @@ Uint32 adb_read_register(Uint32 addr) {
 	}
 }
 
-void adb_write_register(Uint32 addr, Uint32 val) {
+static void adb_write_register(Uint32 addr, Uint32 val) {
 	switch (addr&0xFF) {
 		case ADB_INTSTATUS:
 			adb_intstatus_write(addr, val);

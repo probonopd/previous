@@ -637,11 +637,6 @@ void File_MakeAbsoluteName(char *pFileName)
 	char *pTempName;
 	int inpos, outpos;
 
-#if defined (__AMIGAOS4__)
-	/* This function does not work on Amiga OS */
-	return;
-#endif
-
 	inpos = 0;
 	pTempName = malloc(FILENAME_MAX);
 	if (!pTempName)

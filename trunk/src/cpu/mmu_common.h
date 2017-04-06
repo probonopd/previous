@@ -1,22 +1,9 @@
-
-#ifndef MMU_COMMON_H
-#define MMU_COMMON_H
+#ifndef UAE_MMU_COMMON_H
+#define UAE_MMU_COMMON_H
 
 #define MMUDEBUG 0
 #define MMUINSDEBUG 0
 #define MMUDEBUGMISC 0
-
-//#ifdef _MSC_VER
-//#define unlikely(x) x
-//#define likely(x) x
-//#endif
-#if __GNUC__ >= 3
-# define likely(x)      __builtin_expect (!!(x), 1)
-# define unlikely(x)    __builtin_expect (!!(x), 0)
-#else
-# define likely(x)      (x)
-# define unlikely(x)    (x)
-#endif
 
 #ifdef __cplusplus
 struct m68k_exception {
@@ -38,7 +25,7 @@ extern jmp_buf __exbuf;
 extern int     __exvalue;
 #define TRY(DUMMY)       __exvalue=setjmp(__exbuf);       \
                   if (__exvalue==0) { __pushtry(&__exbuf);
-#define CATCH(x)  __poptry(); } else { 
+#define CATCH(x)  __poptry(); } else {m68k_exception x=__exvalue; x=x;
 #define ENDTRY    __poptry();}
 #define THROW(x) if (__is_catched()) {longjmp(__exbuf,x);}
 #define THROW_AGAIN(var) if (__is_catched()) longjmp(*__poptry(),__exvalue)
@@ -118,12 +105,12 @@ typedef  int m68k_exception;
 
 // take care of 2 kinds of alignement, bus size and page
 #if 1
-static inline bool is_unaligned(uaecptr addr, int size)
+static ALWAYS_INLINE bool is_unaligned(uaecptr addr, int size)
 {
     return unlikely((addr & (size - 1)) && (addr ^ (addr + size - 1)) & regs.mmu_page_size);
 }
 #else
-static inline bool is_unaligned(uaecptr addr, int size)
+static ALWAYS_INLINE bool is_unaligned(uaecptr addr, int size)
 {
     return (addr & (size - 1));
 }
@@ -154,4 +141,4 @@ static ALWAYS_INLINE uae_u32 phys_get_byte(uaecptr addr)
     return byteget (addr);
 }
 
-#endif
+#endif /* UAE_MMU_COMMON_H */

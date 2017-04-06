@@ -14,9 +14,7 @@ const char M68000_fileid[] = "Hatari m68000.c : " __DATE__ " " __TIME__;
 #include "hatari-glue.h"
 #include "cycInt.h"
 #include "m68000.h"
-#include "memorySnapShot.h"
 #include "options.h"
-#include "savestate.h"
 #include "nextMemory.h"
 
 #include "mmu_common.h"
@@ -24,9 +22,6 @@ const char M68000_fileid[] = "Hatari m68000.c : " __DATE__ " " __TIME__;
 Uint32 BusErrorAddress;         /* Stores the offending address for bus-/address errors */
 Uint32 BusErrorPC;              /* Value of the PC when bus error occurs */
 bool bBusErrorReadWrite;        /* 0 for write error, 1 for read error */
-int nCpuFreqShift;              /* Used to emulate higher CPU frequencies: 0=8MHz, 1=16MHz, 2=32Mhz */
-int nCpuFreqDivider;            /* Used to emulate higher CPU frequencies: 1=8MHz, 2=16MHz, 4=32Mhz */
-int nWaitStateCycles;           /* Used to emulate the wait state cycles of certain IO registers */
 int BusMode = BUS_MODE_CPU;	/* Used to tell which part is owning the bus (cpu, blitter, ...) */
 
 int LastOpcodeFamily = i_NOP;	/* see the enum in readcpu.h i_XXX */
@@ -146,15 +141,15 @@ void M68000_Init(void)
 	M68000_InitPairing();
 }
 
+static int pendingInterrupts = 0;
 
 /*-----------------------------------------------------------------------*/
 /**
  * Reset CPU 68000 variables
  */
-void M68000_Reset(bool bCold)
-{
-    if (bCold)
-    {
+void M68000_Reset(bool bCold) {
+    pendingInterrupts = 0;
+    if (bCold) {
         /* Clear registers, but we need to keep SPCFLAG_MODE_CHANGE and SPCFLAG_BRK unchanged */
         int spcFlags = regs.spcflags & (SPCFLAG_MODE_CHANGE | SPCFLAG_BRK);
         memset(&regs, 0, sizeof(regs));
@@ -182,16 +177,6 @@ void M68000_Stop(void)
  */
 void M68000_Start(void)
 {
-	/* Load initial memory snapshot */
-	if (bLoadMemorySave)
-	{
-		MemorySnapShot_Restore(ConfigureParams.Memory.szMemoryCaptureFileName, false);
-	}
-	else if (bLoadAutoSave)
-	{
-		MemorySnapShot_Restore(ConfigureParams.Memory.szAutoSaveFileName, false);
-	}
-
 	m68k_go(true);
 }
 
@@ -202,52 +187,28 @@ void M68000_Start(void)
  */
 void M68000_CheckCpuSettings(void)
 {
-#if USE_FREQ_DIVIDER
     if (ConfigureParams.System.nCpuFreq < 20)
     {
         ConfigureParams.System.nCpuFreq = 16;
-        nCpuFreqDivider = 2;
     }
     else if (ConfigureParams.System.nCpuFreq < 24)
     {
         ConfigureParams.System.nCpuFreq = 20;
-        nCpuFreqDivider = 3;
     }
     else if (ConfigureParams.System.nCpuFreq < 32)
     {
         ConfigureParams.System.nCpuFreq = 25;
-        nCpuFreqDivider = 3;
     }
     else if (ConfigureParams.System.nCpuFreq < 40)
     {
         ConfigureParams.System.nCpuFreq = 33;
-        nCpuFreqDivider = 4;
     } else {
         if (ConfigureParams.System.bTurbo) {
             ConfigureParams.System.nCpuFreq = 40;
-            nCpuFreqDivider = 5;
         } else {
             ConfigureParams.System.nCpuFreq = 33;
-            nCpuFreqDivider = 4;
         }
     }
-#else
-	if (ConfigureParams.System.nCpuFreq < 12)
-	{
-		ConfigureParams.System.nCpuFreq = 8;
-		nCpuFreqShift = 0;
-	}
-	else if (ConfigureParams.System.nCpuFreq > 26)
-	{
-		ConfigureParams.System.nCpuFreq = 32;
-		nCpuFreqShift = 2;
-	}
-	else
-	{
-		ConfigureParams.System.nCpuFreq = 16;
-		nCpuFreqShift = 1;
-	}
-#endif
 	changed_prefs.cpu_level = ConfigureParams.System.nCpuLevel;
 	changed_prefs.cpu_compatible = ConfigureParams.System.bCompatibleCpu;
 
@@ -274,100 +235,12 @@ void M68000_CheckCpuSettings(void)
 		default: fprintf (stderr, "Init680x0() : Error, fpu_model unknown\n");
     }
 
-	changed_prefs.address_space_24 = ConfigureParams.System.bAddressSpace24;
-	changed_prefs.cpu_cycle_exact = ConfigureParams.System.bCycleExactCpu;
 	changed_prefs.fpu_strict = ConfigureParams.System.bCompatibleFPU;
 	changed_prefs.mmu_model = ConfigureParams.System.bMMU?changed_prefs.cpu_model:0;
 
 	if (table68k)
 		check_prefs_changed_cpu();
 }
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * Save/Restore snapshot of CPU variables ('MemorySnapShot_Store' handles type)
- */
-void M68000_MemorySnapShot_Capture(bool bSave)
-{
-	Uint32 savepc;
-	int len;
-	uae_u8 *chunk = 0;
-
-	/* For the UAE CPU core: */
-	MemorySnapShot_Store(&currprefs.address_space_24,
-	                     sizeof(currprefs.address_space_24));
-	MemorySnapShot_Store(&regs.regs[0], sizeof(regs.regs));       /* D0-D7 A0-A6 */
-
-	if (bSave)
-	{
-		savepc = M68000_GetPC();
-		MemorySnapShot_Store(&savepc, sizeof(savepc));            /* PC */
-	}
-	else
-	{
-		MemorySnapShot_Store(&savepc, sizeof(savepc));            /* PC */
-		regs.pc = savepc;
-#ifdef UAE_NEWCPU_H
-		regs.prefetch_pc = regs.pc + 128;
-#endif
-	}
-
-#ifdef UAE_NEWCPU_H
-	MemorySnapShot_Store(&regs.prefetch, sizeof(regs.prefetch));  /* prefetch */
-#else
-	uae_u32 prefetch_dummy;
-	MemorySnapShot_Store(&prefetch_dummy, sizeof(prefetch_dummy));
-#endif
-
-	if (bSave)
-	{
-		MakeSR();
-		if (regs.s)
-		{
-			MemorySnapShot_Store(&regs.usp, sizeof(regs.usp));    /* USP */
-			MemorySnapShot_Store(&regs.regs[15], sizeof(regs.regs[15]));  /* ISP */
-		}
-		else
-		{
-			MemorySnapShot_Store(&regs.regs[15], sizeof(regs.regs[15]));  /* USP */
-			MemorySnapShot_Store(&regs.isp, sizeof(regs.isp));    /* ISP */
-		}
-		MemorySnapShot_Store(&regs.sr, sizeof(regs.sr));          /* SR/CCR */
-	}
-	else
-	{
-		MemorySnapShot_Store(&regs.usp, sizeof(regs.usp));
-		MemorySnapShot_Store(&regs.isp, sizeof(regs.isp));
-		MemorySnapShot_Store(&regs.sr, sizeof(regs.sr));
-	}
-	MemorySnapShot_Store(&regs.stopped, sizeof(regs.stopped));
-	MemorySnapShot_Store(&regs.dfc, sizeof(regs.dfc));            /* DFC */
-	MemorySnapShot_Store(&regs.sfc, sizeof(regs.sfc));            /* SFC */
-	MemorySnapShot_Store(&regs.vbr, sizeof(regs.vbr));            /* VBR */
-	MemorySnapShot_Store(&regs.caar, sizeof(regs.caar));          /* CAAR */
-	MemorySnapShot_Store(&regs.cacr, sizeof(regs.cacr));          /* CACR */
-	MemorySnapShot_Store(&regs.msp, sizeof(regs.msp));            /* MSP */
-
-	if (!bSave)
-	{
-		M68000_SetPC(regs.pc);
-		/* MakeFromSR() must not swap stack pointer */
-		regs.s = (regs.sr >> 13) & 1;
-		MakeFromSR();
-		/* set stack pointer */
-		if (regs.s)
-			m68k_areg(regs, 7) = regs.isp;
-		else
-			m68k_areg(regs, 7) = regs.usp;
-	}
-
-	if (bSave)
-		save_fpu(&len,0);
-	else
-		restore_fpu(chunk);
-}
-
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -429,13 +302,12 @@ void M68000_Exception(Uint32 ExceptionVector , int ExceptionSource)
 	{
 		/* Handle autovector interrupts the UAE's way
 		 * (see intlev() and do_specialties() in UAE CPU core) */
-		/* In our case, this part is only called for HBL and VBL interrupts */
 		int intnr = exceptionNr - 24;
 		pendingInterrupts |= (1 << intnr);
 		M68000_SetSpecial(SPCFLAG_INT);
 	}
 
-	else							/* MFP or direct CPU exceptions */
+	else							/* direct CPU exceptions */
 	{
 		Uint16 SR;
 
@@ -458,20 +330,4 @@ void M68000_Exception(Uint32 ExceptionVector , int ExceptionSource)
         
         M68000_SetSR(SR);
 	}
-}
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * There seem to be wait states when a program accesses certain hardware
- * registers on the ST. Use this function to simulate these wait states.
- * [NP] with some instructions like CLR, we have a read then a write at the
- * same location, so we may have 2 wait states (read and write) to add
- * (nWaitStateCycles should be reset to 0 after the cycles were added).
- */
-void M68000_WaitState(int nCycles)
-{
-	M68000_SetSpecial(SPCFLAG_EXTRA_CYCLES);
-
-	nWaitStateCycles += nCycles;	/* add all the wait states for this instruction */
 }

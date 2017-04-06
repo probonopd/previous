@@ -32,8 +32,8 @@ static char dlglines[MAX_LINES][50+1];
 
 #ifdef ALERT_HOOKS 
 	// The alert hook functions
-	extern int HookedAlertNotice(const char* szMessage);	// Must return true if OK clicked, false otherwise
-	extern int HookedAlertQuery(const char* szMessage);		// Must return true if OK clicked, false otherwise
+	int HookedAlertNotice(const char* szMessage);	// Must return true if OK clicked, false otherwise
+	int HookedAlertQuery(const char* szMessage);		// Must return true if OK clicked, false otherwise
 #endif
 
 #define DLGALERT_OK       5

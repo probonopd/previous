@@ -206,9 +206,8 @@ __inline__ void byteput (uaecptr addr, uae_u32 b)
 
 
 /* Some prototypes: */
-extern void SDL_Quit(void);
+void SDL_Quit(void);
 
-uae_u8 ce_banktype[65536];
 uae_u8 ce_cachable[65536];
 
 
@@ -825,7 +824,7 @@ static uae_u32 mem_bmap_lget(uaecptr addr)
 		M68000_BusError(addr, 0);
 		return 0;
 	}
-	write_log ("bmap lget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+	//write_log ("bmap lget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 	addr &= NEXT_BMAP_MASK;
 	return bmap_lget(addr);
 }
@@ -837,7 +836,7 @@ static uae_u32 mem_bmap_wget(uaecptr addr)
 		M68000_BusError(addr, 0);
 		return 0;
 	}
-	write_log ("bmap wget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+	//write_log ("bmap wget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 	addr &= NEXT_BMAP_MASK;
 	return bmap_wget(addr);
 }
@@ -849,7 +848,7 @@ static uae_u32 mem_bmap_bget(uaecptr addr)
 		M68000_BusError(addr, 0);
 		return 0;
 	}
-	write_log ("bmap bget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
+	//write_log ("bmap bget at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 	addr &= NEXT_BMAP_MASK;
 	return bmap_bget(addr);
 }
@@ -860,7 +859,7 @@ static void mem_bmap_lput(uaecptr addr, uae_u32 l)
 		write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 		M68000_BusError(addr, 0);
 	}
-	write_log ("bmap lput at %08lx val=%x PC=%08x\n", (long)addr,l,m68k_getpc());
+	//write_log ("bmap lput at %08lx val=%x PC=%08x\n", (long)addr,l,m68k_getpc());
 	addr &= NEXT_BMAP_MASK;
 	bmap_lput(addr, l);
 }
@@ -871,7 +870,7 @@ static void mem_bmap_wput(uaecptr addr, uae_u32 w)
 		write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 		M68000_BusError(addr, 0);
 	}
-	write_log ("bmap wput at %08lx val=%x PC=%08x\n", (long)addr,w,m68k_getpc());
+	//write_log ("bmap wput at %08lx val=%x PC=%08x\n", (long)addr,w,m68k_getpc());
 	addr &= NEXT_BMAP_MASK;
 	bmap_wput(addr, w);
 }
@@ -882,7 +881,7 @@ static void mem_bmap_bput(uaecptr addr, uae_u32 b)
 		write_log ("bmap bus error at %08lx PC=%08x\n", (long)addr,m68k_getpc());
 		M68000_BusError(addr, 0);
 	}
-	write_log ("bmap bput at %08lx val=%x PC=%08x\n", (long)addr,b,m68k_getpc());
+	//write_log ("bmap bput at %08lx val=%x PC=%08x\n", (long)addr,b,m68k_getpc());
 	addr &= NEXT_BMAP_MASK;
 	bmap_bput(addr, b);
 }
@@ -1170,30 +1169,28 @@ const char* memory_init(int *nNewNEXTMemSize)
 			write_log("Mapping cache tag memory at $%08x: %ikB\n", NEXT_CACHE_TAG_START, NEXT_CACHE_TAG_SIZE/1024);
 		}
 	}
-#if 0
-	/* Map NBIC and board spaces via NeXTbus */
+
+    /* Map NBIC and board spaces via NextBus */
 	if (ConfigureParams.System.nMachineType!=NEXT_STATION && ConfigureParams.System.bNBIC) {
 		if (!ConfigureParams.System.bTurbo) {
 			map_banks(&NBIC_bank, NEXT_NBIC_START>>16, NEXT_NBIC_MAP_SIZE>>16);
-			write_log("Mapping NeXTbus interface chip at $%08x\n", NEXT_NBIC_START);
+			write_log("Mapping NextBus interface chip at $%08x\n", NEXT_NBIC_START);
 		}
-		for (i = 2; i < 15; i++) {
+		for (i = 2; i < 8; i++) {
 			if (i==8 && ConfigureParams.System.nMachineType!=NEXT_CUBE030 && !ConfigureParams.System.bTurbo) {
 				/* FIXME: conflict with BMAP. Implement: only SCR2 ROM_OVERLAY enables NBIC */
 				continue;
 			}
 			map_banks(&NEXTBUS_board_bank, NEXTBUS_BOARD_START(i)>>16, NEXTBUS_BOARD_SIZE>>16);
-			write_log("Mapping NeXTbus board memory for slot %i at $%08x\n", i, NEXTBUS_BOARD_START(i));
+			write_log("Mapping NextBus board memory for slot %i at $%08x\n", i, NEXTBUS_BOARD_START(i));
 		}
 		for (i = 0; i < 16; i++) {
 			map_banks(&NEXTBUS_slot_bank, NEXTBUS_SLOT_START(i)>>16, NEXTBUS_SLOT_SIZE>>16);
 		}
-		write_log("Mapping NeXTbus slot memory at $%08x\n", NEXTBUS_SLOT_START(i));
-        
-        nextbus_init();
+		write_log("Mapping NextBus slot memory at $%08x\n", NEXTBUS_SLOT_START(i));
 	}
-#endif
-	
+    nextbus_init();
+    
 	ROMmemory=NEXTRom;
 	IOmemory=NEXTIo;
 	

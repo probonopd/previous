@@ -78,11 +78,11 @@ ip_input(m)
 	struct mbuf *m;
 {
 	register struct ip *ip;
-	int hlen;
+	u_int hlen;
 	
 	DEBUG_CALL("ip_input");
 	DEBUG_ARG("m = %lx", (long)m);
-	DEBUG_ARG("m_len = %d", m->m_len);
+	DEBUG_ARG("m_len = %zu", m->m_len);
 
 	ipstat.ips_total++;
 	
@@ -245,7 +245,7 @@ bad:
  * reassembly of this datagram already exists, then it
  * is given as fp; otherwise have to make a chain.
  */
-static struct ip *
+struct ip *
 ip_reass(register struct ip *ip, register struct ipq *fp)
 {
 	register struct mbuf *m = dtom(ip);
@@ -373,7 +373,7 @@ insert:
 	 */
 	if (m->m_flags & M_EXT) {
 	  int delta;
-	  delta = (char *)ip - m->m_dat;
+	  delta = (char *)q - m->m_dat;
 	  q = (struct ipasfrag *)(m->m_ext + delta);
 	}
 

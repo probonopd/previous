@@ -23,8 +23,6 @@
 
 //#define DEBUGGER
 #define FILESYS /* filesys emulation */
-#define UAE_FILESYS_THREADS
-//#define AUTOCONFIG /* autoconfig support, fast ram, harddrives etc.. */
 //#define JIT /* JIT compiler support */
 #define NATMEM_OFFSET natmem_offset
 #define USE_NORMAL_CALLING_CONVENTION 0
@@ -67,7 +65,6 @@
 #define ARCADIA /* Arcadia arcade system */
 #define ARCHIVEACCESS /* ArchiveAccess decompression library */
 #define LOGITECHLCD /* Logitech G15 LCD */
-//#define SAVESTATE /* State file support */
 #define A2091 /* A590/A2091 SCSI */
 #define A2065 /* A2065 Ethernet card */
 #define NCR /* A4000T/A4091 SCSI */

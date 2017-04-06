@@ -17,11 +17,11 @@
 #endif
 
 #if !HAVE_ALPHASORT
-extern int alphasort(const void *d1, const void *d2);
+int alphasort(const void *d1, const void *d2);
 #endif
 
 #if !HAVE_SCANDIR
-extern int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(struct dirent *), int (*dcomp)(const void *, const void *));
+int scandir(const char *dirname, struct dirent ***namelist, int (*sdfilter)(struct dirent *), int (*dcomp)(const void *, const void *));
 #endif
 
 #endif /* HATARI_SCANDIR_H */

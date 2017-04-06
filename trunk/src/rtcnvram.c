@@ -13,13 +13,14 @@
 #include "ioMemTables.h"
 #include "m68000.h"
 #include "configuration.h"
+#include "dimension.h"
 #include "sysReg.h"
 #include "rtcnvram.h"
 
 #include <time.h>
 
 
-#define LOG_RTC_LEVEL   LOG_WARN
+#define LOG_RTC_LEVEL   LOG_DEBUG
 
 
 /* RTC interface */
@@ -29,7 +30,6 @@
 Uint8 rtc_addr = 0;
 Uint8 rtc_val = 0;
 int phase = 0;
-bool freeze = false;
 
 int oldrtc_interface_io(Uint8 rtdatabit);
 int newrtc_interface_io(Uint8 rtdatabit);
@@ -45,10 +45,9 @@ int rtc_interface_io(Uint8 rtdatabit) {
 }
 
 void rtc_interface_reset(void) {
-    phase = 0;
+    phase    = 0;
     rtc_addr = 0;
-    rtc_val = 0;
-    freeze = false;
+    rtc_val  = 0;
 }
 
 
@@ -246,15 +245,75 @@ int oldrtc_interface_io(Uint8 rtdatabit) {
     return rtdatabit;
 }
 
-RTC_TIME my_get_rtc_time(void);
+static Uint8 toBCD(int val) {
+    return (((val/10)%10)<<4)|(val%10);
+}
+
+/* Year is supported up to 2050 through overflow of decimal decade */
+static Uint8 toBCDyr(int val) {
+    return (((val/10)&0xF)<<4)|(val%10);
+}
+
+static int fromBCD(Uint8 bcd) {
+    return ((bcd&0xF0)>>4)*10+(bcd&0xF);
+}
+
+static void my_get_rtc_time(void) {
+    time_t tmp = host_unix_time();
+    struct tm t =*gmtime(&tmp);
+    
+    rtc.time.sec   = toBCD(t.tm_sec);
+    rtc.time.min   = toBCD(t.tm_min);
+    rtc.time.hour  = toBCD(t.tm_hour);
+    rtc.time.wday  = toBCD(t.tm_wday+1);
+    rtc.time.mday  = toBCD(t.tm_mday);
+    rtc.time.month = toBCD(t.tm_mon+1);
+    rtc.time.year  = toBCDyr(t.tm_year);
+}
+
+static void my_set_rtc_time(int which,int val) {
+    static struct tm t;
+    
+    t.tm_sec  = fromBCD(rtc.time.sec);
+    t.tm_min  = fromBCD(rtc.time.min);
+    t.tm_hour = fromBCD(rtc.time.hour);
+    t.tm_wday = fromBCD(rtc.time.wday) - 1;
+    t.tm_mday = fromBCD(rtc.time.mday);
+    t.tm_mon  = fromBCD(rtc.time.month) - 1;
+    t.tm_year = fromBCD(rtc.time.year);
+    
+    val = fromBCD(val);
+    
+    switch (which) {
+        case 0:
+            t.tm_sec=val;
+            break;
+        case 1:
+            t.tm_min=val;
+            break;
+        case 2:
+            t.tm_hour=val;
+            break;
+        case 3:
+            t.tm_mday=val;
+            break;
+        case 4:
+            t.tm_mon=val-1;
+            break;
+        case 5:
+            t.tm_year=val;
+            break;
+    }
+    
+    Log_Printf(LOG_WARN,"setting %d to %x",which,val);
+    
+    host_set_unix_time(mktime(&t));
+}
 
 Uint8 rtc_get_clock(Uint8 addr) {
     Uint8 val = 0x00;
     
-//    if (!freeze) {
-        rtc.time = my_get_rtc_time();
-        freeze = true;
-//    }
+    my_get_rtc_time();
     
     switch (rtc_addr&RTC_ADDR_MASK) {
         case 0x20: /* seconds */
@@ -330,69 +389,6 @@ void rtc_put_clock(Uint8 addr, Uint8 val) {
             
         default: break;
     }
-}
-
-time_t time_offset=0;
-
-RTC_TIME my_get_rtc_time(void) {
-    RTC_TIME rt;
-    
-    time_t tmp = time(NULL) + time_offset;
-    struct tm t =*localtime(&tmp);
-    
-    rt.sec = (((t.tm_sec/10)%10)<<4)|(t.tm_sec%10);
-    rt.min = (((t.tm_min/10)%10)<<4)|(t.tm_min%10);
-    rt.hour = (((t.tm_hour/10)%10)<<4)|(t.tm_hour%10);
-    rt.wday = t.tm_wday+1;
-    rt.mday = (((t.tm_mday/10)%10)<<4)|(t.tm_mday%10);
-    rt.month = ((((t.tm_mon+1)/10)%10)<<4)|((t.tm_mon+1)%10);
-    rt.year = (((t.tm_year/10)%10)<<4)|(t.tm_year%10);
-    
-    return rt;
-}
-
-void my_set_rtc_time(int which,int val) {
-    RTC_TIME rt;
-    
-    time_t tmp = time(NULL);
-    time_t tmp2;
-
-    static struct tm t;
-
-    t.tm_wday=0;
-
-    val=((val&0xF0)>>4)*10+(val&0xF);
-
-    switch (which) {
-	/* sec */
-	case 0:
-		t.tm_sec=val;
-		break;
-	case 1:
-		t.tm_min=val;
-		break;
-	case 2:
-		t.tm_hour=val;
-		break;
-	case 3:
-		t.tm_mday=val;
-		break;
-	case 4:
-		t.tm_mon=val-1;
-		break;
-	case 5:
-		t.tm_year=val;
-		break;
-	}
-	
-	Log_Printf(LOG_WARN,"setting %d to %x",which,val);
-
-	tmp2=mktime(&t);
-	
-	if (tmp2!=0) {
-		time_offset=tmp-tmp2;
-		Log_Printf(LOG_WARN,"Offset is %d",time_offset);
-	}     
 }
 
 void oldrtc_request_power_down(void) {
@@ -541,34 +537,44 @@ int newrtc_interface_io(Uint8 rtdatabit) {
 Uint8 newrtc_get_clock(Uint8 addr) {
     Uint8 val = 0x00;
     
-    newrtc.timecntr = time(NULL);
+    newrtc.timecntr = host_unix_time();
     
     switch (rtc_addr&RTC_ADDR_MASK) {
         case 0x20:
-            val = (newrtc.timecntr>>24)&0xFF; break;
+            val = (newrtc.timecntr>>24);
+            break;
         case 0x21:
-            val = (newrtc.timecntr>>16)&0xFF; break;
+            val = (newrtc.timecntr>>16);
+            break;
         case 0x22:
-            val = (newrtc.timecntr>>8)&0xFF; break;
+            val = (newrtc.timecntr>>8);
+            break;
         case 0x23:
-            val = newrtc.timecntr&0xFF; break;
+            val = newrtc.timecntr;
+            break;
             
         case 0x24:
-            val = (newrtc.alarmcntr>>24)&0xFF; break;
+            val = (newrtc.alarmcntr>>24);
+            break;
         case 0x25:
-            val = (newrtc.alarmcntr>>16)&0xFF; break;
+            val = (newrtc.alarmcntr>>16);
+            break;
         case 0x26:
-            val = (newrtc.alarmcntr>>8)&0xFF; break;
+            val = (newrtc.alarmcntr>>8);
+            break;
         case 0x27:
-            val = newrtc.alarmcntr&0xFF; break;
+            val = newrtc.alarmcntr;
+            break;
 
         case 0x30: /* status register */
             val = newrtc.status|NRTC_NEWCHIP;
             break;
         case 0x31: /* control register */
-            val = newrtc.control&~NRTC_CTRL_0; break;
+            val = newrtc.control&~NRTC_CTRL_0;
+            break;
             
-        default: break;
+        default:
+            break;
     }
     
     return val;
@@ -577,17 +583,41 @@ Uint8 newrtc_get_clock(Uint8 addr) {
 void newrtc_put_clock(Uint8 addr, Uint8 val) {
     switch (rtc_addr&RTC_ADDR_MASK) {
         case 0x20:
+            newrtc.timecntr &= 0x00FFFFFF;
+            newrtc.timecntr |= val << 24;
+            host_set_unix_time(newrtc.timecntr);
+            break;
         case 0x21:
+            newrtc.timecntr &= 0xFF00FFFF;
+            newrtc.timecntr |= val << 16;
+            host_set_unix_time(newrtc.timecntr);
+            break;
         case 0x22:
+            newrtc.timecntr &= 0xFFFF00FF;
+            newrtc.timecntr |= val << 8;
+            host_set_unix_time(newrtc.timecntr);
+            break;
         case 0x23:
-		Log_Printf(LOG_WARN,"Trying to force rtc failed (not implemented) %x",val);
-            break; /* not yet! */
+            newrtc.timecntr &= 0xFFFFFF00;
+            newrtc.timecntr |= val;
+            host_set_unix_time(newrtc.timecntr);
+            break;
         case 0x24:
+            newrtc.alarmcntr &= 0x00FFFFFF;
+            newrtc.alarmcntr |= val << 24;
+            break;
         case 0x25:
+            newrtc.alarmcntr &= 0xFF00FFFF;
+            newrtc.alarmcntr |= val << 16;
+            break;
         case 0x26:
+            newrtc.alarmcntr &= 0xFFFF00FF;
+            newrtc.alarmcntr |= val << 8;
+            break;
         case 0x27:
-		Log_Printf(LOG_WARN,"Trying to force rtc failed (not implemented) %x",val);
-            break; /* not yet! */
+            newrtc.alarmcntr &= 0xFFFFFF00;
+            newrtc.alarmcntr |= val;
+            break;
             
         case 0x31: /* control register */
             newrtc.control = val;
@@ -843,8 +873,16 @@ void nvram_init(void) {
         case MC68HC68T1: rtc.ram[17] &= ~NEW_CLOCK_CHIP; break;
         default: break;
     }
-    
-    /* Re-calculate checksum */
+
+	/* Set prefered console slot */
+	if (ConfigureParams.Dimension.bEnabled) {
+		rtc.ram[17] |= USE_CONSOLE_SLOT;
+		if (ConfigureParams.Dimension.bMainDisplay) {
+			rtc.ram[17] |= (ND_SLOT>>1)<<3;
+		}
+    }
+
+	/* Re-calculate checksum */
     nvram_checksum(1);
 }
 
@@ -880,7 +918,7 @@ char * get_rtc_ram_info(void) {
     int sum;
     int i;
     int ni_vol_l,ni_vol_r,ni_brightness;
-    int ni_hw_pwd,ni_spkren,ni_lowpass;
+    int ni_hw_pwd;
     sprintf(buf,"Rtc info:\n");
     strcpy(rtc_ram_info,buf);
     

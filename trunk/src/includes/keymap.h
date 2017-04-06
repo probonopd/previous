@@ -12,17 +12,18 @@
 #include "SDL.h"
 
 
-extern void Keymap_Init(void);
-extern char Keymap_RemapKeyToSTScanCode(SDL_Keysym* pKeySym);
-extern void Keymap_LoadRemapFile(char *pszFileName);
-extern void Keymap_DebounceAllKeys(void);
-extern void Keymap_KeyDown(SDL_Keysym *sdlkey);
-extern void Keymap_KeyUp(SDL_Keysym *sdlkey);
-extern void Keymap_SimulateCharacter(char asckey, bool press);
+void Keymap_Init(void);
+char Keymap_RemapKeyToSTScanCode(SDL_Keysym* pKeySym);
+void Keymap_LoadRemapFile(char *pszFileName);
+void Keymap_DebounceAllKeys(void);
+void Keymap_KeyDown(SDL_Keysym *sdlkey);
+void Keymap_MouseWheel(SDL_MouseWheelEvent* event);
+void Keymap_KeyUp(SDL_Keysym *sdlkey);
+void Keymap_SimulateCharacter(char asckey, bool press);
 
-extern void Keymap_MouseMove(int dx, int dy, float lin, float exp);
-extern void Keymap_MouseDown(bool left);
-extern void Keymap_MouseUp(bool left);
+void Keymap_MouseMove(int dx, int dy, float lin, float exp);
+void Keymap_MouseDown(bool left);
+void Keymap_MouseUp(bool left);
 
 /* Definitions for NeXT scancodes */
 

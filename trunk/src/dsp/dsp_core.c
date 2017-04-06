@@ -526,21 +526,15 @@ static void dsp_core_hostport_update_trdy(void)
 
 static void dsp_core_hostport_update_hreq(void)
 {
-	int hreq;
-
-	hreq = (dsp_core.hostport[CPU_HOST_ICR] & dsp_core.hostport[CPU_HOST_ISR]) & 0x3;
-
-	/* Trigger host interrupt? */
-	if (hreq /*&& (dsp_core.hostport[CPU_HOST_ISR] & (1<<CPU_HOST_ISR_HREQ)) == 0*/) {
+	/* Set HREQ bit in hostport and trigger host interrupt? */
+	if ((dsp_core.hostport[CPU_HOST_ICR] & dsp_core.hostport[CPU_HOST_ISR]) & 0x3) {
+		dsp_core.hostport[CPU_HOST_ISR] |= 1<<CPU_HOST_ISR_HREQ;
 		dsp_host_interrupt(1);
-    } else {
-        dsp_host_interrupt(0);
-    }
-
-	/* Set HREQ bit in hostport */
-	dsp_core.hostport[CPU_HOST_ISR] &= 0x7f;
-	dsp_core.hostport[CPU_HOST_ISR] |= (hreq?1:0) << CPU_HOST_ISR_HREQ;
-} 
+	} else {
+		dsp_core.hostport[CPU_HOST_ISR] &= 0x7f;
+		dsp_host_interrupt(0);
+	}
+}
 
 /* Host port transfer ? (dsp->host) */
 static void dsp_core_dsp2host(void)

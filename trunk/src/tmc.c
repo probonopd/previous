@@ -48,8 +48,8 @@ struct {
 
 #define TURBOSCR_FMASK   0x0FFF0F08
 
-void TurboSCR1_Reset(void) {
-	Uint8 memory_speed;
+static void TurboSCR1_Reset(void) {
+	Uint8 memory_speed = 0;
 	Uint8 cpu_speed = 0x07; // 33 MHz
 	
 	if (ConfigureParams.System.nCpuFreq<20) {
@@ -84,79 +84,74 @@ void TurboSCR1_Reset(void) {
 
 /* Register read/write functions */
 
-Uint8 tmc_ill_read(void) {
-	Log_Printf(LOG_WARN, "[TMC] Illegal read!\n");
-	return 0;
-}
-
-void tmc_ill_write(Uint8 val) {
+static void tmc_ill_write(Uint8 val) {
 	Log_Printf(LOG_WARN, "[TMC] Illegal write!\n");
 }
 
-Uint8 tmc_unimpl_read(void) {
+static Uint8 tmc_unimpl_read(void) {
 	Log_Printf(LOG_WARN, "[TMC] Unimplemented read!\n");
 	return 0;
 }
 
-void tmc_unimpl_write(Uint8 val) {
+static void tmc_unimpl_write(Uint8 val) {
 	Log_Printf(LOG_WARN, "[TMC] Unimplemented write!\n");
 }
 
-Uint8 tmc_void_read(void) {
+static Uint8 tmc_void_read(void) {
 	return 0;
 }
 
-void tmc_void_write(Uint8 val) {
+static void tmc_void_write(Uint8 val) {
 }
 
 /* SCR1 */
-Uint8 tmc_scr1_read0(void) {
+static Uint8 tmc_scr1_read0(void) {
 	Log_Printf(LOG_WARN,"[TMC] SCR1 read at $0x2200000 PC=$%08x\n",m68k_getpc());
 	return (tmc.scr1>>24);
 }
-Uint8 tmc_scr1_read1(void) {
+static Uint8 tmc_scr1_read1(void) {
 	Log_Printf(LOG_WARN,"[TMC] SCR1 read at $0x2200001 PC=$%08x\n",m68k_getpc());
 	return (tmc.scr1>>16);
 }
-Uint8 tmc_scr1_read2(void) {
+static Uint8 tmc_scr1_read2(void) {
 	Log_Printf(LOG_WARN,"[TMC] SCR1 read at $0x2200002 PC=$%08x\n",m68k_getpc());
 	return (tmc.scr1>>8);
 }
-Uint8 tmc_scr1_read3(void) {
+static Uint8 tmc_scr1_read3(void) {
 	Log_Printf(LOG_WARN,"[TMC] SCR1 read at $0x2200003 PC=$%08x\n",m68k_getpc());
 	return tmc.scr1;
 }
 
 /* TMC Control Register */
 
-Uint8 tmc_ctrl_read0(void) {
+static Uint8 tmc_ctrl_read0(void) {
 	return (tmc.control>>24);
 }
-Uint8 tmc_ctrl_read1(void) {
+static Uint8 tmc_ctrl_read1(void) {
 	return (tmc.control>>16);
 }
-Uint8 tmc_ctrl_read2(void) {
+static Uint8 tmc_ctrl_read2(void) {
 	return (tmc.control>>8);
 }
-Uint8 tmc_ctrl_read3(void) {
+static Uint8 tmc_ctrl_read3(void) {
 	return tmc.control;
 }
 
-void tmc_ctrl_write0(Uint8 val) {
+static void tmc_ctrl_write0(Uint8 val) {
 	tmc.control &= 0x00FFFFFF;
 	tmc.control |= (val&0xFF)<<24;
 }
-void tmc_ctrl_write1(Uint8 val) {
+static void tmc_ctrl_write1(Uint8 val) {
 	tmc.control &= 0xFF00FFFF;
 	tmc.control |= (val&0xFF)<<16;
 }
-void tmc_ctrl_write2(Uint8 val) {
+static void tmc_ctrl_write2(Uint8 val) {
 	val &= ~0x04; /* no parity memory */
 	
 	tmc.control &= 0xFFFF00FF;
 	tmc.control |= (val&0xFF)<<8;
 }
-void tmc_ctrl_write3(Uint8 val) {
+static void tmc_ctrl_write3(Uint8 val) {
 	tmc.control &= 0xFFFFFF00;
 	tmc.control |= val&0xFF;
 }
@@ -177,7 +172,7 @@ void tmc_ctrl_write3(Uint8 val) {
 #define VBPORCH	 0x30
 #define VDISCNT	 0x340
 
-void tmc_video_reg_reset(void) {
+static void tmc_video_reg_reset(void) {
 	tmc.video_intr = 0x00;
 	tmc.horizontal = (HFPORCH<<25)|(HSYNC<<19)|(HBPORCH<<12)|HDISCNT;
 	tmc.vertical = (VFPORCH<<25)|(VSYNC<<19)|(VBPORCH<<12)|VDISCNT;
@@ -190,11 +185,11 @@ void tmc_video_interrupt(void) {
 	}
 }
 
-Uint8 tmc_vir_read0(void) {
+static Uint8 tmc_vir_read0(void) {
 	return tmc.video_intr;
 }
 
-void tmc_vir_write0(Uint8 val) {
+static void tmc_vir_write0(Uint8 val) {
 	tmc.video_intr = val;
 	if (tmc.video_intr&TMC_VI_INTERRUPT) {
 		tmc.video_intr &= ~TMC_VI_INTERRUPT;
@@ -202,62 +197,62 @@ void tmc_vir_write0(Uint8 val) {
 	}
 }
 
-Uint8 tmc_hcr_read0(void) {
+static Uint8 tmc_hcr_read0(void) {
 	return (tmc.horizontal>>24);
 }
-Uint8 tmc_hcr_read1(void) {
+static Uint8 tmc_hcr_read1(void) {
 	return (tmc.horizontal>>16);
 }
-Uint8 tmc_hcr_read2(void) {
+static Uint8 tmc_hcr_read2(void) {
 	return (tmc.horizontal>>8);
 }
-Uint8 tmc_hcr_read3(void) {
+static Uint8 tmc_hcr_read3(void) {
 	return tmc.horizontal;
 }
 
-void tmc_hcr_write0(Uint8 val) {
+static void tmc_hcr_write0(Uint8 val) {
 	tmc.horizontal &= 0x00FFFFFF;
 	tmc.horizontal |= (val&0xFF)<<24;
 }
-void tmc_hcr_write1(Uint8 val) {
+static void tmc_hcr_write1(Uint8 val) {
 	tmc.horizontal &= 0xFF00FFFF;
 	tmc.horizontal |= (val&0xFF)<<16;
 }
-void tmc_hcr_write2(Uint8 val) {
+static void tmc_hcr_write2(Uint8 val) {
 	tmc.horizontal &= 0xFFFF00FF;
 	tmc.horizontal |= (val&0xFF)<<8;
 }
-void tmc_hcr_write3(Uint8 val) {
+static void tmc_hcr_write3(Uint8 val) {
 	tmc.horizontal &= 0xFFFFFF00;
 	tmc.horizontal |= val&0xFF;
 }
 
-Uint8 tmc_vcr_read0(void) {
+static Uint8 tmc_vcr_read0(void) {
 	return (tmc.vertical>>24);
 }
-Uint8 tmc_vcr_read1(void) {
+static Uint8 tmc_vcr_read1(void) {
 	return (tmc.vertical>>16);
 }
-Uint8 tmc_vcr_read2(void) {
+static Uint8 tmc_vcr_read2(void) {
 	return (tmc.vertical>>8);
 }
-Uint8 tmc_vcr_read3(void) {
+static Uint8 tmc_vcr_read3(void) {
 	return tmc.vertical;
 }
 
-void tmc_vcr_write0(Uint8 val) {
+static void tmc_vcr_write0(Uint8 val) {
 	tmc.vertical &= 0x00FFFFFF;
 	tmc.vertical |= (val&0xFF)<<24;
 }
-void tmc_vcr_write1(Uint8 val) {
+static void tmc_vcr_write1(Uint8 val) {
 	tmc.vertical &= 0xFF00FFFF;
 	tmc.vertical |= (val&0xFF)<<16;
 }
-void tmc_vcr_write2(Uint8 val) {
+static void tmc_vcr_write2(Uint8 val) {
 	tmc.vertical &= 0xFFFF00FF;
 	tmc.vertical |= (val&0xFF)<<8;
 }
-void tmc_vcr_write3(Uint8 val) {
+static void tmc_vcr_write3(Uint8 val) {
 	tmc.vertical &= 0xFFFFFF00;
 	tmc.vertical |= val&0xFF;
 }

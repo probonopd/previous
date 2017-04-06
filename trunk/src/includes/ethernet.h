@@ -29,14 +29,14 @@ void EN_CounterHi_Read(void);
 
 struct {
     Uint8 data[64*1024];
-    Uint32 size;
-    Uint32 limit;
+    int size;
+    int limit;
 } enet_tx_buffer;
 
 struct {
     Uint8 data[64*1024];
-    Uint32 size;
-    Uint32 limit;
+    int size;
+    int limit;
 } enet_rx_buffer;
 
 void ENET_IO_Handler(void);

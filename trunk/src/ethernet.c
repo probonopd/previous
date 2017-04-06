@@ -82,11 +82,6 @@ bool enet_stopped;
 #define RXMODE_ENA_RST      0x04
 #define RXMODE_MATCH_MODE   0x03
 
-#define RX_NOPACKETS        0   // Accept no packets
-#define RX_LIMITED          1   // Accept broadcast/limited
-#define RX_NORMAL           2   // Accept broadcast/multicast
-#define RX_PROMISCUOUS      3   // Accept all packets
-
 #define EN_RESET            0x80    /* w */
 
 
@@ -251,14 +246,14 @@ void EN_CounterHi_Read(void) { // 0x0200600f
  	Log_Printf(LOG_EN_REG_LEVEL,"[EN] Receiver mode read at $%08x val=$%02x PC=$%08x\n", IoAccessCurrentAddress, IoMem[IoAccessCurrentAddress & IO_SEG_MASK], m68k_getpc());
 }
 
-void enet_tx_interrupt(Uint8 intr) {
+static void enet_tx_interrupt(Uint8 intr) {
     enet.tx_status|=intr;
     if (enet.tx_status&enet.tx_mask) {
         set_interrupt(INT_EN_TX, SET_INT);
     }
 }
 
-void enet_rx_interrupt(Uint8 intr) {
+static void enet_rx_interrupt(Uint8 intr) {
     enet.rx_status|=intr;
     if (enet.rx_status&enet.rx_mask) {
         set_interrupt(INT_EN_RX, SET_INT);
@@ -266,14 +261,26 @@ void enet_rx_interrupt(Uint8 intr) {
 }
 
 /* Functions to find out if we are intended to receive a packet */
-bool recv_multicast(Uint8 *packet) {
+
+/* Non-turbo */
+#define RX_NOPACKETS        0   // Accept no packets
+#define RX_LIMITED          1   // Accept broadcast/limited
+#define RX_NORMAL           2   // Accept broadcast/multicast
+#define RX_PROMISCUOUS      3   // Accept all packets
+
+/* Turbo */
+#define RX_ENABLED      0x80    // Accept packets
+#define RX_ANY          0x01    // Accept any packets
+#define RX_OWN          0x02    // Accept own packets
+
+static bool recv_multicast(Uint8 *packet) {
     if (packet[0]&0x01)
         return true;
     else
         return false;
 }
 
-bool recv_local_multicast(Uint8 *packet) {
+static bool recv_local_multicast(Uint8 *packet) {
     if (packet[0]&0x01 &&
         (packet[0]&0xFE) == enet.mac_addr[0] &&
         packet[1] == enet.mac_addr[1] &&
@@ -283,7 +290,7 @@ bool recv_local_multicast(Uint8 *packet) {
         return false;
 }
 
-bool recv_me(Uint8 *packet) {
+static bool recv_me(Uint8 *packet) {
     if (packet[0] == enet.mac_addr[0] &&
         packet[1] == enet.mac_addr[1] &&
         packet[2] == enet.mac_addr[2] &&
@@ -295,7 +302,19 @@ bool recv_me(Uint8 *packet) {
         return false;
 }
 
-bool recv_broadcast(Uint8 *packet) {
+static bool recv_me_turbo(Uint8 *packet) {
+    if (packet[0] == enet.mac_addr[0] &&
+        packet[1] == enet.mac_addr[1] &&
+        packet[2] == enet.mac_addr[2] &&
+        packet[3] == enet.mac_addr[3] &&
+        packet[4] == enet.mac_addr[4] &&
+        packet[5] == enet.mac_addr[5])
+        return true;
+    else
+        return false;
+}
+
+static bool recv_broadcast(Uint8 *packet) {
     if (packet[0] == 0xFF &&
         packet[1] == 0xFF &&
         packet[2] == 0xFF &&
@@ -307,7 +326,25 @@ bool recv_broadcast(Uint8 *packet) {
         return false;
 }
 
-bool enet_packet_for_me(Uint8 *packet) {
+static bool enet_packet_for_me(Uint8 *packet) {
+    
+    if (ConfigureParams.System.bTurbo) {
+        if (enet.rx_mode&RX_ENABLED) {
+            if (enet.rx_mode&RX_ANY) {
+                return true;
+            } else if (enet.rx_mode&RX_OWN) {
+                if (recv_broadcast(packet) || recv_me_turbo(packet)) {
+                    return true;
+                }
+            } else {
+                if (recv_broadcast(packet)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+    
     switch (enet.rx_mode&RXMODE_MATCH_MODE) {
         case RX_NOPACKETS:
             return false;
@@ -331,7 +368,7 @@ bool enet_packet_for_me(Uint8 *packet) {
     }
 }
 
-bool enet_packet_from_me(Uint8 *packet) {
+static bool enet_packet_from_me(Uint8 *packet) {
     if (packet[6] == enet.mac_addr[0] &&
         packet[7] == enet.mac_addr[1] &&
         packet[8] == enet.mac_addr[2] &&
@@ -358,7 +395,7 @@ void enet_receive(Uint8 *pkt, int len) {
     }
 }
 
-void print_buf(Uint8 *buf, Uint32 size) {
+static void print_buf(Uint8 *buf, Uint32 size) {
 #if LOG_EN_DATA
     int i;
     for (i=0; i<size; i++) {
@@ -376,7 +413,7 @@ void print_buf(Uint8 *buf, Uint32 size) {
 #define ENET_FRAMESIZE_MAX  1518    /* 1500 byte data and 14 byte header, 4 byte CRC */
 
 /* Ethernet periodic check */
-#define ENET_IO_DELAY   40000   /* use 2000 for NeXT hardware test, 500 for status test */
+#define ENET_IO_DELAY   20000   /* use 20000 for NeXT hardware test, 500 for status test */
 #define ENET_IO_SHORT   500     /* use 400 for 68030 hardware test */
 
 enum {
@@ -389,7 +426,7 @@ bool rx_chain;
 int old_size;
 
 /* Fujitsu ethernet controller */
-void enet_io(void) {
+static void enet_io(void) {
 	/* Receive packet */
 	switch (receiver_state) {
 		case RECV_STATE_WAITING:
@@ -499,16 +536,11 @@ void EN_Control_Write(void) {
 	enet_reset();
 }
 
-void new_enet_io(void) {
+static void new_enet_io(void) {
 	/* Receive packet */
 	switch (receiver_state) {
 		case RECV_STATE_WAITING:
 			if (enet_rx_buffer.size>0) {
-				if (!(enet.rx_mode&RXMODE_ENABLE)) {
-					Log_Printf(LOG_WARN, "[newEN] Receiver disabled. Discarding packet.");
-					enet_rx_buffer.size = 0;
-					break; /* Keep waiting until receiver is enabled */
-				}
 				Statusbar_BlinkLed(DEVICE_LED_ENET);
 				Log_Printf(LOG_EN_LEVEL, "[newEN] Receiving packet from %02X:%02X:%02X:%02X:%02X:%02X",
 						   enet_rx_buffer.data[6], enet_rx_buffer.data[7], enet_rx_buffer.data[8],
@@ -611,7 +643,7 @@ void ENET_IO_Handler(void) {
 		enet_io();
 	}
 	
-	CycInt_AddRelativeInterrupt(receiver_state==RECV_STATE_WAITING?ENET_IO_DELAY:ENET_IO_SHORT, INT_CPU_CYCLE, INTERRUPT_ENET_IO);
+	CycInt_AddRelativeInterruptTicks(receiver_state==RECV_STATE_WAITING?ENET_IO_DELAY:ENET_IO_SHORT, INTERRUPT_ENET_IO);
 }
 
 void enet_reset(void) {
@@ -620,7 +652,7 @@ void enet_reset(void) {
     } else if (enet_stopped==true) {
         Log_Printf(LOG_WARN, "Starting Ethernet Transmitter/Receiver");
         enet_stopped=false;
-        CycInt_AddRelativeInterrupt(ENET_IO_DELAY, INT_CPU_CYCLE, INTERRUPT_ENET_IO);
+        CycInt_AddRelativeInterruptTicks(ENET_IO_DELAY, INTERRUPT_ENET_IO);
         /* Start SLIRP */
         if (ConfigureParams.Ethernet.bEthernetConnected) {
             enet_slirp_start();

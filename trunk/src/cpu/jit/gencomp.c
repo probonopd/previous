@@ -3069,10 +3069,10 @@ generate_func (int noflags)
 		 "#define PART_7 1\n"
 		 "#define PART_8 1\n"
 		 "#endif\n\n"
-		 "extern void setzflg_l(uae_u32);\n"
-		 "extern void comp_fpp_opp();\n"
-		 "extern void comp_fscc_opp();\n"
-		 "extern void comp_fbcc_opp();\n\n");
+		 "void setzflg_l(uae_u32);\n"
+		 "void comp_fpp_opp(void);\n"
+		 "void comp_fscc_opp(void);\n"
+		 "void comp_fbcc_opp(void);\n\n");
 
 	rp = 0;
 	for (j = 1; j <= 8; ++j)

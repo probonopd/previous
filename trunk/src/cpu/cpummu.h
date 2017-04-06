@@ -24,8 +24,10 @@
  */
 
 
-#ifndef CPUMMU_H
-#define CPUMMU_H
+#ifndef UAE_CPUMMU_H
+#define UAE_CPUMMU_H
+
+//#include "uae/types.h"
 
 #include "mmu_common.h"
 
@@ -323,12 +325,19 @@ extern void REGPARAM3 mmu060_put_rmw_bitfield (uae_u32 dst, uae_u32 bdata[2], ua
 extern uae_u16 REGPARAM3 mmu_get_word_unaligned(uaecptr addr, bool data, bool rmw) REGPARAM;
 extern uae_u32 REGPARAM3 mmu_get_long_unaligned(uaecptr addr, bool data, bool rmw) REGPARAM;
 
+extern uae_u32 REGPARAM3 mmu_get_ilong_unaligned(uaecptr addr) REGPARAM;
+
 extern uae_u8 REGPARAM3 mmu_get_byte_slow(uaecptr addr, bool super, bool data,
 										  int size, bool rmw, struct mmu_atc_line *cl) REGPARAM;
 extern uae_u16 REGPARAM3 mmu_get_word_slow(uaecptr addr, bool super, bool data,
 										   int size, bool rmw, struct mmu_atc_line *cl) REGPARAM;
 extern uae_u32 REGPARAM3 mmu_get_long_slow(uaecptr addr, bool super, bool data,
 										   int size, bool rmw, struct mmu_atc_line *cl) REGPARAM;
+
+extern uae_u16 REGPARAM3 mmu_get_iword_slow(uaecptr addr, bool super,
+										   int size, struct mmu_atc_line *cl) REGPARAM;
+extern uae_u32 REGPARAM3 mmu_get_ilong_slow(uaecptr addr, bool super,
+										   int size, struct mmu_atc_line *cl) REGPARAM;
 
 extern void REGPARAM3 mmu_put_word_unaligned(uaecptr addr, uae_u16 val, bool data, bool rmw) REGPARAM;
 extern void REGPARAM3 mmu_put_long_unaligned(uaecptr addr, uae_u32 val, bool data, bool rmw) REGPARAM;
@@ -377,6 +386,7 @@ extern void REGPARAM3 mmu_flush_atc_all(bool global) REGPARAM;
 extern void REGPARAM3 mmu_op_real(uae_u32 opcode, uae_u16 extra) REGPARAM;
 
 extern void REGPARAM3 mmu_reset(void) REGPARAM;
+extern void REGPARAM3 mmu_set_funcs(void) REGPARAM;
 extern void REGPARAM3 mmu_set_tc(uae_u16 tc) REGPARAM;
 extern void REGPARAM3 mmu_set_super(bool super) REGPARAM;
 
@@ -400,6 +410,18 @@ static ALWAYS_INLINE uae_u32 mmu_get_long(uaecptr addr, bool data, int size, boo
 	return mmu_get_long_slow(addr, regs.s != 0, data, size, rmw, cl);
 }
 
+static ALWAYS_INLINE uae_u32 mmu_get_ilong(uaecptr addr, int size)
+{
+	struct mmu_atc_line *cl;
+
+	//                                       addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr, regs.s != 0, false, false) != TTR_NO_MATCH))
+		return phys_get_long(addr);
+	if (likely(mmu_lookup(addr, false, false, &cl)))
+		return phys_get_long(mmu_get_real_address(addr, cl));
+	return mmu_get_ilong_slow(addr, regs.s != 0, size, cl);
+}
+
 static ALWAYS_INLINE uae_u16 mmu_get_word(uaecptr addr, bool data, int size, bool rmw)
 {
 	struct mmu_atc_line *cl;
@@ -410,6 +432,18 @@ static ALWAYS_INLINE uae_u16 mmu_get_word(uaecptr addr, bool data, int size, boo
 	if (likely(mmu_lookup(addr, data, false, &cl)))
 		return phys_get_word(mmu_get_real_address(addr, cl));
 	return mmu_get_word_slow(addr, regs.s != 0, data, size, rmw, cl);
+}
+
+static ALWAYS_INLINE uae_u16 mmu_get_iword(uaecptr addr, int size)
+{
+	struct mmu_atc_line *cl;
+
+	//                                       addr,super,data
+	if ((!regs.mmu_enabled) || (mmu_match_ttr(addr, regs.s != 0, false, false) != TTR_NO_MATCH))
+		return phys_get_word(addr);
+	if (likely(mmu_lookup(addr, false, false, &cl)))
+		return phys_get_word(mmu_get_real_address(addr, cl));
+	return mmu_get_iword_slow(addr, regs.s != 0, size, cl);
 }
 
 static ALWAYS_INLINE uae_u8 mmu_get_byte(uaecptr addr, bool data, int size, bool rmw)
@@ -579,14 +613,12 @@ static ALWAYS_INLINE uae_u32 HWget_b(uaecptr addr)
 static ALWAYS_INLINE uae_u32 uae_mmu040_get_ilong(uaecptr addr)
 {
 	if (unlikely(is_unaligned(addr, 4)))
-		return mmu_get_long_unaligned(addr, false, false);
-	return mmu_get_long(addr, false, sz_long, false);
+		return mmu_get_ilong_unaligned(addr);
+	return mmu_get_ilong(addr, sz_long);
 }
 static ALWAYS_INLINE uae_u16 uae_mmu040_get_iword(uaecptr addr)
 {
-	if (unlikely(is_unaligned(addr, 2)))
-		return mmu_get_word_unaligned(addr, false, false);
-	return mmu_get_word(addr, false, sz_word, false);
+	return mmu_get_iword(addr, sz_word);
 }
 static ALWAYS_INLINE uae_u16 uae_mmu040_get_ibyte(uaecptr addr)
 {
@@ -632,14 +664,12 @@ static ALWAYS_INLINE void uae_mmu040_put_long(uaecptr addr, uae_u32 val)
 static ALWAYS_INLINE uae_u32 uae_mmu060_get_ilong(uaecptr addr)
 {
 	if (unlikely(is_unaligned(addr, 4)))
-		return mmu_get_long_unaligned(addr, false, false);
-	return mmu_get_long(addr, false, sz_long, false);
+		return mmu_get_ilong_unaligned(addr);
+	return mmu_get_ilong(addr, sz_long);
 }
 static ALWAYS_INLINE uae_u16 uae_mmu060_get_iword(uaecptr addr)
 {
-	if (unlikely(is_unaligned(addr, 2)))
-		return mmu_get_word_unaligned(addr, false, false);
-	return mmu_get_word(addr, false, sz_word, false);
+	return mmu_get_iword(addr, sz_word);
 }
 static ALWAYS_INLINE uae_u16 uae_mmu060_get_ibyte(uaecptr addr)
 {
@@ -829,56 +859,56 @@ STATIC_INLINE uae_u32 get_lrmw_long_mmu040 (uaecptr addr)
 
 STATIC_INLINE uae_u32 get_ibyte_mmu040 (int o)
 {
-    uae_u32 pc = m68k_getpc () + o;
+    uae_u32 pc = m68k_getpci () + o;
     return uae_mmu040_get_iword (pc);
 }
 STATIC_INLINE uae_u32 get_iword_mmu040 (int o)
 {
-    uae_u32 pc = m68k_getpc () + o;
+    uae_u32 pc = m68k_getpci () + o;
     return uae_mmu040_get_iword (pc);
 }
 STATIC_INLINE uae_u32 get_ilong_mmu040 (int o)
 {
-    uae_u32 pc = m68k_getpc () + o;
+    uae_u32 pc = m68k_getpci () + o;
     return uae_mmu040_get_ilong (pc);
 }
 STATIC_INLINE uae_u32 next_iword_mmu040 (void)
 {
-    uae_u32 pc = m68k_getpc ();
+    uae_u32 pc = m68k_getpci ();
     m68k_incpci (2);
     return uae_mmu040_get_iword (pc);
 }
 STATIC_INLINE uae_u32 next_ilong_mmu040 (void)
 {
-    uae_u32 pc = m68k_getpc ();
+    uae_u32 pc = m68k_getpci ();
     m68k_incpci (4);
     return uae_mmu040_get_ilong (pc);
 }
 
 STATIC_INLINE uae_u32 get_ibyte_mmu060 (int o)
 {
-    uae_u32 pc = m68k_getpc () + o;
+    uae_u32 pc = m68k_getpci () + o;
     return uae_mmu060_get_iword (pc);
 }
 STATIC_INLINE uae_u32 get_iword_mmu060 (int o)
 {
-    uae_u32 pc = m68k_getpc () + o;
+    uae_u32 pc = m68k_getpci () + o;
     return uae_mmu060_get_iword (pc);
 }
 STATIC_INLINE uae_u32 get_ilong_mmu060 (int o)
 {
-    uae_u32 pc = m68k_getpc () + o;
+    uae_u32 pc = m68k_getpci () + o;
     return uae_mmu060_get_ilong (pc);
 }
 STATIC_INLINE uae_u32 next_iword_mmu060 (void)
 {
-    uae_u32 pc = m68k_getpc ();
+    uae_u32 pc = m68k_getpci ();
     m68k_incpci (2);
     return uae_mmu060_get_iword (pc);
 }
 STATIC_INLINE uae_u32 next_ilong_mmu060 (void)
 {
-    uae_u32 pc = m68k_getpc ();
+    uae_u32 pc = m68k_getpci ();
     m68k_incpci (4);
     return uae_mmu060_get_ilong (pc);
 }
@@ -893,4 +923,4 @@ extern void m68k_do_rts_mmu060 (void);
 extern void m68k_do_rte_mmu060 (uaecptr a7);
 extern void m68k_do_bsr_mmu060 (uaecptr oldpc, uae_s32 offset);
 
-#endif /* CPUMMU_H */
+#endif /* UAE_CPUMMU_H */

@@ -9,13 +9,13 @@
 
 #include "main.h"
 
-extern void Control_ProcessBuffer(char *buffer);
+void Control_ProcessBuffer(char *buffer);
 
 /* supported only on BSD compatible / POSIX compliant systems */
 #if HAVE_UNIX_DOMAIN_SOCKETS
-extern bool Control_CheckUpdates(void);
-extern const char* Control_SetSocket(const char *socketpath);
-extern void Control_ReparentWindow(int width, int height, bool noembed);
+bool Control_CheckUpdates(void);
+const char* Control_SetSocket(const char *socketpath);
+void Control_ReparentWindow(int width, int height, bool noembed);
 #else
 #define Control_CheckUpdates() false
 #define Control_SetSocket(path) "Control socket is not supported on this platform."

@@ -14,6 +14,7 @@ const char SDLGui_fileid[] = "Previous sdlgui.c : " __DATE__ " " __TIME__;
 
 #include "main.h"
 #include "sdlgui.h"
+#include "screen.h"
 
 #include "font5x8.h"
 #include "font10x16.h"
@@ -76,7 +77,7 @@ static SDL_Surface *SDLGui_LoadXBM(int w, int h, const Uint8 *pXbmBits)
  */
 int SDLGui_Init(void)
 {
-	SDL_Color blackWhiteColors[2] = {{255, 255, 255, 0}, {0, 0, 0, 0}};
+	SDL_Color blackWhiteColors[2] = {{255, 255, 255, 255}, {0, 0, 0, 255}};
 
 	if (pSmallFontGfx && pBigFontGfx)
 	{
@@ -135,7 +136,7 @@ int SDLGui_UnInit(void)
 int SDLGui_SetScreen(SDL_Surface *pScrn)
 {
 	pSdlGuiScrn = pScrn;
-
+    
 	/* Decide which font to use - small or big one: */
 	if (pSdlGuiScrn->w >= 640 && pSdlGuiScrn->h >= 400 && pBigFontGfx != NULL)
 	{
@@ -151,7 +152,7 @@ int SDLGui_SetScreen(SDL_Surface *pScrn)
 		fprintf(stderr, "Error: A problem with the font occured!\n");
 		return -1;
 	}
-
+    
 	/* Get the font width and height: */
 	sdlgui_fontwidth = pFontGfx->w/16;
     sdlgui_fontheight = pFontGfx->h/16;
@@ -497,6 +498,12 @@ static void SDLGui_EditField(SGOBJ *dlg, int objnum)
 			{
 				switch (event.type)
 				{
+                case SDL_WINDOWEVENT:
+                        if(event.window.event == SDL_WINDOWEVENT_CLOSE) {
+                            bQuitProgram = true;
+                            bStopEditing = true;
+                        }
+                    break;
 				 case SDL_QUIT:                     /* User wants to quit */
 					bQuitProgram = true;
 					bStopEditing = true;

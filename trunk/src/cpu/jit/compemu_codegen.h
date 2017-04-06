@@ -36,7 +36,7 @@
 
 #if JIT_DEBUG
 /* dump some information (m68k block, x86 block addresses) about the compiler state */
-extern void compiler_dumpstate(void);
+void compiler_dumpstate(void);
 #endif
 
 /* Now that we do block chaining, and also have linked lists on each tag,
@@ -137,27 +137,27 @@ union cacheline {
 
 /* Functions exposed to newcpu, or to what was moved from newcpu.c to
  * compemu_support.c */
-extern void compiler_init(void);
-extern void compiler_exit(void);
-extern bool compiler_use_jit(void);
-extern void init_comp(void);
-extern void flush(int save_regs);
-extern void small_flush(int save_regs);
-extern void set_target(uae_u8* t);
-extern uae_u8* get_target(void);
-extern void freescratch(void);
-extern void build_comp(void);
-extern void set_cache_state(int enabled);
-extern int get_cache_state(void);
-extern uae_u32 get_jitted_size(void);
-extern void (*flush_icache)(int n);
-extern void alloc_cache(void);
-extern int check_for_cache_miss(void);
+void compiler_init(void);
+void compiler_exit(void);
+bool compiler_use_jit(void);
+void init_comp(void);
+void flush(int save_regs);
+void small_flush(int save_regs);
+void set_target(uae_u8* t);
+uae_u8* get_target(void);
+void freescratch(void);
+void build_comp(void);
+void set_cache_state(int enabled);
+int get_cache_state(void);
+uae_u32 get_jitted_size(void);
+void (*flush_icache)(int n);
+void alloc_cache(void);
+int check_for_cache_miss(void);
 
 /* JIT FPU compilation */
-extern void comp_fpp_opp (uae_u32 opcode, uae_u16 extra);
-extern void comp_fbcc_opp (uae_u32 opcode);
-extern void comp_fscc_opp (uae_u32 opcode, uae_u16 extra);
+void comp_fpp_opp (uae_u32 opcode, uae_u16 extra);
+void comp_fbcc_opp (uae_u32 opcode);
+void comp_fscc_opp (uae_u32 opcode, uae_u16 extra);
 
 extern uae_u32 needed_flags;
 extern cacheline cache_tags[];
@@ -502,25 +502,25 @@ extern int failure;
 #define FAIL(x) do { failure|=x; } while (0)
 
 /* Convenience functions exposed to gencomp */
-extern uae_u32 m68k_pc_offset;
-extern void readbyte(int address, int dest, int tmp);
-extern void readword(int address, int dest, int tmp);
-extern void readlong(int address, int dest, int tmp);
-extern void writebyte(int address, int source, int tmp);
-extern void writeword(int address, int source, int tmp);
-extern void writelong(int address, int source, int tmp);
-extern void writeword_clobber(int address, int source, int tmp);
-extern void writelong_clobber(int address, int source, int tmp);
-extern void get_n_addr(int address, int dest, int tmp);
-extern void get_n_addr_jmp(int address, int dest, int tmp);
-extern void calc_disp_ea_020(int base, uae_u32 dp, int target, int tmp);
+uae_u32 m68k_pc_offset;
+void readbyte(int address, int dest, int tmp);
+void readword(int address, int dest, int tmp);
+void readlong(int address, int dest, int tmp);
+void writebyte(int address, int source, int tmp);
+void writeword(int address, int source, int tmp);
+void writelong(int address, int source, int tmp);
+void writeword_clobber(int address, int source, int tmp);
+void writelong_clobber(int address, int source, int tmp);
+void get_n_addr(int address, int dest, int tmp);
+void get_n_addr_jmp(int address, int dest, int tmp);
+void calc_disp_ea_020(int base, uae_u32 dp, int target, int tmp);
 /* Set native Z flag only if register is zero */
-extern void set_zero(int r, int tmp);
-extern int kill_rodent(int r);
-extern void sync_m68k_pc(void);
-extern uae_u32 get_const(int r);
-extern int  is_const(int r);
-extern void register_branch(uae_u32 not_taken, uae_u32 taken, uae_u8 cond);
+void set_zero(int r, int tmp);
+int kill_rodent(int r);
+void sync_m68k_pc(void);
+uae_u32 get_const(int r);
+int  is_const(int r);
+void register_branch(uae_u32 not_taken, uae_u32 taken, uae_u8 cond);
 
 #define comp_get_ibyte(o) do_get_mem_byte((uae_u8 *)(comp_pc_p + (o) + 1))
 #define comp_get_iword(o) do_get_mem_word((uae_u16 *)(comp_pc_p + (o)))

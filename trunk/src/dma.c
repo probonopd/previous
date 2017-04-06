@@ -23,27 +23,13 @@
 #include "snd.h"
 #include "dsp.h"
 #include "mmu_common.h"
-
-
+#include "kms.h"
+#include "audio.h"
 
 #define LOG_DMA_LEVEL LOG_DEBUG
 
 #define IO_SEG_MASK	0x1FFFF
 
-enum {
-    CHANNEL_SCSI,       // 0x00000010
-    CHANNEL_SOUNDOUT,   // 0x00000040
-    CHANNEL_DISK,       // 0x00000050
-    CHANNEL_SOUNDIN,    // 0x00000080
-    CHANNEL_PRINTER,    // 0x00000090
-    CHANNEL_SCC,        // 0x000000c0
-    CHANNEL_DSP,        // 0x000000d0
-    CHANNEL_EN_TX,      // 0x00000110
-    CHANNEL_EN_RX,      // 0x00000150
-    CHANNEL_VIDEO,      // 0x00000180
-    CHANNEL_M2R,        // 0x000001d0
-    CHANNEL_R2M         // 0x000001c0
-} DMA_CHANNEL;
 
 int get_channel(Uint32 address);
 int get_interrupt_type(int channel);
@@ -389,7 +375,7 @@ void dma_initialize_buffer(int channel, Uint8 offset) {
 
 void dma_interrupt(int channel) {
     int interrupt = get_interrupt_type(channel);
-    
+
     /* If we have reached limit, generate an interrupt and set the flags */
     if (dma[channel].next==dma[channel].limit) {
         
@@ -723,9 +709,13 @@ void dma_mo_read_memory(void) {
 }
 
 
-/* Channel Sound Out (FIXME: is this channel buffered?) */
-void dma_sndout_read_memory(void) {
+Uint8* dma_sndout_read_memory(int* len, bool* chaining) {
+    Uint8* result = NULL;
+    *len          = 0;
+    *chaining     = false;
+    
     if (dma[CHANNEL_SOUNDOUT].csr&DMA_ENABLE) {
+        
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Sound Out: Read from memory at $%08x, %i bytes",
                    dma[CHANNEL_SOUNDOUT].next,dma[CHANNEL_SOUNDOUT].limit-dma[CHANNEL_SOUNDOUT].next);
         
@@ -736,21 +726,59 @@ void dma_sndout_read_memory(void) {
         }
         
         TRY(prb) {
-            while (dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit && snd_buffer.size<snd_buffer.limit) {
-                snd_buffer.data[snd_buffer.size]=NEXTMemory_ReadByte(dma[CHANNEL_SOUNDOUT].next);
-                snd_buffer.size++;
-                dma[CHANNEL_SOUNDOUT].next++;
-            }
+            *len      = dma[CHANNEL_SOUNDOUT].limit - dma[CHANNEL_SOUNDOUT].next;
+            *chaining = (dma[CHANNEL_SOUNDOUT].csr & DMA_SUPDATE) != 0;
+            result = malloc(*len * 2);
+            for(int i = 0; dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit; dma[CHANNEL_SOUNDOUT].next++, i++)
+                result[i] = NEXTMemory_ReadByte(dma[CHANNEL_SOUNDOUT].next);
         } CATCH(prb) {
             Log_Printf(LOG_WARN, "[DMA] Channel Sound Out: Bus error reading from %08x",dma[CHANNEL_SOUNDOUT].next);
             dma[CHANNEL_SOUNDOUT].csr &= ~DMA_ENABLE;
             dma[CHANNEL_SOUNDOUT].csr |= (DMA_COMPLETE|DMA_BUSEXC);
         } ENDTRY
-        
-        dma_interrupt(CHANNEL_SOUNDOUT);
     }
+    
+    return result;
 }
 
+void dma_sndout_intr() {
+    dma_interrupt(CHANNEL_SOUNDOUT);
+}
+
+int dma_sndin_write_memory() {
+	int value = 0;
+	
+    if (dma[CHANNEL_SOUNDIN].csr&DMA_ENABLE) {
+		
+		Audio_Input_Lock();
+
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Sound In: Write to memory at $%08x, %i bytes",
+                   dma[CHANNEL_SOUNDIN].next,dma[CHANNEL_SOUNDIN].limit-dma[CHANNEL_SOUNDIN].next);
+
+		TRY(prb) {
+            while (dma[CHANNEL_SOUNDIN].next<dma[CHANNEL_SOUNDIN].limit) {
+                value = Audio_Input_Read();
+				if (value < 0) {
+					break;
+				}
+				NEXTMemory_WriteByte(dma[CHANNEL_SOUNDIN].next, value);
+				dma[CHANNEL_SOUNDIN].next++;
+            }
+        } CATCH(prb) {
+            Log_Printf(LOG_WARN, "[DMA] Channel Sound In: Bus error reading from %08x",dma[CHANNEL_SOUNDIN].next);
+            dma[CHANNEL_SOUNDIN].csr &= ~DMA_ENABLE;
+            dma[CHANNEL_SOUNDIN].csr |= (DMA_COMPLETE|DMA_BUSEXC);
+        } ENDTRY
+		
+		Audio_Input_Unlock();
+
+        dma[CHANNEL_SOUNDIN].saved_limit = dma[CHANNEL_SOUNDIN].next;
+        dma_interrupt(CHANNEL_SOUNDIN);
+		
+		return (dma[CHANNEL_SOUNDIN].next==dma[CHANNEL_SOUNDIN].limit);
+    }
+	return 1;
+}
 
 /* Channel Printer */
 void dma_printer_read_memory(void) {
@@ -788,7 +816,7 @@ void dma_printer_read_memory(void) {
 
 Uint32 saved_next_turbo = 0;
 
-void dma_enet_interrupt(int channel) {
+static void dma_enet_interrupt(int channel) {
     int interrupt = get_interrupt_type(channel);
     
     dma[channel].csr |= DMA_COMPLETE;
@@ -804,15 +832,6 @@ void dma_enet_interrupt(int channel) {
         dma[channel].csr &= ~DMA_ENABLE; /* all done */
     }
     set_interrupt(interrupt, SET_INT);
-}
-
-/* This is done by hardware on ethernet transmitter error (coll, short, etc) */
-/* TODO: check if this is true and call from transmitter */
-void dma_enet_read_retry(void) {
-    dma[CHANNEL_EN_TX].next = dma[CHANNEL_EN_TX].saved_next;
-    dma[CHANNEL_EN_TX].limit = dma[CHANNEL_EN_TX].saved_limit;
-    dma[CHANNEL_EN_TX].start = dma[CHANNEL_EN_TX].saved_start;
-    dma[CHANNEL_EN_TX].stop = dma[CHANNEL_EN_TX].saved_stop;
 }
 
 void dma_enet_write_memory(bool eop) {
@@ -913,7 +932,7 @@ void dma_m2m_write_memory(void) {
             } ENDTRY
             
             if ((dma[CHANNEL_M2R].next==dma[CHANNEL_M2R].limit)||(dma[CHANNEL_M2R].csr&DMA_BUSEXC)) {
-                CycInt_AddRelativeInterrupt(time/4, INT_CPU_CYCLE, INTERRUPT_M2R);
+                CycInt_AddRelativeInterruptTicks(time/4, INTERRUPT_M2R);
             }
         }
         
@@ -929,7 +948,7 @@ void dma_m2m_write_memory(void) {
             dma[CHANNEL_R2M].csr |= (DMA_COMPLETE|DMA_BUSEXC);
         } ENDTRY
     }
-    CycInt_AddRelativeInterrupt(time/4, INT_CPU_CYCLE, INTERRUPT_R2M);
+    CycInt_AddRelativeInterruptTicks(time/4, INTERRUPT_R2M);
 }
 
 
