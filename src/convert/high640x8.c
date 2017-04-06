@@ -112,6 +112,20 @@ static inline void putpixel(SDL_Surface * surface, Uint16 x, Uint16 y, Uint32 co
 
 static char buffer[832*1152*4];
 
+static void InvalidateScreenBuffer(void) {
+    int i;
+#if ENABLE_DIMENSION
+    if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
+        for (i = 0; i < (832*1152*4); i++)
+            buffer[i] = ND_vram[i]+1;
+        return;
+    }
+#endif
+    for (i = 0; i < (832*1152/4); i++) {
+        buffer[i] = NEXTVideo[i]+1;
+    }
+}
+
 static void ConvertHighRes_640x8Bit(void)
 {
 	int y, x;
@@ -129,10 +143,10 @@ static void ConvertHighRes_640x8Bit(void)
 
 #if ENABLE_DIMENSION
     /* dimension */
-    if (enable_dimension_screen) {
+    if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
         for (y = 0; y < 832; y++)
         {
-            adr=y*288*16;
+            adr=(y*288*16)+16;
             
             for (x = 0; x < 1120; x++)
             {

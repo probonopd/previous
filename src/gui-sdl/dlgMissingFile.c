@@ -15,31 +15,31 @@ const char DlgMissingFile_fileid[] = "Hatari dlgMissingFile.c : " __DATE__ " " _
 
 
 /* Missing ROM dialog */
-#define DLGMISSINGROM_MACHINE   3
+#define DLGMISROM_ALERT     1
 
-#define DLGMISSINGROM_BROWSE    6
-#define DLGMISSINGROM_DEFAULT   7
-#define DLGMISSINGROM_NAME      8
+#define DLGMISROM_BROWSE    4
+#define DLGMISROM_DEFAULT   5
+#define DLGMISROM_NAME      6
 
-#define DLGMISSINGROM_SELECT    9
-#define DLGMISSINGROM_QUIT      10
+#define DLGMISROM_SELECT    7
+#define DLGMISROM_REMOVE    8
+#define DLGMISROM_QUIT      9
 
 
 static SGOBJ missingromdlg[] =
 {
     { SGBOX, 0, 0, 0,0, 52,15, NULL },
-    { SGTEXT, 0, 0, 16,1, 9,1, "ROM file not found!" },
-    { SGTEXT, 0, 0, 2,4, 9,1, "Please select a compatible ROM for machine type" },
-    { SGTEXT, 0, 0, 2,5, 9,1, NULL },
+    { SGTEXT, 0, 0, 2,1, 38,1, NULL },
+    { SGTEXT, 0, 0, 2,4, 43,1, "Please select a valid ROM file:" },
     
-    { SGBOX, 0, 0, 1,7, 50,4, NULL },
-    { SGTEXT, 0, 0, 2,8, 46,1, "Filename:" },
-    { SGBUTTON, 0, 0, 13,8, 8,1, "Browse" },
-    { SGBUTTON, 0, 0, 22,8, 9,1, "Default" },
-    { SGTEXT, 0, 0, 2,9, 46,1, NULL },
+    { SGBOX, 0, 0, 1,6, 50,4, NULL },
+    { SGBUTTON, 0, 0, 2,7, 8,1, "Browse" },
+    { SGBUTTON, 0, 0, 11,7, 9,1, "Default" },
+    { SGTEXT, 0, 0, 2,8, 46,1, NULL },
     
-    { SGBUTTON, SG_DEFAULT, 0, 9,13, 14,1, "Select" },
-    { SGBUTTON, 0, 0, 29,13, 14,1, "Quit" },
+    { SGBUTTON, SG_DEFAULT, 0, 4,12, 10,1, "Select" },
+    { SGBUTTON, 0, 0, 16,12, 10,1, "Remove" },
+    { SGBUTTON, 0, 0, 38,12, 10,1, "Quit" },
     { -1, 0, 0, 0,0, 0,0, NULL }
 };
 
@@ -82,109 +82,68 @@ static SGOBJ missingdiskdlg[] =
 /**
  * Show and process the Missing ROM dialog.
  */
-void DlgMissing_Rom(void) {
+void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *enabled) {
     int but;
-    char szDlgMissingRom[47];
+    
+    char dlgname_missingrom[64];
+    char missingrom_alert[64];
+    
+    bool bOldMouseVisibility;
+    bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
+    SDL_ShowCursor(SDL_ENABLE);
     
     SDLGui_CenterDlg(missingromdlg);
     
-    switch (ConfigureParams.System.nMachineType) {
-        case NEXT_CUBE030:
-            missingromdlg[DLGMISSINGROM_MACHINE].txt = "NeXT Computer (68030):";
-            break;
-        case NEXT_CUBE040:
-            if (ConfigureParams.System.bTurbo)
-                missingromdlg[DLGMISSINGROM_MACHINE].txt = "NeXTcube Turbo:";
-            else
-                missingromdlg[DLGMISSINGROM_MACHINE].txt = "NeXTcube:";
-            break;
-        case NEXT_STATION:
-            if (ConfigureParams.System.bColor) {
-                if (ConfigureParams.System.bTurbo)
-                    missingromdlg[DLGMISSINGROM_MACHINE].txt = "NeXTstation Turbo Color:";
-                else
-                    missingromdlg[DLGMISSINGROM_MACHINE].txt = "NeXTstation Color:";
-            } else {
-                if (ConfigureParams.System.bTurbo)
-                    missingromdlg[DLGMISSINGROM_MACHINE].txt = "NeXTstation Turbo:";
-                else
-                    missingromdlg[DLGMISSINGROM_MACHINE].txt = "NeXTstation:";
-            }
-            break;
-        default:
-            break;
+    /* Set up dialog to actual values: */
+    sprintf(missingrom_alert, "%s: ROM file not found!", type);
+    missingromdlg[DLGMISROM_ALERT].txt = missingrom_alert;
+    
+    File_ShrinkName(dlgname_missingrom, imgname, missingromdlg[DLGMISROM_NAME].w);
+    
+    missingromdlg[DLGMISROM_NAME].txt = dlgname_missingrom;
+    
+    if (*enabled) {
+        missingromdlg[DLGMISROM_REMOVE].type = SGBUTTON;
+        missingromdlg[DLGMISROM_REMOVE].txt = "Remove";
+    } else {
+        missingromdlg[DLGMISROM_REMOVE].type = SGTEXT;
+        missingromdlg[DLGMISROM_REMOVE].txt = "";
     }
     
-    szDlgMissingRom[0] = '\0';
-    missingromdlg[DLGMISSINGROM_NAME].txt = szDlgMissingRom;
     
+    /* Draw and process the dialog */
     do
-	{
-		but = SDLGui_DoDialog(missingromdlg, NULL);
-		switch (but)
-		{
-            case DLGMISSINGROM_DEFAULT:
-                switch (ConfigureParams.System.nMachineType) {
-                    case NEXT_CUBE030:
-                        sprintf(ConfigureParams.Rom.szRom030FileName, "%s%cRev_1.0_v41.BIN",
-                                Paths_GetWorkingDir(), PATHSEP);
-                        File_ShrinkName(szDlgMissingRom, ConfigureParams.Rom.szRom030FileName, sizeof(szDlgMissingRom)-1);
-                        break;
-                        
-                    case NEXT_CUBE040:
-                    case NEXT_STATION:
-                        if (ConfigureParams.System.bTurbo) {
-                            sprintf(ConfigureParams.Rom.szRomTurboFileName, "%s%cRev_3.3_v74.BIN",
-                                    Paths_GetWorkingDir(), PATHSEP);
-                            File_ShrinkName(szDlgMissingRom, ConfigureParams.Rom.szRomTurboFileName, sizeof(szDlgMissingRom)-1);
-                        } else {
-                            sprintf(ConfigureParams.Rom.szRom040FileName, "%s%cRev_2.5_v66.BIN",
-                                    Paths_GetWorkingDir(), PATHSEP);
-                            File_ShrinkName(szDlgMissingRom, ConfigureParams.Rom.szRom040FileName, sizeof(szDlgMissingRom)-1);
-                        }
-                        break;
-                        
-                    default:
-                        break;
-                }
-                break;
+    {
+        but = SDLGui_DoDialog(missingromdlg, NULL);
+        switch (but)
+        {
                 
-            case DLGMISSINGROM_BROWSE:
-                /* Show and process the file selection dlg */
-                switch (ConfigureParams.System.nMachineType) {
-                    case NEXT_CUBE030:
-                        SDLGui_FileConfSelect(szDlgMissingRom,
-                                              ConfigureParams.Rom.szRom030FileName,
-                                              sizeof(szDlgMissingRom)-1,
-                                              false);
-                        break;
-                        
-                    case NEXT_CUBE040:
-                    case NEXT_STATION:
-                        if (ConfigureParams.System.bTurbo) {
-                            SDLGui_FileConfSelect(szDlgMissingRom,
-                                                  ConfigureParams.Rom.szRomTurboFileName,
-                                                  sizeof(szDlgMissingRom)-1,
-                                                  false);
-                        } else {
-                            SDLGui_FileConfSelect(szDlgMissingRom,
-                                                  ConfigureParams.Rom.szRom040FileName,
-                                                  sizeof(szDlgMissingRom)-1,
-                                                  false);
-                        }
-                        break;
-                        
-                    default:
-                        break;
-                }
+            case DLGMISROM_BROWSE:
+                SDLGui_FileConfSelect(dlgname_missingrom, imgname,
+                                      missingromdlg[DLGMISROM_NAME].w,
+                                      false);
                 break;
-            case DLGMISSINGROM_QUIT:
+            case DLGMISROM_DEFAULT:
+                sprintf(imgname, "%s",defname);
+                File_ShrinkName(dlgname_missingrom, imgname, missingromdlg[DLGMISROM_NAME].w);
+                break;
+            case DLGMISROM_REMOVE:
+                *enabled = false;
+                *imgname = '\0';
+                break;
+            case DLGMISROM_QUIT:
                 bQuitProgram = true;
                 break;
-		}
-	}
-	while (but != DLGMISSINGROM_SELECT && but != SDLGUI_QUIT
-	       && but != SDLGUI_ERROR && !bQuitProgram);
+                
+            default:
+                break;
+        }
+    }
+    while (but != DLGMISROM_SELECT && but != DLGMISROM_REMOVE &&
+           but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
+    
+    
+    SDL_ShowCursor(bOldMouseVisibility);
 }
 
 
@@ -192,13 +151,17 @@ void DlgMissing_Rom(void) {
 /**
  * Show and process the Missing Disk dialog.
  */
-void DlgMissing_Disk(char type[], int num, char *imgname, bool *inserted, bool *wp)
+void DlgMissing_Disk(const char* type, int num, char *imgname, bool *inserted, bool *wp)
 {
     int but;
     
     char dlgname_missingdisk[64];
     char missingdisk_alert[64];
     char missingdisk_disk[64];
+    
+    bool bOldMouseVisibility;
+    bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
+    SDL_ShowCursor(SDL_ENABLE);
 
     SDLGui_CenterDlg(missingdiskdlg);
     
@@ -244,4 +207,6 @@ void DlgMissing_Disk(char type[], int num, char *imgname, bool *inserted, bool *
     }
     while (but != DLGMISDSK_SELECT && but != DLGMISDSK_REMOVE &&
            but != SDLGUI_QUIT && but != SDLGUI_ERROR && !bQuitProgram);
+    
+    SDL_ShowCursor(bOldMouseVisibility);
 }

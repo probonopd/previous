@@ -3,6 +3,8 @@
 
   This file is distributed under the GNU Public License, version 2 or at
   your option any later version. Read the file gpl.txt for details.
+ 
+ (SC) Simon Schubiger - removed all MFP related code. NeXT does not have an MFP
 */
 
 #ifndef HATARI_CYCINT_H
@@ -14,6 +16,7 @@ typedef enum
   INTERRUPT_NULL,
   INTERRUPT_VIDEO_VBL,
   INTERRUPT_HARDCLOCK,
+  INTERRUPT_MOUSE,
   INTERRUPT_ESP,
   INTERRUPT_ESP_IO,
   INTERRUPT_M2R,
@@ -23,46 +26,45 @@ typedef enum
   INTERRUPT_ECC_IO,
   INTERRUPT_ENET_IO,
   INTERRUPT_FLP_IO,
-  INTERRUPT_SND_IO,
+  INTERRUPT_SND_OUT,
+  INTERRUPT_SND_IN,
   INTERRUPT_LP_IO,
+  INTERRUPT_EVENT_LOOP,
+  INTERRUPT_ND_VBL,
+  INTERRUPT_ND_VIDEO_VBL,
   MAX_INTERRUPTS
 } interrupt_id;
 
+/* Event timer structure - keeps next timer to occur in structure so don't need
+ * to check all entries */
 
-#define	INT_CPU_CYCLE		1
-#define	INT_MFP_CYCLE		2
+enum {
+    CYC_INT_NONE,
+    CYC_INT_CPU,
+    CYC_INT_US,
+};
 
-#define	INT_CPU_TO_INTERNAL	1
-#define	INT_MFP_TO_INTERNAL	31333
+typedef struct
+{
+    int     type;   /* Type of time (CPU Cycles, microseconds) or NONE for inactive */
+    int64_t time;   /* number of CPU cycles to go until interupt or absolute microsecond timeout until interrupt */
+    void (*pFunction)(void);
+} INTERRUPTHANDLER;
 
-/* Convert cpu or mfp cycles to internal cycles */
-#define INT_CONVERT_TO_INTERNAL( cyc , type )	( type == INT_CPU_CYCLE ? (cyc)*INT_CPU_TO_INTERNAL : (cyc)*INT_MFP_TO_INTERNAL )
-/*
-#define INT_CONVERT_TO_INTERNAL( cyc , type )	( type == INT_CPU_CYCLE ? cyc*INT_CPU_TO_INTERNAL :\
-	( ( (cyc*INT_MFP_TO_INTERNAL + INT_CPU_TO_INTERNAL*4 - 1) / (INT_CPU_TO_INTERNAL*4) ) * INT_CPU_TO_INTERNAL*4 ) )
-*/
+INTERRUPTHANDLER PendingInterrupt;
 
-/* Convert internal cycles to real mfp or cpu cycles */
-/* Rounding is important : for example 9500 internal is 0.98 cpu and should give 1 cpu cycle, not 0 */
-/* so we do (9500+9600-1)/9600 to get the closest higher integer */
-//#define INT_CONVERT_FROM_INTERNAL( cyc , type )	( type == INT_CPU_CYCLE ? (cyc+INT_CPU_TO_INTERNAL-1)/INT_CPU_TO_INTERNAL : (cyc+INT_MFP_TO_INTERNAL-1)/INT_MFP_TO_INTERNAL )
-#define INT_CONVERT_FROM_INTERNAL( cyc , type )	( type == INT_CPU_CYCLE ? (cyc)/INT_CPU_TO_INTERNAL : ((cyc)+INT_MFP_TO_INTERNAL-1)/INT_MFP_TO_INTERNAL )
+extern int64_t nCyclesMainCounter;
 
+extern int usCheckCycles;
 
-
-extern void (*PendingInterruptFunction)(void);
-extern int PendingInterruptCount;
-
-extern void CycInt_Reset(void);
-extern void CycInt_MemorySnapShot_Capture(bool bSave);
-extern void CycInt_AcknowledgeInterrupt(void);
-extern void CycInt_AddAbsoluteInterrupt(int CycleTime, int CycleType, interrupt_id Handler);
-extern void CycInt_AddRelativeInterrupt(int CycleTime, int CycleType, interrupt_id Handler);
-extern void CycInt_AddRelativeInterruptNoOffset(int CycleTime, int CycleType, interrupt_id Handler);
-extern void CycInt_AddRelativeInterruptWithOffset(int CycleTime, int CycleType, interrupt_id Handler, int CycleOffset);
-extern void CycInt_RemovePendingInterrupt(interrupt_id Handler);
-extern void CycInt_ResumeStoppedInterrupt(interrupt_id Handler);
-extern bool CycInt_InterruptActive(interrupt_id Handler);
-extern int CycInt_FindCyclesPassed(interrupt_id Handler, int CycleType);
+void CycInt_Reset(void);
+void CycInt_MemorySnapShot_Capture(bool bSave);
+void CycInt_AcknowledgeInterrupt(void);
+void CycInt_AddRelativeInterruptCycles(int64_t CycleTime, interrupt_id Handler);
+void CycInt_AddRelativeInterruptTicks(int64_t TickTime, interrupt_id Handler);
+void CycInt_AddRelativeInterruptUs(int64_t us, interrupt_id Handler);
+void CycInt_RemovePendingInterrupt(interrupt_id Handler);
+bool CycInt_InterruptActive(interrupt_id Handler);
+bool CycInt_SetNewInterruptUs(void);
 
 #endif /* ifndef HATARI_CYCINT_H */

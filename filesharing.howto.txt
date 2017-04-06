@@ -1,0 +1,65 @@
+NOTE: This procedure has been tested using NeXTstep 1.0a and 3.3
+      as client and Mac OS X v10.9 as server.
+
+      For this procedure to work networking must be setup first
+      (see networking.howto.txt for details).
+      To edit files inside /etc you need super user privileges.
+
+      X.X.X.X = Your host system's IP-Address (e.g. 192.168.0.1)
+      serverhostname = Your host system's hostname
+      clienthostname = Your NeXTstep hostname (see networking.howto)
+
+
+Howto: Setup NFS file sharing under Mac OS X:
+
+1. Create the folder you want to share and change permissions using
+   this command from the command line:
+   chmod 777 /Path/To/Shared/Folder
+
+2. Add the folder you want to share to /etc/exports by adding this
+   line to the end of the file:
+   /Path/To/Shared/Folder -maproot=nobody
+
+3. Load the edited file using these commands from the command line:
+   sudo nfsd checkexports
+   sudo nfsd enable
+   sudo nfsd stop
+   sudo nfsd -N
+
+4. You can confirm that the operation was successful using this 
+   command:
+   showmount -e
+
+NOTE: Step 3 needs to be repeated after every reboot of the host
+      system because nfsd -N is not permanent.
+
+
+Howto: Setup NFS file sharing under NeXTstep 3.3:
+
+1. Edit the file "/etc/hosts" by adding your host system to 
+   the last line of the file (host system IP-Address followed 
+   by hostname of file server):
+   10.0.2.15	clienthostname
+   X.X.X.X	serverhostname
+
+2. Edit the file "/etc/fstab" by adding the shared filesystem.
+   Add this line at the end of the file: 
+   serverhostname:/Path/To/Shared/Folder /Net nfs rw,net 0 0
+
+3. Load the edited files using these commands from the command
+   line:
+   su
+   niload hosts / < /etc/hosts
+   niload fstab / < /etc/fstab
+
+4. Reboot. The shared folder should be accessible from /Net
+   directory. You can confirm that the operation was successful
+   using this command:
+   /usr/etc/showmount -e serverhostname
+
+
+Howto: Open the above files using root privileges (NeXTstep 3.3):
+   a  Open the /etc directory with this command in Terminal:
+      "open /etc"
+   b  Select the file to open and from Workspace select 
+      Services > Open Sesame > Open As Root.

@@ -5,4 +5,4 @@
   your option any later version. Read the file gpl.txt for details.
 */
 
-extern bool CreateBlankImage_CreateFile(const char *pszFileName, int nTracks, int nSectors, int nSides);
+bool CreateBlankImage_CreateFile(const char *pszFileName, int nTracks, int nSectors, int nSides);

@@ -12,10 +12,11 @@
 #include "sysReg.h"
 #include "rtcnvram.h"
 #include "statusbar.h"
-
+#include "host.h"
 
 #define LOG_HARDCLOCK_LEVEL LOG_DEBUG
 #define LOG_SOFTINT_LEVEL   LOG_DEBUG
+#define LOG_DSP_LEVEL       LOG_DEBUG
 
 #define IO_SEG_MASK	0x1FFFF
 
@@ -127,7 +128,7 @@ void SCR_Reset(void) {
     }
     
     Uint8 cpu_speed;
-    Uint8 memory_speed;
+    Uint8 memory_speed = 0;
     
     if (ConfigureParams.System.nCpuFreq<20) {
         cpu_speed = 0;
@@ -244,25 +245,25 @@ void SCR2_Write0(void)
     
     /* DSP bits */
     if (scr2_0&SCR2_DSP_MODE_A) {
-        Log_Printf(LOG_WARN,"[SCR2] DSP Mode A");
+        Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Mode A");
     }
     if (scr2_0&SCR2_DSP_MODE_B) {
-        Log_Printf(LOG_WARN,"[SCR2] DSP Mode B");
+        Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Mode B");
     }
     if (!(scr2_0&SCR2_DSP_RESET) && (old_scr2_0&SCR2_DSP_RESET)) {
-        Log_Printf(LOG_WARN,"[SCR2] DSP Reset");
+        Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Reset");
         DSP_Reset();
     } else if ((scr2_0&SCR2_DSP_RESET) && !(old_scr2_0&SCR2_DSP_RESET)) {
-        Log_Printf(LOG_WARN,"[SCR2] DSP Start (mode %i)",(~(scr2_0>>3))&3);
+        Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP Start (mode %i)",(~(scr2_0>>3))&3);
         DSP_Start((~(scr2_0>>3))&3);
     }
 	dsp_intr_at_block_end = scr2_0&SCR2_DSP_BLK_END;
     if ((old_scr2_0&SCR2_DSP_BLK_END) != (scr2_0&SCR2_DSP_BLK_END)) {
-        Log_Printf(LOG_WARN,"[SCR2] %s DSP interrupt from DMA at block end",dsp_intr_at_block_end?"Enable":"Disable");
+        Log_Printf(LOG_DSP_LEVEL,"[SCR2] %s DSP interrupt from DMA at block end",dsp_intr_at_block_end?"Enable":"Disable");
     }
 	dsp_dma_unpacked = scr2_0&SCR2_DSP_UNPKD;
     if ((old_scr2_0&SCR2_DSP_UNPKD) != (scr2_0&SCR2_DSP_UNPKD)) {
-        Log_Printf(LOG_WARN,"[SCR2] %s DSP DMA unpacked mode",dsp_dma_unpacked?"Enable":"Disable");
+        Log_Printf(LOG_DSP_LEVEL,"[SCR2] %s DSP DMA unpacked mode",dsp_dma_unpacked?"Enable":"Disable");
     }
 }
 
@@ -331,15 +332,15 @@ void SCR2_Write3(void)
     }
     
     if ((old_scr2_3&SCR2_DSP_INT_EN) != (scr2_3&SCR2_DSP_INT_EN)) {
-        Log_Printf(LOG_WARN,"[SCR2] DSP interrupt at level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
+        Log_Printf(LOG_DSP_LEVEL,"[SCR2] DSP interrupt at level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
 		if (intStat&(INT_DSP_L3|INT_DSP_L4)) {
-			Log_Printf(LOG_WARN,"[SCR2] Switching DSP interrupt to level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
+			Log_Printf(LOG_DSP_LEVEL,"[SCR2] Switching DSP interrupt to level %i",(scr2_3&SCR2_DSP_INT_EN)?4:3);
 			set_interrupt(INT_DSP_L3|INT_DSP_L4, RELEASE_INT);
 			set_dsp_interrupt(SET_INT);
 		}
     }
     if ((old_scr2_3&SCR2_DSP_MEM_EN) != (scr2_3&SCR2_DSP_MEM_EN)) {
-        Log_Printf(LOG_WARN,"[SCR2] %s DSP memory",(scr2_3&SCR2_DSP_MEM_EN)?"Enable":"Disable");
+        Log_Printf(LOG_DSP_LEVEL,"[SCR2] %s DSP memory",(scr2_3&SCR2_DSP_MEM_EN)?"Enable":"Disable");
     }
 }
 
@@ -415,7 +416,7 @@ void IntRegMaskRead(void) {
 
 void IntRegMaskWrite(void) {
 	intMask = IoMem_ReadLong(IoAccessCurrentAddress & IO_SEG_MASK);
-        Log_Printf(LOG_WARN,"Interrupt mask: %08x", intMask);
+        Log_Printf(LOG_DEBUG,"Interrupt mask: %08x", intMask);
 }
 
 
@@ -425,19 +426,23 @@ void IntRegMaskWrite(void) {
 #define HARDCLOCK_LATCH  0x40
 #define HARDCLOCK_ZERO   0x3F
 
-Uint8 hardclock_csr=0;
-Uint8 hardclock1=0;
-Uint8 hardclock0=0;
-int hardclock_delay=0;
-int latch_hardclock=0;
+static Uint8 hardclock_csr=0;
+static Uint8 hardclock1=0;
+static Uint8 hardclock0=0;
+static int latch_hardclock=0;
+
+static Uint64 hardClockLastLatch;
 
 void Hardclock_InterruptHandler ( void )
 {
 	CycInt_AcknowledgeInterrupt();
 	if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
-		// Log_Printf(LOG_WARN,"[INT] throwing hardclock");
+//		Log_Printf(LOG_WARN,"[INT] throwing hardclock %lld", host_time_us());
         set_interrupt(INT_TIMER,SET_INT);
-        CycInt_AddRelativeInterrupt(hardclock_delay, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
+        Uint64 now = host_time_us();
+        host_hardclock(latch_hardclock, now - hardClockLastLatch);
+        hardClockLastLatch = now;
+        CycInt_AddRelativeInterruptUs(latch_hardclock, INTERRUPT_HARDCLOCK);
 	}
 }
 
@@ -466,11 +471,11 @@ void HardclockWriteCSR(void) {
 	if (hardclock_csr&HARDCLOCK_LATCH) {
         hardclock_csr&= ~HARDCLOCK_LATCH;
 		latch_hardclock=(hardclock0<<8)|hardclock1;
-		hardclock_delay=latch_hardclock*11;
+        hardClockLastLatch = host_time_us();
 	}
 	if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
         Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] enable periodic interrupt (%i microseconds).", latch_hardclock);
-        CycInt_AddRelativeInterrupt(hardclock_delay, INT_CPU_CYCLE, INTERRUPT_HARDCLOCK);
+        CycInt_AddRelativeInterruptUs(latch_hardclock, INTERRUPT_HARDCLOCK);
 	} else {
         Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] disable periodic interrupt.");
     }
@@ -484,51 +489,23 @@ void HardclockReadCSR(void) {
 
 
 /* Event counter register */
-#define EVENTC_DEBUG 0
-Uint32 lasteventc; /* debugging code */
 
-Uint32 eventcounter;
+static Uint64 sysTimerOffset = 0;
+static bool   resetTimer;
 
-#if USE_FREQ_DIVIDER
-void System_Timer_Read(void) { /* tuned for power-on test */
-#if EVENTC_DEBUG
-    lasteventc = eventcounter; /* for debugging */
-#endif
-    if (ConfigureParams.System.nCpuLevel == 3) {
-        if (NEXTRom[0xFFAB]==0x04) { // HACK for ROM version 0.8.31 power-on test, WARNING: this causes slowdown of emulation
-            eventcounter = (nCyclesMainCounter/(240/nCpuFreqDivider))&0xFFFFF;
-        } else {
-            eventcounter = (nCyclesMainCounter/(48/nCpuFreqDivider))&0xFFFFF;
-        }
-    } else { // System has 68040 CPU
-        eventcounter = (nCyclesMainCounter/(72/nCpuFreqDivider))&0xFFFFF;
+void System_Timer_Read(void) {
+    Uint64 now = host_time_us();
+    if(resetTimer) {
+        sysTimerOffset = now;
+        resetTimer = false;
     }
-    IoMem_WriteLong(IoAccessCurrentAddress&IO_SEG_MASK, eventcounter);
-    
-#if EVENTC_DEBUG
-    Log_Printf(LOG_WARN, "[Eventcounter] Difference = %i (Frequency = %i, Divider = %i)",
-               eventcounter-lasteventc,ConfigureParams.System.nCpuFreq,nCpuFreqDivider);
-#endif
+    now -= sysTimerOffset;
+    IoMem_WriteLong(IoAccessCurrentAddress&IO_SEG_MASK, now & 0xFFFFF);
 }
-#else
-void System_Timer_Read(void) { // tuned for power-on test
-//  lasteventc = eventcounter; // debugging code
-    if (ConfigureParams.System.nCpuLevel == 3) {
-        if (NEXTRom[0xFFAB]==0x04) { // HACK for ROM version 0.8.31 power-on test, WARNING: this causes slowdown of emulation
-//          eventcounter = (nCyclesMainCounter/((1280/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF; // debugging code
-            IoMem_WriteLong(IoAccessCurrentAddress&0x1FFFF, (nCyclesMainCounter/((1280/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF);
-        } else {
-//          eventcounter = (nCyclesMainCounter/((128/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF; // debugging code
-            IoMem_WriteLong(IoAccessCurrentAddress&0x1FFFF, (nCyclesMainCounter/((128/ConfigureParams.System.nCpuFreq)*3))&0xFFFFF);
-        }
-    } else { // System has 68040 CPU
-//      eventcounter = (nCyclesMainCounter/((64/ConfigureParams.System.nCpuFreq)*9))&0xFFFFF; // debugging code
-        IoMem_WriteLong(IoAccessCurrentAddress&0x1FFFF, (nCyclesMainCounter/((64/ConfigureParams.System.nCpuFreq)*9))&0xFFFFF);
-    }
-//  printf("DIFFERENCE = %i PC = %08X\n",eventcounter-lasteventc,m68k_getpc());
-}
-#endif
 
+void System_Timer_Write(void) {
+    resetTimer = true;
+}
 
 /* Color Video Interrupt Register */
 

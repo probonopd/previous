@@ -15,6 +15,7 @@ const char Dialog_fileid[] = "Hatari dialog.c : " __DATE__ " " __TIME__;
 #include "log.h"
 #include "sdlgui.h"
 #include "screen.h"
+#include "paths.h"
 #include "file.h"
 
 
@@ -82,48 +83,57 @@ bool Dialog_DoProperty(void)
  */
 
 void Dialog_CheckFiles(void) {
-    bool bOldMouseVisibility;
     int i;
-    bOldMouseVisibility = SDL_ShowCursor(SDL_QUERY);
-    SDL_ShowCursor(SDL_ENABLE);
+    
+    char *szMissingFile = strdup("");
+    char szDefault[FILENAME_MAX];
+    char szMachine[64];
+    bool bEnable = false;
     
     /* Check if ROM file exists. If it is missing present a dialog to select a new ROM file. */
     switch (ConfigureParams.System.nMachineType) {
         case NEXT_CUBE030:
-            while (!File_Exists(ConfigureParams.Rom.szRom030FileName)) {
-                DlgMissing_Rom();
-                if (bQuitProgram) {
-                    Main_RequestQuit();
-                    if (bQuitProgram)
-                        return;
-                }
-            }
+            szMissingFile = ConfigureParams.Rom.szRom030FileName;
+            sprintf(szMachine, "NeXT Computer");
+            sprintf(szDefault, "%s%cRev_1.0_v41.BIN", Paths_GetWorkingDir(), PATHSEP);
             break;
         case NEXT_CUBE040:
         case NEXT_STATION:
             if (ConfigureParams.System.bTurbo) {
-                while (!File_Exists(ConfigureParams.Rom.szRomTurboFileName)) {
-                    DlgMissing_Rom();
-                    if (bQuitProgram) {
-                        Main_RequestQuit();
-                        if (bQuitProgram)
-                            return;
-                    }
-                }
+                szMissingFile = ConfigureParams.Rom.szRomTurboFileName;
+                sprintf(szMachine, "%s Turbo %s",
+                        (ConfigureParams.System.nMachineType==NEXT_CUBE040)?"NeXTcube":"NeXTstation",
+                        (ConfigureParams.System.bColor)?"Color":"");
+                sprintf(szDefault, "%s%cRev_3.3_v74.BIN", Paths_GetWorkingDir(), PATHSEP);
             } else {
-                while (!File_Exists(ConfigureParams.Rom.szRom040FileName)) {
-                    DlgMissing_Rom();
-                    if (bQuitProgram) {
-                        Main_RequestQuit();
-                        if (bQuitProgram)
-                            return;
-                    }
-                }
+                szMissingFile = ConfigureParams.Rom.szRom040FileName;
+                sprintf(szMachine, "%s %s",
+                        (ConfigureParams.System.nMachineType==NEXT_CUBE040)?"NeXTcube":"NeXTstation",
+                        (ConfigureParams.System.bColor)?"Color":"");
+                sprintf(szDefault, "%s%cRev_2.5_v66.BIN", Paths_GetWorkingDir(), PATHSEP);
             }
             break;
             
         default:
             break;
+    }
+    while (!File_Exists(szMissingFile)) {
+        DlgMissing_Rom(szMachine, szMissingFile, szDefault, &bEnable);
+        if (bQuitProgram) {
+            Main_RequestQuit();
+            if (bQuitProgram)
+                return;
+        }
+    }
+    while (ConfigureParams.Dimension.bEnabled && !File_Exists(ConfigureParams.Dimension.szRomFileName)) {
+        sprintf(szDefault, "%s%cdimension_eeprom.bin", Paths_GetWorkingDir(), PATHSEP);
+        DlgMissing_Rom("NeXTdimension", ConfigureParams.Dimension.szRomFileName,
+                       szDefault, &ConfigureParams.Dimension.bEnabled);
+        if (bQuitProgram) {
+            Main_RequestQuit();
+            if (bQuitProgram)
+                return;
+        }
     }
     
     /* Check if SCSI disk images exist. Present a dialog to select missing files. */
@@ -180,6 +190,4 @@ void Dialog_CheckFiles(void) {
             }
         }
     }
-
-    SDL_ShowCursor(bOldMouseVisibility);
 }

@@ -8,6 +8,9 @@
 #ifndef HATARI_CONFIGURATION_H
 #define HATARI_CONFIGURATION_H
 
+#include <stdio.h>
+
+#define ENABLE_TESTING 0
 
 /* Configuration Dialog */
 typedef struct
@@ -51,17 +54,6 @@ typedef struct
   bool bEnableSound;
 } CNF_SOUND;
 
-
-
-/* RS232 configuration */
-typedef struct
-{
-  bool bEnableRS232;
-  char szOutFileName[FILENAME_MAX];
-  char szInFileName[FILENAME_MAX];
-} CNF_RS232;
-
-
 /* Dialog Keyboard */
 typedef enum
 {
@@ -85,18 +77,12 @@ typedef enum {
   SHORTCUT_MOUSEGRAB,
   SHORTCUT_COLDRESET,
   SHORTCUT_WARMRESET,
-  SHORTCUT_SCREENSHOT,
-  SHORTCUT_BOSSKEY,
   SHORTCUT_CURSOREMU,
-  SHORTCUT_FASTFORWARD,
-  SHORTCUT_RECANIM,
-  SHORTCUT_RECSOUND,
   SHORTCUT_SOUND,
-  SHORTCUT_DEBUG,
+  SHORTCUT_DEBUG_M68K,
+  SHORTCUT_DEBUG_I860,
   SHORTCUT_PAUSE,
   SHORTCUT_QUIT,
-  SHORTCUT_LOADMEM,
-  SHORTCUT_SAVEMEM,
   SHORTCUT_DIMENSION,
   SHORTCUT_KEYS,  /* number of shortcuts */
   SHORTCUT_NONE
@@ -138,9 +124,6 @@ typedef struct
 {
   int nMemoryBankSize[4];
   MEMORY_SPEED nMemorySpeed;
-  bool bAutoSave;
-  char szMemoryCaptureFileName[FILENAME_MAX];
-  char szAutoSaveFileName[FILENAME_MAX];
 } CNF_MEMORY;
 
 
@@ -185,8 +168,16 @@ typedef struct {
     bool bWriteProtected;
 } SCSIDISK;
 
+typedef enum
+{
+    WRITEPROT_OFF,
+    WRITEPROT_ON,
+    WRITEPROT_AUTO
+} WRITEPROTECTION;
+
 typedef struct {
     SCSIDISK target[ESP_MAX_DEVS];
+    int nWriteProtection;
 } CNF_SCSI;
 
 
@@ -223,46 +214,20 @@ typedef struct {
     bool bEthernetConnected;
 } CNF_ENET;
 
-
-/* Falcon register $FFFF8006 bits 6 & 7 (mirrored in $FFFF82C0 bits 0 & 1):
- * 00 Monochrome
- * 01 RGB - Colormonitor
- * 10 VGA - Colormonitor
- * 11 TV
- */
-#define FALCON_MONITOR_MONO 0x00  /* SM124 */
-#define FALCON_MONITOR_RGB  0x40
-#define FALCON_MONITOR_VGA  0x80
-#define FALCON_MONITOR_TV   0xC0
-
 typedef enum
 {
-  MONITOR_TYPE_MONO,
-  MONITOR_TYPE_RGB,
-  MONITOR_TYPE_VGA,
-  MONITOR_TYPE_TV
+  MONITOR_TYPE_DUAL,
+  MONITOR_TYPE_CPU,
+  MONITOR_TYPE_DIMENSION,
 } MONITORTYPE;
 
 /* Screen configuration */
 typedef struct
 {
   MONITORTYPE nMonitorType;
-  int nFrameSkips;
   bool bFullScreen;
-  bool bKeepResolution;
-  bool bAllowOverscan;
-  bool bAspectCorrect;
-  bool bUseExtVdiResolutions;
-  int nSpec512Threshold;
-  int nForceBpp;
-  int nVdiColors;
-  int nVdiWidth;
-  int nVdiHeight;
   bool bShowStatusbar;
   bool bShowDriveLed;
-  bool bCrop;
-  int nMaxWidth;
-  int nMaxHeight;
 } CNF_SCREEN;
 
 
@@ -281,16 +246,6 @@ typedef struct
   PAPER_SIZE nPaperSize;
   char szPrintToFileName[FILENAME_MAX];
 } CNF_PRINTER;
-
-
-/* Midi configuration */
-typedef struct
-{
-  bool bEnableMidi;
-  char sMidiInFileName[FILENAME_MAX];
-  char sMidiOutFileName[FILENAME_MAX];
-} CNF_MIDI;
-
 
 /* Dialog System */
 typedef enum
@@ -331,21 +286,17 @@ typedef struct
 {
   bool bColor;
   bool bTurbo;
-  bool bADB;
+  bool bNBIC;
   SCSICHIP nSCSI;
   RTCCHIP nRTC;
   int nCpuLevel;
   int nCpuFreq;
   bool bCompatibleCpu;            /* Prefetch mode */
   MACHINETYPE nMachineType;
-  bool bBlitter;                  /* TRUE if Blitter is enabled */
+  bool bRealtime;                 /* TRUE if realtime sources shoud be used */
   DSPTYPE nDSPType;               /* how to "emulate" DSP */
   bool bDSPMemoryExpansion;
   bool bRealTimeClock;
-  bool bPatchTimerD;
-  bool bFastForward;
-  bool bAddressSpace24;
-  bool bCycleExactCpu;
   FPUTYPE n_FPUType;
   bool bCompatibleFPU;            /* More compatible FPU */
   bool bMMU;                      /* TRUE if MMU is enabled */
@@ -353,12 +304,12 @@ typedef struct
 
 typedef struct
 {
-  int AviRecordVcodec;
-  int AviRecordFps;
-  char AviRecordFile[FILENAME_MAX];
-} CNF_VIDEO;
-
-
+    bool bEnabled;
+    bool bI860Thread;
+	bool bMainDisplay;
+    int  nMemoryBankSize[4];
+    char szRomFileName[FILENAME_MAX];
+} CNF_ND;
 
 /* State of system is stored in this structure */
 /* On reset, variables are copied into system globals and used. */
@@ -366,37 +317,38 @@ typedef struct
 {
   /* Configure */
   CNF_CONFIGDLG ConfigDialog;
-  CNF_LOG Log;
-  CNF_DEBUGGER Debugger;
-  CNF_SCREEN Screen;
-  CNF_KEYBOARD Keyboard;
-  CNF_SHORTCUT Shortcut;
-  CNF_MOUSE Mouse;
-  CNF_SOUND Sound;
-  CNF_MEMORY Memory;
-  CNF_BOOT Boot;
-  CNF_SCSI SCSI;
-  CNF_MO MO;
-  CNF_FLOPPY Floppy;
-  CNF_ENET Ethernet;
-  CNF_ROM Rom;
-  CNF_RS232 RS232;
-  CNF_PRINTER Printer;
-  CNF_MIDI Midi;
-  CNF_SYSTEM System;
-  CNF_VIDEO Video;
+  CNF_LOG       Log;
+  CNF_DEBUGGER  Debugger;
+  CNF_SCREEN    Screen;
+  CNF_KEYBOARD  Keyboard;
+  CNF_SHORTCUT  Shortcut;
+  CNF_MOUSE     Mouse;
+  CNF_SOUND     Sound;
+  CNF_MEMORY    Memory;
+  CNF_BOOT      Boot;
+  CNF_SCSI      SCSI;
+  CNF_MO        MO;
+  CNF_FLOPPY    Floppy;
+  CNF_ENET      Ethernet;
+  CNF_ROM       Rom;
+  CNF_PRINTER   Printer;
+  CNF_SYSTEM    System;
+  CNF_ND        Dimension;
 } CNF_PARAMS;
 
 
 extern CNF_PARAMS ConfigureParams;
 extern char sConfigFileName[FILENAME_MAX];
 
-extern void Configuration_SetDefault(void);
-extern void Configuration_SetSystemDefaults(void);
-extern void Configuration_Apply(bool bReset);
-extern int Configuration_CheckMemory(int *banksize);
-extern void Configuration_Load(const char *psFileName);
-extern void Configuration_Save(void);
-extern void Configuration_MemorySnapShot_Capture(bool bSave);
+void Configuration_SetDefault(void);
+void Configuration_SetSystemDefaults(void);
+void Configuration_Apply(bool bReset);
+int Configuration_CheckMemory(int *banksize);
+int  Configuration_CheckDimensionMemory(int *banksize);
+void Configuration_CheckDimensionSettings(void);
+void Configuration_CheckOpticalSettings(void);
+void Configuration_Load(const char *psFileName);
+void Configuration_Save(void);
+void Configuration_MemorySnapShot_Capture(bool bSave);
 
 #endif

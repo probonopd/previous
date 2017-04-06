@@ -15,7 +15,7 @@ const char DlgOpticalDisk_fileid[] = "Previous dlgOpticalDisk.c : " __DATE__ " "
 #include "mo.h"
 
 
-#define DUAL_MO_DRIVE 0 /* FIXME: Enable this after fixing dual drive issues */
+#define DUAL_MO_DRIVE 1
 
 #define MODLG_CONNECTED0        3
 #define MODLG_INSERT0           6
@@ -34,6 +34,7 @@ const char DlgOpticalDisk_fileid[] = "Previous dlgOpticalDisk.c : " __DATE__ " "
 
 /* Constant strings */
 #define MODLG_EJECT_WARNING     "WARNING: Don't eject manually if a guest system is running. Risk of data loss. Eject now?"
+#define MODLG_DUALDRV_WARNING   "WARNING: Second drive can cause problems. System may crash or hang due to a kernel bug. Add anyway?"
 
 /* Variable strings */
 char inserteject0[16] = "Insert";
@@ -209,14 +210,19 @@ void DlgOptical_Main(void)
 #if DUAL_MO_DRIVE
             case MODLG_INSERT1:
                 if (!ConfigureParams.MO.drive[1].bDiskInserted) {
+                    if (!ConfigureParams.MO.drive[1].bDriveConnected) {
+                        if (!DlgAlert_Query(MODLG_DUALDRV_WARNING)) {
+                            break;
+                        }
+                    }
                     if (SDLGui_DiskSelect(dlgname_mo[1], ConfigureParams.MO.drive[1].szImageName,
                                           modlg[MODLG_DISKNAME1].w, &ConfigureParams.MO.drive[1].bWriteProtected)) {
-                        ConfigureParams.MO.drive[1].bDiskInserted = true;
-                        sprintf(inserteject1, "Eject");
                         if (!ConfigureParams.MO.drive[1].bDriveConnected) {
                             ConfigureParams.MO.drive[1].bDriveConnected = true;
                             modlg[MODLG_CONNECTED1].state |= SG_SELECTED;
                         }
+                        ConfigureParams.MO.drive[1].bDiskInserted = true;
+                        sprintf(inserteject1, "Eject");
                         MO_Insert(1);
                     }
                 } else {
@@ -239,7 +245,11 @@ void DlgOptical_Main(void)
                     ConfigureParams.MO.drive[1].szImageName[0] = '\0';
                     dlgname_mo[1][0] = '\0';
                 } else {
-                    ConfigureParams.MO.drive[1].bDriveConnected = true;
+                    if (DlgAlert_Query(MODLG_DUALDRV_WARNING)) {
+                        ConfigureParams.MO.drive[1].bDriveConnected = true;
+                    } else {
+                        modlg[MODLG_CONNECTED1].state &= ~SG_SELECTED;
+                    }
                 }
                 break;
 #endif
@@ -248,6 +258,5 @@ void DlgOptical_Main(void)
         }
 	}
 	while (but != DISKDLG_EXIT && but != SDLGUI_QUIT
-	        && but != SDLGUI_ERROR && !bQuitProgram);
+	        && but != SDLGUI_ERROR && !bQuitProgram);    
 }
-

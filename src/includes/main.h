@@ -10,7 +10,7 @@
 
 
 /* Name and version for window title: */
-#define PROG_NAME "Previous 1.3"
+#define PROG_NAME "Previous 1.6"
 
 /* Messages for window title: */
 #ifdef _WIN32
@@ -31,7 +31,7 @@
 #include <math.h>
 #include <time.h>
 
-#include <SDL_types.h>
+#include <SDL.h>
 #include <stdbool.h>
 
 #if __GNUC__ >= 3
@@ -57,18 +57,25 @@
 #define SIZE_WORD  2
 #define SIZE_LONG  4
 
-/* The 8 MHz CPU frequency */
-#define CPU_FREQ   8012800
+enum {
+    PAUSE_NONE,
+    PAUSE_EMULATION,
+    UNPAUSE_EMULATION,
+};
+
+/* Flag for pausing m68k thread (used by i860 debugger) */
+extern volatile int mainPauseEmulation;
 
 extern bool bQuitProgram;
 
-extern bool Main_PauseEmulation(bool visualize);
-extern bool Main_UnPauseEmulation(void);
-extern void Main_RequestQuit(void);
-extern void Main_SetRunVBLs(Uint32 vbls);
-extern void Main_WaitOnVbl(void);
-extern void Main_WarpMouse(int x, int y);
-extern void Main_EventHandler(void);
-extern void Main_SetTitle(const char *title);
+bool Main_PauseEmulation(bool visualize);
+bool Main_UnPauseEmulation(void);
+void Main_RequestQuit(void);
+void Main_WarpMouse(int x, int y);
+void Main_EventHandler(void);
+void Main_EventHandlerInterrupt(void);
+void Main_SetTitle(const char *title);
+void Main_SpeedReset(void);
+const char* Main_SpeedMsg(void);
 
 #endif /* ifndef HATARI_MAIN_H */

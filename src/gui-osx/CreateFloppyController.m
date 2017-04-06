@@ -20,8 +20,6 @@
 
 - (IBAction)createFloppyImage:(id)sender
 {
-	BOOL cRet;
-	
 	// Create a SavePanel
 	NSSavePanel *savePanel = [NSSavePanel savePanel];
 

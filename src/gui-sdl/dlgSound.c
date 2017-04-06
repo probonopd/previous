@@ -26,7 +26,7 @@ static SGOBJ sounddlg[] =
     { SGTEXT, 0, 0, 13,1, 16,1, "Sound options" },
     
     { SGBOX, 0, 0, 1,3, 38,5, NULL },
-    { SGCHECKBOX, 0, 0, 4,5, 22,1, "Sound output enabled" },
+    { SGCHECKBOX, 0, 0, 4,5, 15,1, "Sound enabled" },
     
     { SGBUTTON, SG_DEFAULT, 0, 10,10, 21,1, "Back to main menu" },
     { -1, 0, 0, 0,0, 0,0, NULL }

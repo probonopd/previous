@@ -207,7 +207,7 @@ void FLP_Select_Write(void) {
 
 void set_floppy_select(Uint8 sel, bool osp) {
     if (sel) {
-        Log_Printf(LOG_WARN,"[%s] Selecting floppy controller",osp?"OSP":"Floppy");
+        Log_Printf(LOG_DEBUG,"[%s] Selecting floppy controller",osp?"OSP":"Floppy");
         floppy_select = 1;
     } else {
         Log_Printf(LOG_FLP_REG_LEVEL,"[%s] Selecting SCSI controller",osp?"OSP":"Floppy");
@@ -276,9 +276,9 @@ void floppy_reset(bool hard) {
         flp.st[0]=flp.st[1]=flp.st[2]=flp.st[3]=0;
         flp.pcn=0;
     } else {
-        /* Single poll interrupt after reset (FIXME: delay should be 250 ms) */
+        /* Single poll interrupt after reset (delay = 250 ms) */
         flp_io_state = FLP_STATE_INTERRUPT;
-        CycInt_AddRelativeInterrupt(1000000, INT_CPU_CYCLE, INTERRUPT_FLP_IO);
+        CycInt_AddRelativeInterruptUs(250*1000, INTERRUPT_FLP_IO);
     }
 }
 
@@ -326,7 +326,7 @@ Uint8 cmd_data[8];
 
 int result_size = 0;
 
-void floppy_interrupt(void) {
+static void floppy_interrupt(void) {
     Log_Printf(LOG_FLP_CMD_LEVEL,"[Floppy] Interrupt.");
     
     if (result_size>0) {
@@ -351,7 +351,7 @@ void floppy_interrupt(void) {
 #define NUM_CYLINDERS   80
 #define TRACKS_PER_CYL  2
 
-Uint32 physical_to_logical_sector(Uint8 c, Uint8 h, Uint8 s, int drive) {
+static Uint32 physical_to_logical_sector(Uint8 c, Uint8 h, Uint8 s, int drive) {
     Uint32 disksize = flpdrv[drive].floppysize;
     Uint32 blocksize = 0x80<<flpdrv[drive].blocksize;
     Uint32 spt = disksize/blocksize/TRACKS_PER_CYL/NUM_CYLINDERS;
@@ -368,7 +368,7 @@ Uint32 physical_to_logical_sector(Uint8 c, Uint8 h, Uint8 s, int drive) {
     return (((c*TRACKS_PER_CYL)+h)*spt)+s-1;
 }
 
-void check_blocksize(int drive, Uint8 blocksize) {
+static void check_blocksize(int drive, Uint8 blocksize) {
     if (blocksize!=flpdrv[drive].blocksize) {
         Log_Printf(LOG_WARN, "[Floppy] Geometry error: Blocksize not supported (%i)!",blocksize);
         flp.st[0] |= IC_ABNORMAL;
@@ -376,7 +376,7 @@ void check_blocksize(int drive, Uint8 blocksize) {
     }
 }
 
-void check_protection(int drive) {
+static void check_protection(int drive) {
     if (flpdrv[drive].protected) {
         Log_Printf(LOG_WARN, "[Floppy] Protection error: Disk is read-only!");
         flp.st[0] |= IC_ABNORMAL;
@@ -384,7 +384,7 @@ void check_protection(int drive) {
     }
 }
 
-void floppy_seek_track(Uint8 c, Uint8 h, int drive) {
+static void floppy_seek_track(Uint8 c, Uint8 h, int drive) {
     if (c>(NUM_CYLINDERS-1)) /* CHECK: does this cause an error? */
         c=(NUM_CYLINDERS-1);
     
@@ -400,7 +400,7 @@ void floppy_seek_track(Uint8 c, Uint8 h, int drive) {
 #define MEDIA_ID_2880K  1
 #define MEDIA_ID_MSK    3
 
-Uint8 get_media_id(int drive) {
+static Uint8 get_media_id(int drive) {
     if (!flpdrv[drive].inserted) {
         return MEDIA_ID_NONE;
     } else {
@@ -418,7 +418,7 @@ Uint8 get_media_id(int drive) {
 #define CCR_RATE500     0x00
 #define CCR_RATE1000    0x03
 
-void check_data_rate(int drive) {
+static void check_data_rate(int drive) {
     switch (flpdrv[drive].floppysize) {
         case SIZE_720K:
             if ((flp.ccr&CCR_RATE_MASK)==CCR_RATE250) {
@@ -444,7 +444,7 @@ void check_data_rate(int drive) {
     flp.st[1] |= ST1_ND;
 }
 
-void send_rw_status(int drive) {
+static void send_rw_status(int drive) {
     flp.st[0] |= drive|(flpdrv[drive].head<<2);
     flp.fifo[0] = flp.st[0];
     flp.fifo[1] = flp.st[1];
@@ -458,7 +458,7 @@ void send_rw_status(int drive) {
 
 /* -- Floppy commands -- */
 
-void floppy_read(void) {
+static void floppy_read(void) {
     int drive = cmd_data[0]&0x03;
     int head = (cmd_data[0]&0x04)>>2;
     Uint8 c = cmd_data[1];
@@ -509,10 +509,10 @@ void floppy_read(void) {
         flp_io_drv = drive;
         flp_io_state = FLP_STATE_READ;
     }
-    CycInt_AddRelativeInterrupt(1000, INT_CPU_CYCLE, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptTicks(1000, INTERRUPT_FLP_IO);
 }
 
-void floppy_write(void) {
+static void floppy_write(void) {
     int drive = cmd_data[0]&0x03;
     int head = (cmd_data[0]&0x04)>>2;
     Uint8 c = cmd_data[1];
@@ -566,10 +566,10 @@ void floppy_write(void) {
         flp_io_drv = drive;
         flp_io_state = FLP_STATE_WRITE;
     }
-    CycInt_AddRelativeInterrupt(1000, INT_CPU_CYCLE, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptTicks(1000, INTERRUPT_FLP_IO);
 }
 
-void floppy_format(void) {
+static void floppy_format(void) {
     int drive = cmd_data[0]&0x03;
     int head = (cmd_data[0]&0x04)>>2;
     
@@ -591,11 +591,11 @@ void floppy_format(void) {
         flp_buffer.limit = 4;
         flp_io_drv = drive;
         flp_io_state = FLP_STATE_FORMAT;
-        CycInt_AddRelativeInterrupt(100000, INT_CPU_CYCLE, INTERRUPT_FLP_IO);
+        CycInt_AddRelativeInterruptTicks(100000, INTERRUPT_FLP_IO);
     }
 }
 
-void floppy_read_id(void) {
+static void floppy_read_id(void) {
     int drive = cmd_data[0]&0x03;
     int head = (cmd_data[0]&0x04)>>2;
     
@@ -613,10 +613,10 @@ void floppy_read_id(void) {
     send_rw_status(drive);
     
     flp_io_state = FLP_STATE_INTERRUPT;
-    CycInt_AddRelativeInterrupt(1000, INT_CPU_CYCLE, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptTicks(1000, INTERRUPT_FLP_IO);
 }
 
-void floppy_recalibrate(void) {
+static void floppy_recalibrate(void) {
     int drive = cmd_data[0]&0x03;
     Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Command: Drive = %i",drive);
 
@@ -633,11 +633,11 @@ void floppy_recalibrate(void) {
         flp.sra &= ~SRA_TRK0_N;
         
         flp_io_state = FLP_STATE_INTERRUPT;
-        CycInt_AddRelativeInterrupt(1000000, INT_CPU_CYCLE, INTERRUPT_FLP_IO);
+        CycInt_AddRelativeInterruptTicks(1000000, INTERRUPT_FLP_IO);
     }
 }
 
-void floppy_seek(Uint8 relative) {
+static void floppy_seek(Uint8 relative) {
     int drive = cmd_data[0]&0x03;
     int head = (cmd_data[0]&0x04)>>2;
     flp.st[0] = flp.st[1] = flp.st[2] = 0;
@@ -656,10 +656,10 @@ void floppy_seek(Uint8 relative) {
     }
         
     flp_io_state = FLP_STATE_INTERRUPT;
-    CycInt_AddRelativeInterrupt(1000000, INT_CPU_CYCLE, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptTicks(1000000, INTERRUPT_FLP_IO);
 }
 
-void floppy_interrupt_status(void) {
+static void floppy_interrupt_status(void) {
     /* Release interrupt */
     set_interrupt(INT_PHONE, RELEASE_INT);
     flp.sra &= ~SRA_INT;
@@ -671,7 +671,7 @@ void floppy_interrupt_status(void) {
     result_size = 2;
 }
 
-void floppy_specify(void) {
+static void floppy_specify(void) {
     Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Specify: %02X %02X",cmd_data[0],cmd_data[1]);
 
     if (cmd_data[1]&0x01) {
@@ -682,7 +682,7 @@ void floppy_specify(void) {
     flp.msr |= STAT_RQM;
 }
 
-void floppy_configure(void) {
+static void floppy_configure(void) {
     Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Configure: %02X %02X %02X",cmd_data[0],cmd_data[1],cmd_data[2]);
     
     flp.eis = cmd_data[1]&0x40; /* Enable or disable implied seek */
@@ -700,22 +700,22 @@ void floppy_configure(void) {
     flp.msr |= STAT_RQM;
 }
 
-void floppy_perpendicular(void) {
+static void floppy_perpendicular(void) {
     Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Perpendicular: %02X",cmd_data[0]);
     flp.msr |= STAT_RQM;
 }
 
-void floppy_unimplemented(void) {
+static void floppy_unimplemented(void) {
     flp.st[0] = IC_INV_CMD;
     
     flp.fifo[0] = flp.st[0];
     result_size = 1;
     
     flp_io_state = FLP_STATE_INTERRUPT;
-    CycInt_AddRelativeInterrupt(10000, INT_CPU_CYCLE, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptTicks(10000, INTERRUPT_FLP_IO);
 }
 
-void floppy_execute_cmd(void) {
+static void floppy_execute_cmd(void) {
     Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Command: Executing %02X",command);
     
     switch (command&CMD_OPCODE_MSK) {
@@ -916,7 +916,7 @@ Uint8 floppy_sra_read(void) {
 
 /* -- Floppy I/O functions -- */
 
-void floppy_rw_nodata(void) {
+static void floppy_rw_nodata(void) {
     Log_Printf(LOG_WARN, "[Floppy] Write: No more data from DMA. Stopping.");
     /* Stop transfer */
     flp_sector_counter=0;
@@ -925,7 +925,7 @@ void floppy_rw_nodata(void) {
     send_rw_status(flp_io_drv);
 }
 
-void floppy_format_done(void) {
+static void floppy_format_done(void) {
     int drive = flp_io_drv;
     
     Log_Printf(LOG_WARN, "[Floppy] Format: No more data from DMA. Done.");
@@ -934,7 +934,7 @@ void floppy_format_done(void) {
     send_rw_status(drive);
 }
 
-void floppy_read_sector(void) {
+static void floppy_read_sector(void) {
     int drive = flp_io_drv;
     
     /* Read from image */
@@ -964,7 +964,7 @@ void floppy_read_sector(void) {
     }
 }
 
-void floppy_write_sector(void) {
+static void floppy_write_sector(void) {
     int drive = flp_io_drv;
     
     /* Write to image */
@@ -995,7 +995,7 @@ void floppy_write_sector(void) {
     }
 }
 
-void floppy_format_sector(void) {
+static void floppy_format_sector(void) {
     int drive = flp_io_drv;
     Uint8 c = flp_buffer.data[0];
     Uint8 h = flp_buffer.data[1];
@@ -1032,7 +1032,7 @@ void floppy_format_sector(void) {
 }
 
 
-Uint32 old_size;
+static Uint32 old_size;
 
 void FLP_IO_Handler(void) {
     CycInt_AcknowledgeInterrupt();
@@ -1098,13 +1098,13 @@ void FLP_IO_Handler(void) {
             return;
     }
     
-    CycInt_AddRelativeInterrupt(2000, INT_CPU_CYCLE, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptTicks(2000, INTERRUPT_FLP_IO);
 }
 
 
 /* Initialize/Uninitialize floppy disks */
 
-void Floppy_Init(void) {
+static void Floppy_Init(void) {
     Log_Printf(LOG_WARN, "Loading floppy disks:");
     int i;
     
@@ -1128,7 +1128,7 @@ void Floppy_Init(void) {
     floppy_reset(true);
 }
 
-void Floppy_Uninit(void) {
+static void Floppy_Uninit(void) {
     if (flpdrv[0].dsk)
         File_Close(flpdrv[0].dsk);
     if (flpdrv[1].dsk) {
@@ -1138,7 +1138,7 @@ void Floppy_Uninit(void) {
     flpdrv[0].inserted = flpdrv[1].inserted = false;
 }
 
-Uint32 Floppy_CheckSize(int drive) {
+static Uint32 Floppy_CheckSize(int drive) {
     Uint32 size = File_Length(ConfigureParams.Floppy.drive[drive].szImageName);
     
     switch (size) {

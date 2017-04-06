@@ -11,7 +11,7 @@
 {
     IBOutlet NSWindow *window;
     IBOutlet NSButton *autoInsertB;
-    IBOutlet NSButton *blitter;
+    IBOutlet NSButton *realtime;
     IBOutlet NSButton *bootFromHD;
     IBOutlet NSButton *captureOnChange;
     IBOutlet NSTextField *cartridgeImage;

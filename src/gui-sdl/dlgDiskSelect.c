@@ -456,7 +456,7 @@ static void DlgFileSelect_Convert_ypos_to_scrollbar_Ypos(void)
  * within a selected zip file, or NULL if browsing zip files is disallowed.
  * bAllowNew: true if the user is allowed to insert new file names.
  */
-char* SDLGui_DiskSelectDialog(const char *path_and_name, char **zip_path, bool *readonly)
+static char* SDLGui_DiskSelectDialog(const char *path_and_name, char **zip_path, bool *readonly)
 {
     struct dirent **files = NULL;
     char *pStringMem;

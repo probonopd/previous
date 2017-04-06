@@ -15,7 +15,6 @@
 
 #include "options.h"
 #include "memory.h"
-#include "custom.h"
 #include "newcpu.h"
 #include "ersatz.h"
 #include "md-fpp.h"

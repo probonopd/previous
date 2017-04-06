@@ -10,20 +10,10 @@
 
 #include "sysdeps.h"
 #include "options_cpu.h"
-#include "cycles.h"
 
-extern int pendingInterrupts;
-
-extern int Init680x0(void);
-extern void Exit680x0(void);
-#ifndef ENABLE_WINUAE_CPU
-extern void customreset(void);
-#endif
-extern int intlev (void);
-
-extern unsigned long OpCode_GemDos(uae_u32 opcode);
-extern unsigned long OpCode_SysInit(uae_u32 opcode);
-extern unsigned long OpCode_VDI(uae_u32 opcode);
+int Init680x0(void);
+void Exit680x0(void);
+int intlev (void);
 
 #define write_log printf
 

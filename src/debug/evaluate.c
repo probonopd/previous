@@ -125,7 +125,7 @@ static long long close_bracket(long long x);
 static int getNumber(const char *str, Uint32 *number, int *nbase)
 {
 	char *end;
-	const char const *start = str;
+	const char *start = str;
 	int base = ConfigureParams.Debugger.nNumberBase;
 	unsigned long int value;
 
@@ -202,7 +202,7 @@ static int getValue(const char *str, Uint32 *number, int *base, bool bForDsp)
 {
 	char name[64];
 	const char *end;
-	Uint32 mask, *addr;
+	Uint32 *addr;
 	int len;
 
 	for (end = str; *end == '_' || isalnum(*end); end++);
@@ -709,8 +709,8 @@ static long long close_bracket (long long value)
 			operation (value, LOWEST_PREDECENCE);
             /* fetch the indirect ST RAM value */
             addr = val.buf[val.idx];
-            value = NEXTMemory_ReadLong(addr);
-            fprintf(stderr, "  value in RAM at ($%x).l = $%llx\n", addr, value);
+            value = DBGMemory_ReadLong(addr);
+            fprintf(stderr, "  value in RAM at ($%x).l = $%"FMT_ll"x\n", addr, value);
             /* restore state before parenthesis */
             op.idx = par.opx[par.idx] - 1;
 			val.idx = par.vax[par.idx] - 1;

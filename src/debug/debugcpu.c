@@ -10,7 +10,7 @@
 const char DebugCpu_fileid[] = "Hatari debugcpu.c : " __DATE__ " " __TIME__;
 
 #include <stdio.h>
-
+#include <ctype.h>
 #include "config.h"
 
 #include "main.h"
@@ -23,12 +23,12 @@ const char DebugCpu_fileid[] = "Hatari debugcpu.c : " __DATE__ " " __TIME__;
 #include "hatari-glue.h"
 #include "log.h"
 #include "m68000.h"
-#include "memorySnapShot.h"
 #include "profile.h"
-#include "nextMemory.h"
 #include "str.h"
 #include "symbols.h"
 #include "68kDisass.h"
+#include "cpummu.h"
+#include "cpummu030.h"
 
 #define MEMDUMP_COLS   16      /* memdump, number of bytes per row */
 #define NON_PRINT_CHAR '.'     /* character to display for non-printables */
@@ -40,6 +40,53 @@ static bool bCpuProfiling;     /* Whether CPU profiling is activated */
 static int nCpuActiveCBs = 0;  /* Amount of active conditional breakpoints */
 static int nCpuSteps = 0;      /* Amount of steps for CPU single-stepping */
 
+Uint32 DBGMemory_ReadLong(Uint32 addr) {
+    switch (ConfigureParams.System.nCpuLevel) {
+        case 3: return get_long_mmu030(addr);
+        case 4: return get_long_mmu040(addr);
+        default: return 0;
+    }
+}
+
+Uint16 DBGMemory_ReadWord(Uint32 addr) {
+    switch (ConfigureParams.System.nCpuLevel) {
+        case 3: return get_word_mmu030(addr);
+        case 4: return get_word_mmu040(addr);
+        default: return 0;
+    }
+}
+
+Uint8 DBGMemory_ReadByte(Uint32 addr) {
+    switch (ConfigureParams.System.nCpuLevel) {
+        case 3: return get_byte_mmu030(addr);
+        case 4: return get_byte_mmu040(addr);
+        default: return 0;
+    }
+}
+
+void DBGMemory_WriteLong(Uint32 addr, Uint32 val) {
+    switch (ConfigureParams.System.nCpuLevel) {
+        case 3: put_long_mmu030(addr, val); break;
+        case 4: put_long_mmu040(addr, val); break;
+        default: break;
+    }
+}
+
+void DBGMemory_WriteWord(Uint32 addr, Uint16 val) {
+    switch (ConfigureParams.System.nCpuLevel) {
+        case 3: put_word_mmu030(addr, val); break;
+        case 4: put_word_mmu040(addr, val); break;
+        default: break;
+    }
+}
+
+void DBGMemory_WriteByte(Uint32 addr, Uint8 val) {
+    switch (ConfigureParams.System.nCpuLevel) {
+        case 3: put_byte_mmu030(addr, val); break;
+        case 4: put_byte_mmu040(addr, val); break;
+        default: break;
+    }
+}
 
 /**
  * Load a binary file to a memory address.
@@ -73,7 +120,7 @@ static int DebugCpu_LoadBin(int nArgc, char *psArgs[])
 	while (!feof(fp))
 	{
 		i++;
-		NEXTMemory_WriteByte(address++, c);
+		DBGMemory_WriteByte(address++, c);
 		c = fgetc(fp);
 	}
 	fprintf(stderr,"  Read 0x%x bytes.\n", i);
@@ -119,7 +166,7 @@ static int DebugCpu_SaveBin(int nArgc, char *psArgs[])
 
 	while (i < bytes)
 	{
-		c = NEXTMemory_ReadByte(address++);
+		c = DBGMemory_ReadByte(address++);
 		fputc(c, fp);
 		i++;
 	}
@@ -197,21 +244,19 @@ int DebugCpu_DisAsm(int nArgc, char *psArgs[])
 	}
 
 	/* limit is topmost address or instruction count */
-	if (disasm_upper)
-	{
+	if (disasm_upper) {
 		max_insts = INT_MAX;
-	}
-	else
-	{
+	} else {
 //		max_insts = ConfigureParams.Debugger.nDisasmLines;
-		max_insts=5;
+		max_insts    = 5;
+        disasm_upper = 0xFFFFFFFF;
 	}
 
 	/* output a range */
 	for (insts = 0; insts < max_insts && disasm_addr < disasm_upper; insts++)
 	{
         DebugCpu_ShowAddressInfo(disasm_addr);
-        Disasm(debugOutput, (uaecptr)disasm_addr, &nextpc, 1, DISASM_ENGINE_EXT);
+        Disasm(debugOutput, (uaecptr)disasm_addr, &nextpc, 1, DISASM_ENGINE_UAE);
 		disasm_addr = nextpc;
 	}
 	fflush(mydebugOutput);
@@ -305,7 +350,7 @@ int DebugCpu_Register(int nArgc, char *psArgs[])
 	{
 		uaecptr nextpc;
 		/* use the UAE function instead */
-		m68k_dumpstate(debugOutput, &nextpc);
+		m68k_dumpstate(&nextpc);
 		fflush(debugOutput);
 		return DEBUGGER_CMDDONE;
 	}
@@ -424,11 +469,11 @@ int DebugCpu_MemDump(int nArgc, char *psArgs[])
 	{
 		fprintf(debugOutput, "%6.6X: ", memdump_addr); /* print address */
 		for (i = 0; i < MEMDUMP_COLS; i++)               /* print hex data */
-			fprintf(debugOutput, "%2.2x ", NEXTMemory_ReadByte(memdump_addr++));
+			fprintf(debugOutput, "%2.2x ", DBGMemory_ReadByte(memdump_addr++));
 		fprintf(debugOutput, "  ");                     /* print ASCII data */
 		for (i = 0; i < MEMDUMP_COLS; i++)
 		{
-			c = NEXTMemory_ReadByte(memdump_addr-MEMDUMP_COLS+i);
+			c = DBGMemory_ReadByte(memdump_addr-MEMDUMP_COLS+i);
 			if(!isprint((unsigned)c))
 				c = NON_PRINT_CHAR;             /* non-printable as dots */
 			fprintf(debugOutput,"%c", c);
@@ -480,7 +525,7 @@ static int DebugCpu_MemWrite(int nArgc, char *psArgs[])
 
 	/* write the data */
 	for (i = 0; i < numBytes; i++)
-		NEXTMemory_WriteByte(write_addr + i, bytes[i]);
+		DBGMemory_WriteByte(write_addr + i, bytes[i]);
 
 	return DEBUGGER_CMDDONE;
 }

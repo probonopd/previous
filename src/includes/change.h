@@ -9,8 +9,8 @@
 
 #include "configuration.h"
 
-extern bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed);
-extern bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *changed, bool bForceReset);
-extern bool Change_ApplyCommandline(char *cmdline);
+bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed);
+bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *changed, bool bForceReset);
+bool Change_ApplyCommandline(char *cmdline);
 
 #endif /* HATARI_CHANGE_H */

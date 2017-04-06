@@ -84,6 +84,7 @@ void HardclockWriteCSR(void);
 void HardclockReadCSR(void);
 
 void System_Timer_Read(void);
+void System_Timer_Write(void);
 
 void ColorVideo_CMD_Write(void);
 void color_video_interrupt(void);

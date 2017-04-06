@@ -10,6 +10,7 @@
 #ifndef HATARI_CONVERTROUTINES_H
 #define HATARI_CONVERTROUTINES_H
 
+static void InvalidateScreenBuffer(void);
 static void ConvertHighRes_640x8Bit(void);
 
 #endif /* HATARI_CONVERTROUTINES_H */

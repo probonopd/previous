@@ -1,3 +1,18 @@
+enum {
+    CHANNEL_SCSI,       // 0x00000010
+    CHANNEL_SOUNDOUT,   // 0x00000040
+    CHANNEL_DISK,       // 0x00000050
+    CHANNEL_SOUNDIN,    // 0x00000080
+    CHANNEL_PRINTER,    // 0x00000090
+    CHANNEL_SCC,        // 0x000000c0
+    CHANNEL_DSP,        // 0x000000d0
+    CHANNEL_EN_TX,      // 0x00000110
+    CHANNEL_EN_RX,      // 0x00000150
+    CHANNEL_VIDEO,      // 0x00000180
+    CHANNEL_M2R,        // 0x000001d0
+    CHANNEL_R2M         // 0x000001c0
+} DMA_CHANNEL;
+
 /* DMA Registers */
 void DMA_CSR_Read(void);
 void DMA_CSR_Write(void);
@@ -48,7 +63,9 @@ void dma_m2m_write_memory(void);
 
 void dma_scc_read_memory(void);
 
-void dma_sndout_read_memory(void);
+Uint8* dma_sndout_read_memory(int* len, bool* chaining);
+void   dma_sndout_intr(void);
+int    dma_sndin_write_memory(void);
 
 void dma_printer_read_memory(void);
 

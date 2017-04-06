@@ -11,34 +11,35 @@
 #include "configuration.h"
 
 /* prototypes for gui-sdl/dlg*.c functions: */
-extern int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot);
-extern void Dialog_AboutDlg(void);
-extern int DlgAlert_Notice(const char *text);
-extern int DlgAlert_Query(const char *text);
-extern void Dialog_DeviceDlg(void);
-extern void DlgFloppy_Main(void);
-extern void DlgSCSI_Main(void);
-extern void DlgOptical_Main(void);
-extern void DlgEthernet_Main(void);
-extern void DlgSound_Main(void);
-extern void DlgPrinter_Main(void);
-extern void Dialog_JoyDlg(void);
-extern void Dialog_KeyboardDlg(void);
-extern void Dialog_MouseDlg(void);
-extern bool Dialog_MemDlg(void);
-extern void Dialog_MemAdvancedDlg(int *membanks);
-extern char* DlgNewDisk_Main(void);
-extern void Dialog_MonitorDlg(void);
-extern void Dialog_WindowDlg(void);
-extern void Dialog_SoundDlg(void);
-extern void Dialog_SystemDlg(void);
-extern void Dialog_AdvancedDlg(void);
-extern void DlgRom_Main(void);
-extern void DlgBoot_Main(void);
-extern void DlgMissing_Rom(void);
-extern void DlgMissing_Disk(char type[], int num, char *name, bool *ins, bool *wp);
+int Dialog_MainDlg(bool *bReset, bool *bLoadedSnapshot);
+void Dialog_AboutDlg(void);
+int DlgAlert_Notice(const char *text);
+int DlgAlert_Query(const char *text);
+void Dialog_DeviceDlg(void);
+void DlgFloppy_Main(void);
+void DlgSCSI_Main(void);
+void DlgOptical_Main(void);
+void DlgEthernet_Main(void);
+void DlgSound_Main(void);
+void DlgPrinter_Main(void);
+void Dialog_JoyDlg(void);
+void Dialog_KeyboardDlg(void);
+void Dialog_MouseDlg(void);
+bool Dialog_MemDlg(void);
+void Dialog_MemAdvancedDlg(int *membanks);
+char* DlgNewDisk_Main(void);
+void Dialog_MonitorDlg(void);
+void Dialog_WindowDlg(void);
+void Dialog_SoundDlg(void);
+void Dialog_SystemDlg(void);
+void Dialog_AdvancedDlg(void);
+void Dialog_DimensionDlg(void);
+void DlgRom_Main(void);
+void DlgBoot_Main(void);
+void DlgMissing_Rom(const char* type, char *imgname, const char *defname, bool *enabled);
+void DlgMissing_Disk(const char* type, int num, char *imgname, bool *ins, bool *wp);
 /* and dialog.c */
-extern bool Dialog_DoProperty(void);
-extern void Dialog_CheckFiles(void);
+bool Dialog_DoProperty(void);
+void Dialog_CheckFiles(void);
 
 #endif

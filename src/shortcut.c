@@ -15,18 +15,15 @@ const char ShortCut_fileid[] = "Hatari shortcut.c : " __DATE__ " " __TIME__;
 #include "file.h"
 #include "m68000.h"
 #include "dimension.h"
-#include "memorySnapShot.h"
 #include "reset.h"
 #include "screen.h"
-#include "screenSnapShot.h"
 #include "configuration.h"
 #include "shortcut.h"
 #include "debugui.h"
 #include "sdlgui.h"
 #include "video.h"
 #include "snd.h"
-#include "avi_record.h"
-#include "clocks_timings.h"
+#include "statusbar.h"
 
 static SHORTCUTKEYIDX ShortCutKey = SHORTCUT_NONE;  /* current shortcut key */
 
@@ -78,24 +75,6 @@ static void ShortCut_MouseGrab(void)
 
 /*-----------------------------------------------------------------------*/
 /**
- * Shortcut to toggle YM/WAV sound recording
- */
-static void ShortCut_RecordSound(void)
-{
-}
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * Shortcut to toggle screen animation recording
- */
-static void ShortCut_RecordAnimation(void)
-{
-}
-
-
-/*-----------------------------------------------------------------------*/
-/**
  * Shortcut to sound on/off
  */
 static void ShortCut_SoundOnOff(void)
@@ -105,55 +84,49 @@ static void ShortCut_SoundOnOff(void)
     Sound_Reset();
 }
 
-
 /*-----------------------------------------------------------------------*/
 /**
- * Shortcut to fast forward
+ * Shorcut to M68K debug interface
  */
-static void ShortCut_FastForward(void)
-{
-		/* Set maximum speed */
-		ConfigureParams.System.bFastForward = true;
-}
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * Shortcut to 'Boss' key, ie minmize Window and switch to another application
- */
-static void ShortCut_BossKey(void)
-{
-	/* If we are in full-screen, then return to a window */
-	Screen_ReturnFromFullScreen();
-
-	if (bGrabMouse)
-	{
-		SDL_SetRelativeMouseMode(SDL_FALSE);
-        SDL_SetWindowGrab(sdlWindow, SDL_FALSE);
-		bGrabMouse = false;
-	}
-	Main_PauseEmulation(true);
-
-	/* Minimize Window and give up processing to next one! */
-    fprintf(stderr,"FIXME: minimize window!\n");
-}
-
-
-/*-----------------------------------------------------------------------*/
-/**
- * Shorcut to debug interface
- */
-static void ShortCut_Debug(void)
+void ShortCut_Debug_M68K(void)
 {
 	int running;
 
-	/* Call the debugger */
 	running = Main_PauseEmulation(true);
+    /* Call the debugger */
 	DebugUI();
 	if (running)
 		Main_UnPauseEmulation();
 }
 
+/*-----------------------------------------------------------------------*/
+/**
+ * Shorcut to I860 debug interface
+ */
+void ShortCut_Debug_I860(void) {
+    int running;
+    
+    if (bInFullScreen)
+        Screen_ReturnFromFullScreen();
+
+    running = Main_PauseEmulation(true);
+    
+    /* override paused message so that user knows to look into console
+     * on how to continue in case he invoked the debugger by accident.
+     */
+    Statusbar_AddMessage("I860 Console Debugger", 100);
+    Statusbar_Update(sdlscrn);
+    
+    /* disable normal GUI alerts while on console */
+    int alertLevel = Log_SetAlertLevel(LOG_FATAL);
+    
+    /* Call the debugger */
+    nd_start_debugger();
+    Log_SetAlertLevel(alertLevel);
+
+    if (running)
+        Main_UnPauseEmulation();
+}
 
 /*-----------------------------------------------------------------------*/
 /**
@@ -166,22 +139,22 @@ static void ShortCut_Pause(void)
 }
 
 /**
- * Shorcut to load a disk image
+ * Shorcut to switch monochrome and dimension screen
  */
 static void ShortCut_Dimension(void)
 {
-#if ENABLE_DIMENSION
-    enable_dimension_screen = !enable_dimension_screen;        /* Toggle flag */
-    
-    if (enable_dimension_screen)
-    {
-        Main_SetTitle("NeXTdimension - Press ctrl-alt-n to return.");
+	if (ConfigureParams.System.nMachineType==NEXT_STATION || !ConfigureParams.Dimension.bEnabled) {
+		return;
+	}
+	
+    if (ConfigureParams.Screen.nMonitorType != MONITOR_TYPE_DUAL) {
+        if (ConfigureParams.Screen.nMonitorType==MONITOR_TYPE_DIMENSION) {
+            ConfigureParams.Screen.nMonitorType=MONITOR_TYPE_CPU;
+        } else {
+            ConfigureParams.Screen.nMonitorType=MONITOR_TYPE_DIMENSION;
+        }
     }
-    else
-    {
-        Main_SetTitle(NULL);
-    }
-#endif
+	Statusbar_UpdateInfo();
 }
 
 
@@ -209,52 +182,21 @@ void ShortCut_ActKey(void)
 		Main_UnPauseEmulation();
 		Reset_Cold();                  /* Reset emulator with 'cold' (clear all) */
 		break;
-#if 0
-	 case SHORTCUT_WARMRESET:
-		Main_UnPauseEmulation();
-		Reset_Warm();                  /* Emulator 'warm' reset */
-		break;
-	 case SHORTCUT_SCREENSHOT:
-		ScreenSnapShot_SaveScreen();   /* Grab screenshot */
-		break;
-	 case SHORTCUT_BOSSKEY:
-		ShortCut_BossKey();            /* Boss key */
-		break;
-	 case SHORTCUT_CURSOREMU:          /* Toggle joystick emu on/off */
-		Joy_ToggleCursorEmulation();
-		break;
-	 case SHORTCUT_FASTFORWARD:
-		ShortCut_FastForward();       /* Toggle Min/Max speed */
-		break;
-	 case SHORTCUT_RECANIM:
-		ShortCut_RecordAnimation();    /* Record animation */
-		break;
-	 case SHORTCUT_RECSOUND:
-		ShortCut_RecordSound();        /* Toggle sound recording */
-		break;
-#endif
 	 case SHORTCUT_SOUND:
 		ShortCut_SoundOnOff();         /* Enable/disable sound */
 		break;
-#if 0
-	 case SHORTCUT_DEBUG:
-		ShortCut_Debug();              /* Invoke the Debug UI */
+	 case SHORTCUT_DEBUG_M68K:
+		ShortCut_Debug_M68K();         /* Invoke the Debug UI */
 		break;
-#endif
+	 case SHORTCUT_DEBUG_I860:
+		ShortCut_Debug_I860();         /* Invoke the M68K UI */
+		break;
 	 case SHORTCUT_PAUSE:
 		ShortCut_Pause();              /* Invoke Pause */
 		break;
 	 case SHORTCUT_QUIT:
 		Main_RequestQuit();
 		break;
-#if 0
-	 case SHORTCUT_LOADMEM:
-		MemorySnapShot_Restore(ConfigureParams.Memory.szMemoryCaptureFileName, true);
-		break;
-	 case SHORTCUT_SAVEMEM:
-		MemorySnapShot_Capture(ConfigureParams.Memory.szMemoryCaptureFileName, true);
-		break;
-#endif
 	 case SHORTCUT_DIMENSION:
 		ShortCut_Dimension();
 		break;
@@ -283,11 +225,6 @@ bool Shortcut_Invoke(const char *shortcut)
 		{ SHORTCUT_MOUSEGRAB, "mousegrab" },
 		{ SHORTCUT_COLDRESET, "coldreset" },
 		{ SHORTCUT_WARMRESET, "warmreset" },
-		{ SHORTCUT_SCREENSHOT, "screenshot" },
-		{ SHORTCUT_BOSSKEY, "bosskey" },
-		{ SHORTCUT_RECANIM, "recanim" },
-		{ SHORTCUT_RECSOUND, "recsound" },
-		{ SHORTCUT_SAVEMEM, "savemem" },
 		{ SHORTCUT_QUIT, "quit" },
 		{ SHORTCUT_NONE, NULL }
 	};

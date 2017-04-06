@@ -18,8 +18,10 @@
 #include "dma.h"
 #include "rtcnvram.h"
 #include "snd.h"
+#include "video.h"
+#include "host.h"
 
-#define LOG_KMS_LEVEL LOG_WARN
+#define LOG_KMS_LEVEL LOG_DEBUG
 #define IO_SEG_MASK	0x1FFFF
 
 
@@ -35,6 +37,14 @@ struct {
     Uint32 km_data;
 } kms;
 
+void KMS_Reset() {
+    kms.status.snd_dma  = 0;
+    kms.status.km       = 0;
+    kms.status.transmit = 0;
+    kms.status.cmd      = 0;
+    kms.data            = 0;
+    kms.km_data         = 0;
+}
 
 /* KMS control and status register (0x0200E000) 
  *
@@ -137,7 +147,7 @@ void KMS_command(Uint8 command, Uint32 data);
 Uint32 km_address = 0;
 Uint32 km_dev_msk = 0;
 
-void access_km_reg(Uint32 data) {
+static void access_km_reg(Uint32 data) {
     Uint8 reg_addr = (data>>24)&0xFF;
     Uint8 reg_data = (data>>16)&0xFF;
     
@@ -237,6 +247,7 @@ void KMS_command(Uint8 command, Uint32 data) {
                     snd_start_output(command&(SIO_DBL_SMPL|SIO_ZERO));
                 } else {
                     Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound out disable.");
+                    kms.status.snd_dma &= ~(SNDOUT_DMA_UNDERRUN|SNDOUT_DMA_REQUEST);
                     snd_stop_output();
                 }
             } else if ((command&KMSCMD_SIO_MASK)==KMSCMD_SND_IN) {
@@ -244,8 +255,11 @@ void KMS_command(Uint8 command, Uint32 data) {
                 
                 if (command&SIO_ENABLE) {
                     Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound in enable.");
+                    snd_start_input(command);
                 } else {
                     Log_Printf(LOG_KMS_LEVEL, "[KMS] Sound in disable.");
+                    kms.status.snd_dma &= ~(SNDIN_DMA_OVERRUN|SNDIN_DMA_REQUEST);
+                    snd_stop_input();
                 }
             } else {
                 Log_Printf(LOG_WARN, "[KMS] Unknown command!");
@@ -261,11 +275,11 @@ void KMS_Ctrl_Snd_Write(void) {
     kms.status.snd_dma &= ~(SNDOUT_DMA_ENABLE|SNDIN_DMA_ENABLE);
     kms.status.snd_dma |= (val&(SNDOUT_DMA_ENABLE|SNDIN_DMA_ENABLE));
     
-    if (val&SNDOUT_DMA_UNDERRUN) {
+    if (val&SNDOUT_DMA_UNDERRUN && (!snd_output_active())) {
         kms.status.snd_dma &= ~(SNDOUT_DMA_UNDERRUN|SNDOUT_DMA_REQUEST);
         set_interrupt(INT_SOUND_OVRUN, RELEASE_INT);
     }
-    if (val&SNDIN_DMA_OVERRUN) {
+    if (val&SNDIN_DMA_OVERRUN && (!snd_input_active())) {
         kms.status.snd_dma &= ~(SNDIN_DMA_OVERRUN|SNDIN_DMA_REQUEST);
         set_interrupt(INT_SOUND_OVRUN, RELEASE_INT);
     }
@@ -273,6 +287,16 @@ void KMS_Ctrl_Snd_Write(void) {
 
 void KMS_Stat_Snd_Read(void) {
     IoMem[IoAccessCurrentAddress&IO_SEG_MASK] = kms.status.snd_dma;
+}
+
+void kms_sndout_underrun() {
+    kms.status.snd_dma |=  SNDOUT_DMA_UNDERRUN|SNDOUT_DMA_REQUEST;
+    set_interrupt(INT_SOUND_OVRUN, SET_INT);
+}
+
+void kms_sndin_overrun() {
+    kms.status.snd_dma |=  SNDIN_DMA_OVERRUN|SNDIN_DMA_REQUEST;
+    set_interrupt(INT_SOUND_OVRUN, SET_INT);
 }
 
 void KMS_Ctrl_KM_Write(void) {
@@ -376,13 +400,13 @@ void KMS_Data_Read(void) {
 
 
 bool m_button_right = false;
-bool m_button_left = false;
-bool m_move_left = false;
-bool m_move_up = false;
-Uint8 m_move_x = 0;
-Uint8 m_move_y = 0;
-
-#define MOUSE_STEP_MAX	7
+bool m_button_left  = false;
+bool m_move_left    = false;
+bool m_move_up      = false;
+int  m_move_x       = 0;
+int  m_move_y       = 0;
+int  m_move_dx      = 0;
+int  m_move_dy      = 0;
 void kms_mouse_move_step(void);
 
 
@@ -391,13 +415,9 @@ void KMS_KM_Data_Read(void) {
     
     kms.status.km &= ~(KBD_RECEIVED|KBD_INT);
     set_interrupt(INT_KEYMOUSE, RELEASE_INT);
-    
-    if (m_move_x || m_move_y) {
-        kms_mouse_move_step();
-    }
 }
 
-void kms_interrupt(void) {
+static void kms_interrupt(void) {
     kms.status.cmd = KMSCMD_KBD_RECV;
     
     if (kms.status.km&KBD_RECEIVED) {
@@ -407,7 +427,7 @@ void kms_interrupt(void) {
     set_interrupt(INT_KEYMOUSE, SET_INT);
 }
 
-bool kms_device_enabled(int dev_addr) {
+static bool kms_device_enabled(int dev_addr) {
     int i,mask;
 
     for (i=28; i>4; i-=4) {
@@ -415,7 +435,7 @@ bool kms_device_enabled(int dev_addr) {
         if(mask==dev_addr && mask!=0xF)
             return true;
     }
-    Log_Printf(LOG_WARN, "[KMS] Device %i disabled (mask: %08X)",dev_addr,km_dev_msk);
+    Log_Printf(LOG_KMS_LEVEL, "[KMS] Device %i disabled (mask: %08X)",dev_addr,km_dev_msk);
     return false;
 }
 
@@ -428,6 +448,7 @@ void kms_keydown(Uint8 modkeys, Uint8 keycode) {
     
     if ((keycode==0x25)&&((modkeys&0x28)==0x28)) { /* asterisk and left alt and left command key */
         Log_Printf(LOG_WARN, "Keyboard initiated CPU reset!");
+        host_darkmatter(false);
         M68000_Reset(false);
         return;
     }
@@ -478,48 +499,33 @@ void kms_mouse_button(bool left, bool down) {
     }
 }
 
+#define MOUSE_STEP_FREQ 1000
+
 void kms_mouse_move(int x, bool left, int y, bool up) {
-    
-    if (x<0 || y<0) {
-        abort();
-    }
-    
-    if (x>0x3F)
-        x=0x3F;
-    if (y>0x3F)
-        y=0x3F;
+    if (x<0 || y<0) abort();
     
     m_move_left = left;
-    m_move_up = up;
+    m_move_up   = up;
+
+    int xsteps = x / 8; if(xsteps == 0) xsteps = 1;
+    int ysteps = y / 8; if(ysteps == 0) ysteps = 1;
     
-    m_move_x = x;
-    m_move_y = y;
+    m_move_x  = x;
+    m_move_dx = x / xsteps;
     
-    kms_mouse_move_step();
+    m_move_y  = y;
+    m_move_dy = y / ysteps;
+    
+    CycInt_AddRelativeInterruptCycles(10, INTERRUPT_MOUSE);
 }
 
 void kms_mouse_move_step(void) {
-    int x = 0;
-    int y = 0;
     
-    if (m_move_x>0) {
-        if (m_move_x>MOUSE_STEP_MAX) {
-            x = MOUSE_STEP_MAX;
-            m_move_x-=MOUSE_STEP_MAX;
-        } else {
-            x = m_move_x;
-            m_move_x = 0;
-        }
-    }
-    if (m_move_y>0) {
-        if (m_move_y>MOUSE_STEP_MAX) {
-            y = MOUSE_STEP_MAX;
-            m_move_y-=MOUSE_STEP_MAX;
-        } else {
-            y = m_move_y;
-            m_move_y = 0;
-        }
-    }
+    int x = m_move_x > m_move_dx ? m_move_dx : m_move_x;
+    int y = m_move_y > m_move_dy ? m_move_dy : m_move_y;
+
+    m_move_x -= x;
+    m_move_y -= y;
     
     if (!m_move_left && x>0)  /* right */
         x=(0x40-x)|0x40;
@@ -545,4 +551,13 @@ void kms_response(void) {
     kms.km_data |= (NO_RESPONSE_ERR|DEVICE_INVALID); /* checked on real hardware */
     
     kms_interrupt();
+}
+
+void Mouse_Handler(void) {
+    CycInt_AcknowledgeInterrupt();
+    
+    if (m_move_x > 0 || m_move_y > 0) {
+        kms_mouse_move_step();
+        CycInt_AddRelativeInterruptUs((1000*1000)/MOUSE_STEP_FREQ, INTERRUPT_MOUSE);
+    }
 }

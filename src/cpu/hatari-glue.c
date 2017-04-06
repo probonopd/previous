@@ -26,23 +26,6 @@ const char HatariGlue_fileid[] = "Hatari hatari-glue.c : " __DATE__ " " __TIME__
 
 struct uae_prefs currprefs, changed_prefs;
 
-int pendingInterrupts = 0;
-
-
-/**
- * Reset custom chips
- */
-void customreset(void)
-{
-	pendingInterrupts = 0;
-
-	/* In case the 6301 was executing a custom program from its RAM */
-	/* we must turn it back to the 'normal' mode. */
-//	IKBD_Reset_ExeMode ();
-
-	/* Reseting the GLUE video chip should also set freq/res register to 0 */
-	Video_Reset_Glue ();
-}
 
 
 /**
@@ -50,8 +33,7 @@ void customreset(void)
  * Note that the interrupt stays pending if it can't be executed yet
  * due to the interrupt level field in the SR.
  */
-int intlev(void)
-{
+int intlev(void) {
     /* Poll interrupt level from interrupt status and mask registers
      * --> see sysReg.c
      */
@@ -61,18 +43,13 @@ int intlev(void)
 /**
  * Initialize 680x0 emulation
  */
-int Init680x0(void)
-{
+int Init680x0(void) {
 	currprefs.cpu_level = changed_prefs.cpu_level = ConfigureParams.System.nCpuLevel;
 
 	switch (currprefs.cpu_level) {
-		case 0 : currprefs.cpu_model = 68000; break;
-		case 1 : currprefs.cpu_model = 68010; break;
-		case 2 : currprefs.cpu_model = 68020; break;
 		case 3 : currprefs.cpu_model = 68030; break;
 		case 4 : currprefs.cpu_model = 68040; break;
-		case 5 : currprefs.cpu_model = 68060; break;
-		default: fprintf (stderr, "Init680x0() : Error, cpu_level unknown\n");
+		default: fprintf (stderr, "Init680x0() : Error, cpu_level not supported (%i)\n",currprefs.cpu_model);
 	}
     
     currprefs.fpu_model = changed_prefs.fpu_model = ConfigureParams.System.n_FPUType;
@@ -89,8 +66,6 @@ int Init680x0(void)
     }
 	
 	currprefs.cpu_compatible = changed_prefs.cpu_compatible = ConfigureParams.System.bCompatibleCpu;
-	currprefs.address_space_24 = changed_prefs.address_space_24 = ConfigureParams.System.bAddressSpace24;
-	currprefs.cpu_cycle_exact = changed_prefs.cpu_cycle_exact = ConfigureParams.System.bCycleExactCpu;
 	currprefs.fpu_strict = changed_prefs.fpu_strict = ConfigureParams.System.bCompatibleFPU;
     currprefs.mmu_model = changed_prefs.mmu_model = ConfigureParams.System.bMMU?changed_prefs.cpu_model:0;
 

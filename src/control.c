@@ -55,19 +55,13 @@ static bool bRemotePaused;
 static bool Control_InsertKey(const char *event)
 {
 	const char *key = NULL;
-	bool up, down;
 
 	if (strncmp(event, "keypress ", 9) == 0) {
 		key = &event[9];
-		down = up = true;
 	} else if (strncmp(event, "keydown ", 8) == 0) {
 		key = &event[8];
-		down = true;
-		up = false;
 	} else if (strncmp(event, "keyup ", 6) == 0) {
 		key = &event[6];
-		down = false;
-		up = true;
 	}
 	if (!(key && key[0])) {
 		fprintf(stderr, "ERROR: '%s' contains no key press/down/up event\n", event);
@@ -83,20 +77,7 @@ static bool Control_InsertKey(const char *event)
 				key, keycode);
 			return false;
 		}
-		if (down) {
-//			IKBD_PressSTKey(keycode, true);
-		}
-		if (up) {
-//			IKBD_PressSTKey(keycode, false);
-		}
-	} else {
-		if (down) {
-//			Keymap_SimulateCharacter(key[0], true);
-		}
-		if (up) {
-//			Keymap_SimulateCharacter(key[0], false);
-		}
-	}
+    }
 #if 0
 	fprintf(stderr, "Simulated key %s of %d\n",
 		(down? (up? "press":"down") :"up"), key);
@@ -215,14 +196,6 @@ static bool Control_SetPath(char *name)
 		const char *name;
 		char *path;
 	} item[] = {
-		{ "memauto",  ConfigureParams.Memory.szAutoSaveFileName },
-		{ "memsave",  ConfigureParams.Memory.szMemoryCaptureFileName },
-//		{ "midiin",   ConfigureParams.Midi.sMidiInFileName },
-//		{ "midiout",  ConfigureParams.Midi.sMidiOutFileName },
-//		{ "printout", ConfigureParams.Printer.szPrintToFileName },
-//		{ "soundout", ConfigureParams.Sound.szYMCaptureFileName },
-//		{ "rs232in",  ConfigureParams.RS232.szInFileName },
-//		{ "rs232out", ConfigureParams.RS232.szOutFileName },
 		{ NULL, NULL }
 	};
 	int i;

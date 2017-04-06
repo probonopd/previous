@@ -9,7 +9,6 @@ const char DlgMemory_fileid[] = "Previous dlgMemory.c : " __DATE__ " " __TIME__;
 #include "main.h"
 #include "dialog.h"
 #include "sdlgui.h"
-#include "memorySnapShot.h"
 #include "file.h"
 #include "screen.h"
 
@@ -39,7 +38,6 @@ const char DlgMemory_fileid[] = "Previous dlgMemory.c : " __DATE__ " " __TIME__;
 #endif
 
 void Dialog_MemDlgDraw(void);
-static char dlgSnapShotName[36+1];
 char custom_memsize[16] = "Customize";
 
 /* The memory dialog: */

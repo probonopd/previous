@@ -1133,19 +1133,6 @@ static void dsp_postexecute_interrupts(void)
 
 	/* Set the interrupt vector */
 	dsp_core.interrupt_instr_fetch = interrupt * 2;
-
-#if 0 /* FIXME: adapt this to new interrupt routine */
-	
-	/* SSI receive data with exception ? */
-	if (dsp_core.interrupt_instr_fetch == 0xe) {
-		dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] &= 0xff-(1<<DSP_SSI_SR_ROE);
-	}
-	
-	/* SSI transmit data with exception ? */
-	else if (dsp_core.interrupt_instr_fetch == 0x12) {
-		dsp_core.periph[DSP_SPACE_X][DSP_SSI_SR] &= 0xff-(1<<DSP_SSI_SR_TUE);
-	}
-#endif
 }
 
 /**********************************
@@ -1405,9 +1392,16 @@ static void write_memory_x(Uint16 address, Uint32 value)
 				/* Read only */
 				break;
 			case DSP_SSI_CRA:
+				dsp_core.periph[DSP_SPACE_X][address-0xffc0] = value;
+				dsp_core_ssi_configure(address-0xffc0, value);
+				break;
 			case DSP_SSI_CRB:
 				dsp_core.periph[DSP_SPACE_X][address-0xffc0] = value;
 				dsp_core_ssi_configure(address-0xffc0, value);
+				dsp_set_interrupt_mask(DSP_INTER_SSI_RCV_DATA_E, dsp_core.periph[DSP_SPACE_X][DSP_SSI_CRB]&(1<<DSP_SSI_CRB_RIE));
+				dsp_set_interrupt_mask(DSP_INTER_SSI_RCV_DATA, dsp_core.periph[DSP_SPACE_X][DSP_SSI_CRB]&(1<<DSP_SSI_CRB_RIE));
+				dsp_set_interrupt_mask(DSP_INTER_SSI_TRX_DATA_E, dsp_core.periph[DSP_SPACE_X][DSP_SSI_CRB]&(1<<DSP_SSI_CRB_TIE));
+				dsp_set_interrupt_mask(DSP_INTER_SSI_TRX_DATA, dsp_core.periph[DSP_SPACE_X][DSP_SSI_CRB]&(1<<DSP_SSI_CRB_TIE));
 				break;
 			case DSP_SSI_TSR:
 				dsp_core_ssi_writeTSR();
@@ -1422,6 +1416,14 @@ static void write_memory_x(Uint16 address, Uint32 value)
 			case DSP_PCD:
 				dsp_core.periph[DSP_SPACE_X][DSP_PCD] = value;
 				dsp_core_setPortCDataRegister(value);
+				break;
+			case DSP_PBC:
+				dsp_core.periph[DSP_SPACE_X][DSP_PBC] = value;
+				dsp_set_interrupt_mask(DSP_INTER_SCI_RCV_DATA_E, dsp_core.periph[DSP_SPACE_X][DSP_PBC]&(1<<11));
+				dsp_set_interrupt_mask(DSP_INTER_SCI_RCV_DATA, dsp_core.periph[DSP_SPACE_X][DSP_PBC]&(1<<11));
+				dsp_set_interrupt_mask(DSP_INTER_SCI_TRX_DATA, dsp_core.periph[DSP_SPACE_X][DSP_PBC]&(1<<12));
+				dsp_set_interrupt_mask(DSP_INTER_SCI_IDLE_LINE, dsp_core.periph[DSP_SPACE_X][DSP_PBC]&(1<<10));
+				dsp_set_interrupt_mask(DSP_INTER_SCI_TIMER, dsp_core.periph[DSP_SPACE_X][DSP_PBC]&(1<<13));
 				break;
 			default:
 				dsp_core.periph[DSP_SPACE_X][address-0xffc0] = value;
@@ -1662,15 +1664,15 @@ static void dsp_compute_ssh_ssl(void)
 
 static void dsp_update_rn(Uint32 numreg, Sint16 modifier)
 {
-	Sint16 value;
+	Uint32 value;
 	Uint16 m_reg;
 
 	m_reg = (Uint16) dsp_core.registers[DSP_REG_M0+numreg];
 	if (m_reg == 65535) {
 		/* Linear addressing mode */
-		value = (Sint16) dsp_core.registers[DSP_REG_R0+numreg];
+		value = dsp_core.registers[DSP_REG_R0+numreg]|0x10000;
 		value += modifier;
-		dsp_core.registers[DSP_REG_R0+numreg] = ((Uint32) value) & BITMASK(16);
+		dsp_core.registers[DSP_REG_R0+numreg] = value & BITMASK(16);
 	} else if (m_reg == 0) {
 		/* Bit reversed carry update */
 		dsp_update_rn_bitreverse(numreg);
@@ -1725,44 +1727,44 @@ static void dsp_update_rn_bitreverse(Uint32 numreg)
 
 static void dsp_update_rn_modulo(Uint32 numreg, Sint16 modifier)
 {
-	Uint16 bufsize, modulo, lobound, hibound, bufmask;
-	Sint16 r_reg, orig_modifier=modifier;
+	Uint16 bufsize, bufmask, modulo, abs_modifier;
+	Uint32 r_reg, lobound, hibound;
 
+	r_reg = dsp_core.registers[DSP_REG_R0+numreg]|0x10000;
 	modulo = dsp_core.registers[DSP_REG_M0+numreg]+1;
+	
 	bufsize = 1;
-	bufmask = BITMASK(16);
 	while (bufsize < modulo) {
 		bufsize <<= 1;
-		bufmask <<= 1;
+	}
+	bufmask = bufsize - 1;
+	
+	lobound = r_reg - (r_reg&bufmask);
+	hibound = lobound + modulo - 1;
+	
+	if (modifier<0) {
+		abs_modifier = -modifier;
+	} else {
+		abs_modifier = modifier;
 	}
 	
-	lobound = dsp_core.registers[DSP_REG_R0+numreg] & bufmask;
-	hibound = lobound + modulo - 1;
-
-	r_reg = (Sint16) dsp_core.registers[DSP_REG_R0+numreg];
-
-	if (orig_modifier>modulo) {
-		while (modifier>bufsize) {
-			r_reg += bufsize;
-			modifier -= bufsize;
+	if (abs_modifier>modulo) {
+		if (abs_modifier&bufmask) {
+			fprintf(stderr,"Dsp: Modulo addressing result unpredictable\n");
+		} else {
+			r_reg += modifier;
 		}
-		while (modifier<-bufsize) {
-			r_reg -= bufsize;
-			modifier += bufsize;
-		}
-	}
-
-	r_reg += modifier;
-
-	if (orig_modifier!=modulo) {
+	} else {
+		r_reg += modifier;
+		
 		if (r_reg>hibound) {
 			r_reg -= modulo;
 		} else if (r_reg<lobound) {
 			r_reg += modulo;
-		}	
+		}
 	}
 
-	dsp_core.registers[DSP_REG_R0+numreg] = ((Uint32) r_reg) & BITMASK(16);
+	dsp_core.registers[DSP_REG_R0+numreg] = r_reg & BITMASK(16);
 }
 
 static int dsp_calc_ea(Uint32 ea_mode, Uint32 *dst_addr)

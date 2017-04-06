@@ -1,9 +1,7 @@
 
 
-                                 Previous 1.3
+                                 Previous 1.6
 
-
-                    http://previous.alternative-system.com/
 
 
 Contents:
@@ -39,10 +37,11 @@ this program; if not, write to the
  2) About Previous
  -----------------
 
-Previous is a NeXT Computer emulator based on the Atari emulator Hatari. It uses
-the latest CPU emulation core from WinUAE. Previous is confirmed to compile and 
-run on Linux, Mac OS X and Windows. It may also work on other Systems which are 
-supported by the SDL library, like FreeBSD, NetBSD and BeOS.
+Previous is a NeXT Computer emulator based on the Atari emulator Hatari. It 
+uses the latest m68k emulation core from WinUAE and the i860 emulator from 
+Jason Eckhardt. Previous is confirmed to compile and run on Linux, Mac OS X 
+and Windows. It may also work on other Systems which are supported by the SDL2 
+library, like FreeBSD, NetBSD and BeOS.
 
 Previous emulates the following machines:
  NeXT Computer (original 68030 Cube)
@@ -52,6 +51,7 @@ Previous emulates the following machines:
  NeXTstation Turbo
  NeXTstation Color
  NeXTstation Turbo Color
+ NeXTdimension Graphics Board
 
 
  3) Compiling and installing
@@ -60,7 +60,8 @@ Previous emulates the following machines:
 For using Previous, you need to have installed the following libraries:
 
 Required:
-- The SDL library v2.0.3 or later (http://www.libsdl.org)
+- The SDL library v2.0.5 or later (http://www.libsdl.org)
+- The libpng PNG reference library (http://www.libpng.org)
 - The zlib compression library (http://www.gzip.org/zlib/)
 
 
@@ -96,29 +97,31 @@ the src/ subdirectory of the build tree.
  4) Status
  ---------
 
-Previous is still work in progress. Some hardware is not yet emulated:
-CPU		good
+Previous is stable, but some parts are still work in progress. Some hardware 
+is not yet emulated. Status of the individual components is as follows:
+CPU		good (but not cycle-exact)
 MMU		good
 FPU		good
-DSP		buggy
+DSP		good
 DMA		good
-NextBus		missing
+NextBus		good
 Memory		good
 2-bit graphics	good
 Color graphics	good
 RTC		good
-Timers		buggy
+Timers		good
 SCSI drive	good
-MO drive	good (single drive)
+MO drive	good
 Floppy drive	good
 Ethernet	good
 Serial		dummy
 Printer		good
-Sound		partial (no microphone)
+Sound		good
 Keyboard	good
 Mouse		good
 ADB		dummy
 Nitro		dummy
+Dimension	partial (no video I/O)
 
 
 There are remaining problems with the host to emulated machine interface for
@@ -128,16 +131,25 @@ input devices.
  5) Known issues
  ---------------
 
-- Un-emulated hardware may cause problems in certain situations (see above).
-- The MO drive causes problems (mainly hangs) when both drives are used (disabled).
-- Shortcuts do not work properly or overlap with host commands on some platforms.
-- The clock does not tick accurately. Real time clock power-on test may fail
-  sporadically on fast host systems.
-- There is a lot of instability when running Mac OS via Daydream.
-- FPU only works on x86 hosts.
-- Slirp: In certain rare conditions Slirp may crash.
-- Mac OS X: When minimizing and maximizing the application window the mouse
-  gets unlocked and sometimes is clicking is ignored (SDL bug).
+- Un-emulated hardware may cause problems when attempted to being used.
+- The MO drive causes slow downs and hangs when both drives are connected, but 
+  only one disk is inserted. This is no emulation issue but a bug in NeXTstep.
+- The MO drives do not work if variable CPU speed mode is enabled. Therefore 
+  this mode is automatically disabled, if an MO drive is connected.
+- DSP sound has timing related issues. DSPmusic under NeXTstep 0.9 sometimes 
+  produces bad audio or hangs in variable speed mode. ScorePlayer under 
+  NeXTstep 2.x produces distorted sound in normal CPU mode.
+- Shortcuts do not work properly or overlap with host commands on some 
+  platforms.
+- CPU timings are not correct. You may experience performance differences 
+  compared to real hardware.
+- Some 68882 FPU functions are emulated inaccurately due to missing SoftFloat 
+  implementations. Results may vary between different host system platforms.
+- Floating point overflow and underflow may cause wrong results on 68040 due to 
+  incomplete 68040 FRESTORE emulation.
+- Starting sound output or sound input may cause short lags in emulation. This 
+  is most likely caused by SDL or host audio hardware and drivers.
+
 
 
  6) Release notes
@@ -161,6 +173,31 @@ input devices.
   > Adds Laser Printer emulation.
   > Introduces option for swapping cmd and alt key.
 
+  Previous v1.4:
+  > Adds NeXTdimension emulation, including emulated i860 CPU.
+  > Improves timings and adds a mode for higher than real speed.
+  > Improves emulator efficiency through optimizations and threads.
+  > Improves mouse movement handling.
+  > Improves Real Time Clock. Time is now handled correctly.
+
+  Previous v1.5:
+  > Adds emulation of soundbox microphone to enable sound recording.
+  > Fixes bug in SCSI code. Images greater than 4 GB are now supported.
+  > Fixes bug in Real Time Clock. Years after 1999 are now accepted.
+  > Fixes bug that prevented screen output on Linux.
+  > Fixes bug that caused NeXTdimension to fail after disabling thread.
+
+  Previous v1.6:
+  > Adds SoftFloat FPU emulation. Fixes FPU on non-x86 host platforms.
+  > Adds emulation of FPU arithmetic exceptions.
+  > Adds support for second magneto-optical disk drive.
+  > Fixes bug that caused a crash when writing to an NFS server.
+  > Fixes bug that prevented NeXTdimension from stopping in rare cases.
+  > Fixes bug that caused external i860 interrupts to be delayed.
+  > Fixes bug that prevented sound input under NeXTstep 0.8.
+  > Fixes bug that caused temporary speed anomalies after pausing.
+  > Improves dummy RAMDAC emulation.
+
 
  7) Running Previous
  -------------------
@@ -176,10 +213,12 @@ and initiate a clean shut down by pressing F10 (emulates the power button).
  8) Contributors
  ---------------
 
+Previous was written by Andreas Grabher, Simon Schubiger and Gilles Fetis.
+
 Many thanks go to the members of the NeXT International Forums for their
 help. Special thanks go to Gavin Thomas Nicol, Piotr Twarecki, Toni Wilen,
-Michael Bosshard, Thomas Huth, Olivier Galibert, Simon Schubiger,
-Jason Stevens, Vaughan Kaufman and Peter Leonard!
+Michael Bosshard, Thomas Huth, Olivier Galibert, Jason Eckhardt, Jason 
+Stevens, Daniel L'Hommedieu, Vaughan Kaufman and Peter Leonard!
 This emulator would not exist without their help.
 
 
@@ -188,8 +227,3 @@ This emulator would not exist without their help.
 
 If you want to contact the authors of Previous, please have a look at the 
 NeXT International Forums (http://www.nextcomputers.org/forums).
-
-Visit the project page of Previous for more details:
-
- http://previous.alternative-system.com/
-

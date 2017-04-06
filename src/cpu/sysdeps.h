@@ -154,8 +154,8 @@ struct utimbuf
 #define strdup my_strdup
 #define random rand
 #define creat(x,y) open("T:creat",O_CREAT|O_RDWR|O_TRUNC,777)
-extern void* q_memset(void*,int,size_t);
-extern void* q_memcpy(void*,const void*,size_t);
+void* q_memset(void*,int,size_t);
+void* q_memcpy(void*,const void*,size_t);
 #endif
 
 #ifdef __DOS__
@@ -230,24 +230,24 @@ typedef uae_u32 uaecptr;
 #ifdef HAVE_STRDUP
 #define my_strdup _tcsdup
 #else
-extern TCHAR *my_strdup (const TCHAR*s);
+TCHAR *my_strdup (const TCHAR*s);
 #endif
-extern TCHAR *my_strdup_ansi (const char*);
-extern TCHAR *au (const char*);
-extern char *ua (const TCHAR*);
-extern TCHAR *aucp (const char *s, unsigned int cp);
-extern char *uacp (const TCHAR *s, unsigned int cp);
-extern TCHAR *au_fs (const char*);
-extern char *ua_fs (const TCHAR*, int);
-extern char *ua_copy (char *dst, int maxlen, const TCHAR *src);
-extern TCHAR *au_copy (TCHAR *dst, int maxlen, const char *src);
-extern char *ua_fs_copy (char *dst, int maxlen, const TCHAR *src, int defchar);
-extern TCHAR *au_fs_copy (TCHAR *dst, int maxlen, const char *src);
-extern char *uutf8 (const TCHAR *s);
-extern TCHAR *utf8u (const char *s);
-extern void unicode_init (void);
-extern void to_lower (TCHAR *s, int len);
-extern void to_upper (TCHAR *s, int len);
+TCHAR *my_strdup_ansi (const char*);
+TCHAR *au (const char*);
+char *ua (const TCHAR*);
+TCHAR *aucp (const char *s, unsigned int cp);
+char *uacp (const TCHAR *s, unsigned int cp);
+TCHAR *au_fs (const char*);
+char *ua_fs (const TCHAR*, int);
+char *ua_copy (char *dst, int maxlen, const TCHAR *src);
+TCHAR *au_copy (TCHAR *dst, int maxlen, const char *src);
+char *ua_fs_copy (char *dst, int maxlen, const TCHAR *src, int defchar);
+TCHAR *au_fs_copy (TCHAR *dst, int maxlen, const char *src);
+char *uutf8 (const TCHAR *s);
+TCHAR *utf8u (const char *s);
+void unicode_init (void);
+void to_lower (TCHAR *s, int len);
+void to_upper (TCHAR *s, int len);
 /* We can only rely on GNU C getting enums right. Mickeysoft VSC++ is known
  * to have problems, and it's likely that other compilers choke too. */
 #ifdef __GNUC__
@@ -301,7 +301,7 @@ extern void to_upper (TCHAR *s, int len);
 
 #ifdef HAVE_GETTIMEOFDAY
 #include <winsock.h> // for 'struct timeval' definition
-extern void gettimeofday( struct timeval *tv, void *blah );
+void gettimeofday( struct timeval *tv, void *blah );
 #endif
 
 #define O_NDELAY 0
@@ -353,25 +353,25 @@ struct direct
 #define S_IXUSR FILEFLAG_EXECUTE
 
 /* These are prototypes for functions from the Win32 posixemu file */
-extern void get_time (time_t t, long* days, long* mins, long* ticks);
-extern time_t put_time (long days, long mins, long ticks);
+void get_time (time_t t, long* days, long* mins, long* ticks);
+time_t put_time (long days, long mins, long ticks);
 
 /* #define DONT_HAVE_POSIX - don't need all of Mathias' posixemu_functions, just a subset (below) */
 #define chmod(a,b) posixemu_chmod ((a), (b))
-extern int posixemu_chmod (const TCHAR *, int);
+int posixemu_chmod (const TCHAR *, int);
 #define stat(a,b) posixemu_stat ((a), (b))
-extern int posixemu_stat (const TCHAR *, struct _stat64 *);
+int posixemu_stat (const TCHAR *, struct _stat64 *);
 #define mkdir(x,y) mkdir(x)
 #define truncate posixemu_truncate
-extern int posixemu_truncate (const TCHAR *, long int);
+int posixemu_truncate (const TCHAR *, long int);
 #define utime posixemu_utime
-extern int posixemu_utime (const TCHAR *, struct utimbuf *);
+int posixemu_utime (const TCHAR *, struct utimbuf *);
 #define opendir posixemu_opendir
-extern DIR * posixemu_opendir (const TCHAR *);
+DIR * posixemu_opendir (const TCHAR *);
 #define readdir posixemu_readdir
-extern struct dirent* posixemu_readdir (DIR *);
+struct dirent* posixemu_readdir (DIR *);
 #define closedir posixemu_closedir
-extern void posixemu_closedir (DIR *);
+void posixemu_closedir (DIR *);
 
 #endif
 
@@ -380,63 +380,63 @@ extern void posixemu_closedir (DIR *);
 #ifdef DONT_HAVE_POSIX
 
 #define access posixemu_access
-extern int posixemu_access (const TCHAR *, int);
+int posixemu_access (const TCHAR *, int);
 #define open posixemu_open
-extern int posixemu_open (const TCHAR *, int, int);
+int posixemu_open (const TCHAR *, int, int);
 #define close posixemu_close
-extern void posixemu_close (int);
+void posixemu_close (int);
 #define read posixemu_read
-extern int posixemu_read (int, TCHAR *, int);
+int posixemu_read (int, TCHAR *, int);
 #define write posixemu_write
-extern int posixemu_write (int, const TCHAR *, int);
+int posixemu_write (int, const TCHAR *, int);
 #undef lseek
 #define lseek posixemu_seek
-extern int posixemu_seek (int, int, int);
+int posixemu_seek (int, int, int);
 #define stat(a,b) posixemu_stat ((a), (b))
-extern int posixemu_stat (const TCHAR *, STAT *);
+int posixemu_stat (const TCHAR *, STAT *);
 #define mkdir posixemu_mkdir
-extern int mkdir (const TCHAR *, int);
+int mkdir (const TCHAR *, int);
 #define rmdir posixemu_rmdir
-extern int posixemu_rmdir (const TCHAR *);
+int posixemu_rmdir (const TCHAR *);
 #define unlink posixemu_unlink
-extern int posixemu_unlink (const TCHAR *);
+int posixemu_unlink (const TCHAR *);
 #define truncate posixemu_truncate
-extern int posixemu_truncate (const TCHAR *, long int);
+int posixemu_truncate (const TCHAR *, long int);
 #define rename posixemu_rename
-extern int posixemu_rename (const TCHAR *, const TCHAR *);
+int posixemu_rename (const TCHAR *, const TCHAR *);
 #define chmod posixemu_chmod
-extern int posixemu_chmod (const TCHAR *, int);
+int posixemu_chmod (const TCHAR *, int);
 #define tmpnam posixemu_tmpnam
-extern void posixemu_tmpnam (TCHAR *);
+void posixemu_tmpnam (TCHAR *);
 #define utime posixemu_utime
-extern int posixemu_utime (const TCHAR *, struct utimbuf *);
+int posixemu_utime (const TCHAR *, struct utimbuf *);
 #define opendir posixemu_opendir
-extern DIR * posixemu_opendir (const TCHAR *);
+DIR * posixemu_opendir (const TCHAR *);
 #define readdir posixemu_readdir
-extern struct dirent* readdir (DIR *);
+struct dirent* readdir (DIR *);
 #define closedir posixemu_closedir
-extern void closedir (DIR *);
+void closedir (DIR *);
 
 /* This isn't the best place for this, but it fits reasonably well. The logic
  * is that you probably don't have POSIX errnos if you don't have the above
  * functions. */
-extern long dos_errno (void);
+long dos_errno (void);
 
 #endif
 
 #ifdef DONT_HAVE_STDIO
 
-extern FILE *stdioemu_fopen (const TCHAR *, const TCHAR *);
+FILE *stdioemu_fopen (const TCHAR *, const TCHAR *);
 #define fopen(a,b) stdioemu_fopen(a, b)
-extern int stdioemu_fseek (FILE *, int, int);
+int stdioemu_fseek (FILE *, int, int);
 #define fseek(a,b,c) stdioemu_fseek(a, b, c)
-extern int stdioemu_fread (TCHAR *, int, int, FILE *);
+int stdioemu_fread (TCHAR *, int, int, FILE *);
 #define fread(a,b,c,d) stdioemu_fread(a, b, c, d)
-extern int stdioemu_fwrite (const TCHAR *, int, int, FILE *);
+int stdioemu_fwrite (const TCHAR *, int, int, FILE *);
 #define fwrite(a,b,c,d) stdioemu_fwrite(a, b, c, d)
-extern int stdioemu_ftell (FILE *);
+int stdioemu_ftell (FILE *);
 #define ftell(a) stdioemu_ftell(a)
-extern int stdioemu_fclose (FILE *);
+int stdioemu_fclose (FILE *);
 #define fclose(a) stdioemu_fclose(a)
 
 #endif
@@ -444,9 +444,9 @@ extern int stdioemu_fclose (FILE *);
 #ifdef DONT_HAVE_MALLOC
 
 #define malloc(a) mallocemu_malloc(a)
-extern void *mallocemu_malloc (int size);
+void *mallocemu_malloc (int size);
 #define free(a) mallocemu_free(a)
-extern void mallocemu_free (void *ptr);
+void mallocemu_free (void *ptr);
 
 #endif
 
@@ -464,28 +464,25 @@ extern void mallocemu_free (void *ptr);
 #endif
 
 #if __GNUC__ - 1 > 1 || __GNUC_MINOR__ - 1 > 6
-extern void write_log (const TCHAR *, ...) __attribute__ ((format (printf, 1, 2)));
+void write_log (const TCHAR *, ...) __attribute__ ((format (printf, 1, 2)));
 #else
-extern void write_log (const TCHAR *, ...);
+void write_log (const TCHAR *, ...);
 #endif
-extern void write_dlog (const TCHAR *, ...);
+void write_dlog (const TCHAR *, ...);
 
-extern void flush_log (void);
-extern void close_console (void);
-extern void reopen_console (void);
-extern void console_out (const TCHAR *);
-extern void console_out_f (const TCHAR *, ...);
-extern void console_flush (void);
-extern int console_get (TCHAR *, int);
-extern TCHAR console_getch (void);
-/*extern void f_out (void *, const TCHAR *, ...);*/
-extern TCHAR* buf_out (TCHAR *buffer, int *bufsize, const TCHAR *format, ...);
-extern void gui_message (const TCHAR *,...);
-extern int gui_message_multibutton (int flags, const TCHAR *format,...);
+void flush_log (void);
+void close_console (void);
+void reopen_console (void);
+void console_out (const TCHAR *);
+void console_flush (void);
+int console_get (TCHAR *, int);
+TCHAR console_getch (void);
+void gui_message (const TCHAR *,...);
+int gui_message_multibutton (int flags, const TCHAR *format,...);
 #define write_log_err write_log
-extern void logging_init (void);
-extern FILE *log_open (const TCHAR *name, int append, int bootlog);
-extern void log_close (FILE *f);
+void logging_init (void);
+FILE *log_open (const TCHAR *name, int append, int bootlog);
+void log_close (FILE *f);
 
 
 #ifndef O_BINARY
@@ -507,20 +504,6 @@ extern void log_close (FILE *f);
 #define NORETURN
 #endif
 #endif
-
-/* Every Amiga hardware clock cycle takes this many "virtual" cycles.  This
-   used to be hardcoded as 1, but using higher values allows us to time some
-   stuff more precisely.
-   512 is the official value from now on - it can't change, unless we want
-   _another_ config option "finegrain2_m68k_speed".
-
-   We define this value here rather than in events.h so that gencpu.c sees
-   it.  */
-#define CYCLE_UNIT 512
-
-/* This one is used by cfgfile.c.  We could reduce the CYCLE_UNIT back to 1,
-   I'm not 100% sure this code is bug free yet.  */
-#define OFFICIAL_CYCLE_UNIT 512
 
 /*
  * You can specify numbers from 0 to 5 here. It is possible that higher
@@ -561,12 +544,6 @@ extern void log_close (FILE *f);
 #define xcalloc(T, N) calloc(sizeof (T), N)
 #define xfree(T) free(T)
 #define xrealloc(T, TP, N) realloc(TP, sizeof (T) * (N))
-
-#if 0
-extern void *xmalloc (size_t);
-extern void *xcalloc (size_t, size_t);
-extern void xfree (const void*);
-#endif
 
 #else
 

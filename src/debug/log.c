@@ -36,23 +36,6 @@ static struct {
 TraceOptions[] = {
 	{ TRACE_NONE		 , "none" },
 
-	{ TRACE_VIDEO_SYNC	 , "video_sync" } ,
-	{ TRACE_VIDEO_RES	 , "video_res" } ,
-	{ TRACE_VIDEO_COLOR	 , "video_color" } ,
-	{ TRACE_VIDEO_BORDER_V   , "video_border_v" } ,
-	{ TRACE_VIDEO_BORDER_H   , "video_border_h" } ,
-	{ TRACE_VIDEO_ADDR	 , "video_addr" } ,
-	{ TRACE_VIDEO_HBL	 , "video_hbl" } ,
-	{ TRACE_VIDEO_VBL	 , "video_vbl" } ,
-	{ TRACE_VIDEO_STE	 , "video_ste" } ,
-	{ TRACE_VIDEO_ALL	 , "video_all" } ,
-
-	{ TRACE_MFP_EXCEPTION	 , "mfp_exception" } ,
-	{ TRACE_MFP_START	 , "mfp_start" } ,
-	{ TRACE_MFP_READ	 , "mfp_read" } ,
-	{ TRACE_MFP_WRITE	 , "mfp_write" } ,
-	{ TRACE_MFP_ALL 	 , "mfp_all" } ,
-
 	{ TRACE_PSG_READ	 , "psg_read" } ,
 	{ TRACE_PSG_WRITE	 , "psg_write" } ,
 	{ TRACE_PSG_ALL 	 , "psg_all" } ,
@@ -69,25 +52,10 @@ TraceOptions[] = {
 	{ TRACE_IKBD_CMDS	 , "ikbd_cmds" } ,
 	{ TRACE_IKBD_ACIA	 , "ikbd_acia" } ,
 	{ TRACE_IKBD_EXEC	 , "ikbd_exec" } ,
-	{ TRACE_IKBD_ALL	 , "ikbd_all" } ,
-
-	{ TRACE_BLITTER 	 , "blitter" } ,
-
-	{ TRACE_OS_BIOS 	 , "bios" },
-	{ TRACE_OS_XBIOS	 , "xbios" },
-	{ TRACE_OS_GEMDOS	 , "gemdos" },
-	{ TRACE_OS_VDI  	 , "vdi" },
-    { TRACE_OS_AES  	 , "aes" },
-	{ TRACE_OS_ALL  	 , "os_all" } ,
 
 	{ TRACE_IOMEM_RD	 , "io_read" } ,
 	{ TRACE_IOMEM_WR	 , "io_write" } ,
 	{ TRACE_IOMEM_ALL	 , "io_all" } ,
-
-	{ TRACE_DMASND  	 , "dmasound" } ,
-
-	{ TRACE_CROSSBAR  	 , "crossbar" } ,
-    { TRACE_VIDEL  	         , "videl" } ,
 
     { TRACE_DSP_HOST_INTERFACE, "dsp_host_interface" },
     { TRACE_DSP_HOST_COMMAND , "dsp_host_command" },

@@ -28,24 +28,26 @@ const char Reset_fileid[] = "Hatari reset.c : " __DATE__ " " __TIME__;
 #include "snd.h"
 #include "printer.h"
 #include "dsp.h"
-
+#include "kms.h"
 
 /*-----------------------------------------------------------------------*/
 /**
- * Reset ST emulator states, chips, interrupts and registers.
- * Return zero or negative TOS image load error code.
+ * Reset NEXT emulator states, chips, interrupts and registers.
  */
-static const char* Reset_ST(bool bCold)
+static const char* Reset_NeXT(bool bCold)
 {
-	if (bCold)
-	{
+	if (bCold) {
 		const char* error_str;
 		error_str=memory_init(ConfigureParams.Memory.nMemoryBankSize);
 		if (error_str!=NULL) {
 			return error_str;
 		}
 	}
+    
+    host_reset();                 /* Reset host related timing vars */
+    
 	CycInt_Reset();               /* Reset interrupts */
+    Main_SpeedReset();            /* Reset speed reporting system */
 	Video_Reset();                /* Reset video */
 	TMC_Reset();				  /* Reset TMC Registers */
 	SCR_Reset();                  /* Reset System Control Registers */
@@ -55,13 +57,13 @@ static const char* Reset_ST(bool bCold)
 	Floppy_Reset();               /* Reset Floppy disks */
 	SCC_Reset(2);                 /* Reset SCC */
 	Ethernet_Reset(true);         /* Reset Ethernet */
+    KMS_Reset();                  /* Reset KMS */
 	Sound_Reset();                /* Reset Sound */
 	Printer_Reset();              /* Reset Printer */
-	Screen_Reset();               /* Reset screen */
 	DSP_Reset();                  /* Reset DSP */
 	M68000_Reset(bCold);          /* Reset CPU */
 	DebugCpu_SetDebugging();      /* Re-set debugging flag if needed */
-
+    
 	return NULL;
 }
 
@@ -74,7 +76,7 @@ const char* Reset_Cold(void)
 {
 	Main_WarpMouse(sdlscrn->w/2, sdlscrn->h/2);  /* Set mouse pointer to the middle of the screen */
 
-	return Reset_ST(true);
+	return Reset_NeXT(true);
 }
 
 
@@ -84,5 +86,5 @@ const char* Reset_Cold(void)
  */
 const char* Reset_Warm(void)
 {
-	return Reset_ST(false);
+	return Reset_NeXT(false);
 }

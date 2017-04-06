@@ -28,7 +28,8 @@ const char DlgSCSI_fileid[] = "Previous dlgSCSI.c : " __DATE__ " " __TIME__;
 #define GET_TARGET(x)       (((x)-(SCSIDLG_OFFSET))/(SCSIDLG_INTERVAL))
 #define PUT_BUTTON(x,y)     (((x)*(SCSIDLG_INTERVAL))+(SCSIDLG_OFFSET)+(y))
 
-#define SCSIDLG_EXIT        51
+#define SCSIDLG_OVERLAY     51
+#define SCSIDLG_EXIT        52
 
 
 /* The SCSI dialog: */
@@ -93,6 +94,12 @@ static SGOBJ scsidlg[] =
     { SGBUTTON, 0, 0, 54,21, 8,1, "Browse" },
     { SGTEXT, 0, 0, 3,22, 58,1, NULL },
 
+#if ENABLE_TESTING
+    { SGCHECKBOX, 0, 0, 3,24, 21,1, "Don't write to disk images, use temporary overlay" },
+#else
+    { SGTEXT, 0, 0, 3,24, 21,1, "" },
+#endif
+
     { SGBUTTON, SG_DEFAULT, 0, 21,26, 21,1, "Back to main menu" },
 	{ -1, 0, 0, 0,0, 0,0, NULL }
 };
@@ -128,7 +135,7 @@ static SGOBJ scsidlg[] =
 
 /* Draw device type selector */
 
-void DlgSCSI_DrawDevtypeSelect(void) {
+static void DlgSCSI_DrawDevtypeSelect(void) {
     int i;
     
     for (i = 0; i < ESP_MAX_DEVS; i++) {
@@ -195,9 +202,12 @@ void DlgSCSI_Main(void)
         scsidlg[PUT_BUTTON(i,SCSIDLG_NAME)].txt = dlgname_scsi[i];
     }
     
+    /* Write Protection */
+    if(ConfigureParams.SCSI.nWriteProtection == WRITEPROT_ON) scsidlg[SCSIDLG_OVERLAY].state |= SG_SELECTED;
+    else                                                      scsidlg[SCSIDLG_OVERLAY].state &= ~SG_SELECTED;
+
 	/* Draw and process the dialog */
-	do
-	{
+	do {
 		but = SDLGui_DoDialog(scsidlg, NULL);
         
         if (but>=SCSIDLG_OFFSET && but<((SCSIDLG_INTERVAL*ESP_MAX_DEVS)+SCSIDLG_OFFSET)) {
@@ -238,6 +248,11 @@ void DlgSCSI_Main(void)
                     break;
             }
         }
+#if ENABLE_TESTING
+        ConfigureParams.SCSI.nWriteProtection = (scsidlg[SCSIDLG_OVERLAY].state & SG_SELECTED) ? WRITEPROT_ON : WRITEPROT_OFF;
+#else
+        ConfigureParams.SCSI.nWriteProtection = WRITEPROT_OFF;
+#endif
 	}
 	while (but != SCSIDLG_EXIT && but != SDLGUI_QUIT
 	        && but != SDLGUI_ERROR && !bQuitProgram);

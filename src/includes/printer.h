@@ -11,8 +11,8 @@ void LP_Data_Write(void);
 
 struct {
     Uint8 data[64*1024];
-    Uint32 size;
-    Uint32 limit;
+    int size;
+    int limit;
 } lp_buffer;
 
 void Printer_Reset(void);

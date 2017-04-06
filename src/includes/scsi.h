@@ -22,8 +22,8 @@ struct {
 
 struct {
     Uint8 data[512]; /* FIXME: BLOCKSIZE */
-    Uint32 limit;
-    Uint32 size;
+    int limit;
+    int size;
     bool disk;
 } scsi_buffer;
 

@@ -1,0 +1,1 @@
+void nd_video_dev_write(uae_u8 addr, uae_u32 step, uae_u8 data);

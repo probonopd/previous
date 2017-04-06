@@ -24,4 +24,4 @@ struct {
 } flp_buffer;
 
 extern Uint8 floppy_select;
-extern void set_floppy_select(Uint8 sel, bool osp);
+void set_floppy_select(Uint8 sel, bool osp);

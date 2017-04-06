@@ -125,7 +125,7 @@ const Uint8 t_log[256] = {
 	0x4f, 0xae, 0xd5, 0xe9, 0xe6, 0xe7, 0xad, 0xe8, 0x74, 0xd6, 0xf4, 0xea, 0xa8, 0x50, 0x58, 0xaf,
 };
 
-Uint32 ecc_block(const Uint8 *s, int ss)
+static Uint32 ecc_block(const Uint8 *s, int ss)
 {
     int i;
     Uint32 r = (s[0] << 24) | (s[ss] << 16) | (s[2*ss] << 8) | s[3*ss];
@@ -141,7 +141,7 @@ Uint32 ecc_block(const Uint8 *s, int ss)
     return r;
 }
 
-void rs_encode_string(Uint8 *sector, int off, int step)
+static void rs_encode_string(Uint8 *sector, int off, int step)
 {
 	Uint32 ecc = ecc_block(sector+off, step);
 	sector[off+32*step] = ecc >> 24;
@@ -150,7 +150,7 @@ void rs_encode_string(Uint8 *sector, int off, int step)
 	sector[off+35*step] = ecc;
 }
 
-int rs_decode_string(Uint8 *sector, int off, int step)
+static int rs_decode_string(Uint8 *sector, int off, int step)
 {
     int i;
 	Uint32 ecc = ecc_block(sector+off, step);

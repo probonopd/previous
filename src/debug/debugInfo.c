@@ -11,6 +11,7 @@ const char DebugInfo_fileid[] = "Hatari debuginfo.c : " __DATE__ " " __TIME__;
 
 #include <stdio.h>
 #include <assert.h>
+#include <ctype.h>
 #include "main.h"
 #include "configuration.h"
 #include "debugInfo.h"
@@ -24,122 +25,19 @@ const char DebugInfo_fileid[] = "Hatari debuginfo.c : " __DATE__ " " __TIME__;
 #include "screen.h"
 #include "video.h"
 
-
-/* ------------------------------------------------------------------
- * TOS information
- */
-#define OS_SYSBASE 0x4F2
-#define OS_HEADER_SIZE 0x30
-
-#define COOKIE_JAR 0x5A0
-
-#define BASEPAGE_SIZE 0x100
-
-#define GEM_MAGIC 0x87654321
-#define GEM_MUPB_SIZE 0xC
-
-#define RESET_MAGIC 0x31415926
-#define RESET_VALID 0x426
-#define RESET_VECTOR 0x42A
-
-#define COUNTRY_SPAIN 4
-
-/**
- * DebugInfo_GetSysbase: set osversion to given argument.
- * return sysbase address on success and zero on failure.
- */
-static Uint32 DebugInfo_GetSysbase(Uint16 *osversion)
-{
-	return 00;
-}
-
-/**
- * DebugInfo_CurrentBasepage: get currently running TOS program basepage
- */
-static Uint32 DebugInfo_CurrentBasepage(void)
-{
-	return 0;
-}
-
-/**
- * GetSegmentAddress: return segment address at given offset in
- * TOS process basepage or zero if that is missing/invalid.
- */
-static Uint32 GetSegmentAddress(unsigned offset)
-{
-    Uint32 basepage = DebugInfo_CurrentBasepage();
-    if (!basepage) {
-        return 0;
-    }
-    if (!NEXTMemory_ValidArea(basepage, BASEPAGE_SIZE) ||
-        NEXTMemory_ReadLong(basepage) != basepage) {
-        fprintf(stderr, "Basepage address 0x%06x is invalid!\n", basepage);
-        return 0;
-    }
-    return NEXTMemory_ReadLong(basepage+offset);
-}
-
-/**
- * DebugInfo_GetTEXT: return current program TEXT segment address
- * or zero if basepage missing/invalid.  For virtual debugger variable.
- */
-Uint32 DebugInfo_GetTEXT(void)
-{
-    return GetSegmentAddress(0x08);
-}
-/**
- * DebugInfo_GetDATA: return current program DATA segment address
- * or zero if basepage missing/invalid.  For virtual debugger variable.
- */
-Uint32 DebugInfo_GetDATA(void)
-{
-    return GetSegmentAddress(0x010);
-}
-/**
- * DebugInfo_GetBSS: return current program BSS segment address
- * or zero if basepage missing/invalid.  For virtual debugger variable.
- */
-Uint32 DebugInfo_GetBSS(void)
-{
-    return GetSegmentAddress(0x18);
-}
-
-/**
- * DebugInfo_Basepage: show TOS process basepage information
- * at given address.
- */
-static void DebugInfo_Basepage(Uint32 basepage)
-{
-}
-
-/**
- * DebugInfo_OSHeader: display TOS OS Header
- */
-static void DebugInfo_OSHeader(Uint32 dummy)
-{
-}
-
-
 /* ------------------------------------------------------------------
  * Next HW information
  */
 
+char* get_rtc_ram_info(void);
+
 /**
  * DebugInfo_Rtc : display the Videl registers values.
  */
-static void DebugInfo_Rtc(Uint32 dummy)
-{
-	Screen_Draw();
+static void DebugInfo_Rtc(Uint32 dummy) {
+    Update_StatusBar();
 	fprintf(stdout,"%s",get_rtc_ram_info());
 }
-
-/**
- * DebugInfo_Crossbar : display the Crossbar registers values.
- */
-static void DebugInfo_Crossbar(Uint32 dummy)
-{
-}
-
 
 /* ------------------------------------------------------------------
  * CPU and DSP information wrappers
@@ -270,7 +168,7 @@ static void DebugInfo_FileParse(Uint32 dummy)
     if (parse_filename) {
         DebugUI_ParseFile(parse_filename);
     } else {
-        fputs("ERROR: debugger input file name to parse isn't set!\n", stderr);
+       // fputs("ERROR: debugger input file name to parse isn't set!\n", stderr);
     }
 }
 
@@ -303,10 +201,8 @@ static Uint32 DebugInfo_FileArgs(int argc, char *argv[])
  */
 static void DebugInfo_Default(Uint32 dummy)
 {
-	int hbl, fcycles, lcycles;
-	Video_GetPosition(&fcycles, &hbl, &lcycles);
-	fprintf(stderr, "\nCPU=$%x, VBL=%d, FrameCycles=%d, HBL=%d, LineCycles=%d, DSP=",
-		M68000_GetPC(), 0, fcycles, hbl, lcycles);
+	fprintf(stderr, "\nCPU=$%x, DSP=",
+		M68000_GetPC());
 		fprintf(stderr, "N/A\n");
 }
 
@@ -319,10 +215,6 @@ static const struct {
 	Uint32 (*args)(int argc, char *argv[]);
 	const char *info;
 } infotable[] = {
-//    { false,"aes",       AES_Info,             NULL, "Show AES vector contents (with <value>, show opcodes)" },
-	{ false,"basepage",  DebugInfo_Basepage,   NULL, "Show program basepage info at given <address>" },
-//    { false,"cookiejar", DebugInfo_Cookiejar,  NULL, "Show TOS Cookiejar contents" },
-	{ false,"crossbar",  DebugInfo_Crossbar,   NULL, "Show Falcon crossbar HW register values" },
 	{ true, "default",   DebugInfo_Default,    NULL, "Show default debugger entry information" },
 	{ true, "disasm",    DebugInfo_CpuDisAsm,  NULL, "Disasm CPU from PC or given <address>" },
 #if ENABLE_DSP_EMU
@@ -331,12 +223,9 @@ static const struct {
 	{ true, "dspregs",   DebugInfo_DspRegister,NULL, "Show DSP registers values" },
 #endif
     { true, "file",      DebugInfo_FileParse, DebugInfo_FileArgs, "Parse commands from given debugger input <file>" },
-//    { false,"gemdos",    GemDOS_Info,          NULL, "Show GEMDOS HDD emu info (with <value>, show opcodes)" },
 	{ true, "memdump",   DebugInfo_CpuMemDump, NULL, "Dump CPU memory from given <address>" },
-	{ false,"osheader",  DebugInfo_OSHeader,   NULL, "Show TOS OS header information" },
 	{ true, "regaddr",   DebugInfo_RegAddr, DebugInfo_RegAddrArgs, "Show <disasm|memdump> from CPU/DSP address pointed by <register>" },
 	{ true, "registers", DebugInfo_CpuRegister,NULL, "Show CPU registers values" },
-//    { false,"video",     DebugInfo_Video,      NULL, "Show Video related values" },
 	{ false,"rtc",     DebugInfo_Rtc,      NULL, "Show Next's RTC registers" }
 };
 

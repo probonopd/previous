@@ -2,29 +2,31 @@
 #include "ethernet.h"
 #include "enet_slirp.h"
 #include "queue.h"
+#include "host.h"
 
-#include <SDL.h>
 #ifndef _WIN32
-#include <signal.h>
+#include <arpa/inet.h>
+#else
+#undef TCHAR
+#include <winsock2.h>
+int inet_aton(const char *cp, struct in_addr *addr);
 #endif
-
 
 /****************/
 /* -- SLIRP -- */
 
-#include <arpa/inet.h>
 
 /* slirp prototypes */
-extern  int slirp_init(void);
+int slirp_init(void);
 int slirp_redir(int is_udp, int host_port, struct in_addr guest_addr, int guest_port);
-extern  void slirp_input(const uint8_t *pkt, int pkt_len);
-extern  int slirp_select_fill(int *pnfds,
+void slirp_input(const uint8_t *pkt, int pkt_len);
+int slirp_select_fill(int *pnfds,
                               fd_set *readfds, fd_set *writefds, fd_set *xfds);
-extern  void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds);
-extern  void slirp_exit(int);
+void slirp_select_poll(fd_set *readfds, fd_set *writefds, fd_set *xfds);
+void slirp_exit(int);
 void slirp_debug_init(char*,int);
-extern  void slirp_output(const unsigned char *pkt, int pkt_len);
-extern  int slirp_can_output(void);
+void slirp_output(const unsigned char *pkt, int pkt_len);
+int slirp_can_output(void);
 
 /* queue prototypes */
 queueADT	slirpq;
@@ -57,7 +59,7 @@ void slirp_output (const unsigned char *pkt, int pkt_len)
 
 //This function is to be periodically called
 //to keep the internal packet state flowing.
-void slirp_tick(void)
+static void slirp_tick(void)
 {
     int ret2,nfds;
     struct timeval tv;
@@ -90,7 +92,7 @@ static int tick_func(void *arg)
 {
     while(slirp_inited)
     {
-        SDL_Delay(10);
+        host_sleep_ms(10);
         slirp_tick();
     }
     return 0;
@@ -138,13 +140,10 @@ void enet_slirp_start(void) {
     
     if (!slirp_inited) {
         Log_Printf(LOG_WARN, "Starting SLIRP");
-#ifndef _WIN32
-        signal(SIGPIPE, SIG_IGN);
-#endif
         slirp_init();
         slirpq = QueueCreate();
         slirp_inited=1;
-        //SDL_Delay(500);
+        //host_sleep_ms(500);
         slirp_mutex=SDL_CreateMutex();
         tick_func_handle=SDL_CreateThread(tick_func,"SLiRPTickThread", (void *)NULL);
         inet_aton("10.0.2.15", &guest_addr);

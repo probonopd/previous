@@ -16,6 +16,7 @@
 #include "newcpu.h"
 #include "paths.h"
 #include "68kDisass.h"
+#include "debugcpu.h"
 
 #define ADDRESS_ON_PC		1
 #define USE_SYMBOLS			1
@@ -116,9 +117,8 @@ static int				disSymbolCounts;
 static disSymbolEntry	*disSymbolEntries;
 
 
-static inline unsigned short	Disass68kGetWord(long addr)
-{
-	return get_word(addr);
+static inline unsigned short Disass68kGetWord(long addr) {
+    return DBGMemory_ReadWord(addr);
 }
 
 // Load a text file into memory, count the lines and replace the LF with 0-bytes.
@@ -2463,7 +2463,7 @@ static void Disass68k_loop (FILE *f, uaecptr addr, uaecptr *nextpc, int cnt)
 void Disasm (FILE *f, uaecptr addr, uaecptr *nextpc, int cnt , int DisasmEngine)
 {
   if ( DisasmEngine == DISASM_ENGINE_UAE )
-	return m68k_disasm (f, addr, nextpc, cnt);
+	return m68k_disasm (addr, nextpc, cnt);
   else if ( DisasmEngine == DISASM_ENGINE_EXT )
 	return Disass68k_loop (f, addr, nextpc, cnt);
 }
