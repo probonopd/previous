@@ -56,8 +56,10 @@ extern i860_run_func i860_Run;
 
 void dimension_init(void);
 void dimension_uninit(void);
+void dimension_pause(bool pause);
 void nd_i860_init(void);
 void nd_i860_uninit(void);
+void nd_i860_pause(bool pause);
 void i860_reset(void);
 void i860_interrupt(void);
 void nd_start_debugger(void);

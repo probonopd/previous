@@ -12,6 +12,7 @@ const char DlgSCSI_fileid[] = "Previous dlgSCSI.c : " __DATE__ " " __TIME__;
 #include "dialog.h"
 #include "sdlgui.h"
 #include "file.h"
+#include "scsi.h"
 
 
 #define SCSIDLG_OFFSET      2
@@ -231,6 +232,7 @@ void DlgSCSI_Main(void)
                             ConfigureParams.SCSI.target[GET_TARGET(but)].bDiskInserted = false;
                             ConfigureParams.SCSI.target[GET_TARGET(but)].szImageName[0] = '\0';
                             scsidlg[PUT_BUTTON(GET_TARGET(but),SCSIDLG_NAME)].txt[0] = '\0';
+                            SCSI_Eject(GET_TARGET(but));
                         }
                     } else if (SDLGui_DiskSelect(dlgname_scsi[GET_TARGET(but)],
                                                  ConfigureParams.SCSI.target[GET_TARGET(but)].szImageName,
@@ -239,6 +241,9 @@ void DlgSCSI_Main(void)
                         ConfigureParams.SCSI.target[GET_TARGET(but)].bDiskInserted = true;
                         if (ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType == DEVTYPE_NONE) {
                             ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType = DEVTYPE_HARDDISK;
+                        }
+                        if (ConfigureParams.SCSI.target[GET_TARGET(but)].nDeviceType != DEVTYPE_HARDDISK) {
+                            SCSI_Insert(GET_TARGET(but));
                         }
                     }
                     DlgSCSI_DrawDevtypeSelect();

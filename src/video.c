@@ -43,7 +43,7 @@ void Video_Reset(void) {
  * Start VBL interrupt
  */
 void Video_StartInterrupts ( int PendingCyclesOver ) {
-    CycInt_AddRelativeInterruptUs((1000*1000)/NEXT_VBL_FREQ, INTERRUPT_VIDEO_VBL);
+    CycInt_AddRelativeInterruptUs((1000*1000)/NEXT_VBL_FREQ, 0, INTERRUPT_VIDEO_VBL);
 }
 
 /**
@@ -72,7 +72,7 @@ void Video_InterruptHandler_VBL ( void ) {
     if(statusBarToggle) Update_StatusBar();
     statusBarToggle = !statusBarToggle;
     Video_InterruptHandler();
-    CycInt_AddRelativeInterruptUs((1000*1000)/NEXT_VBL_FREQ, INTERRUPT_VIDEO_VBL);
+    CycInt_AddRelativeInterruptUs((1000*1000)/NEXT_VBL_FREQ, 0, INTERRUPT_VIDEO_VBL);
 }
 
 

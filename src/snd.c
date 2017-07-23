@@ -48,6 +48,37 @@ void Sound_Reset(void) {
     }
 }
 
+void Sound_Pause(bool pause) {
+    if (pause) {
+        if (sndout_inited) {
+            Log_Printf(LOG_WARN, "[Audio] Uninitializing audio output device (pause).");
+            sndout_inited=false;
+            Audio_Output_UnInit();
+        }
+        if (sndin_inited) {
+            Log_Printf(LOG_WARN, "[Audio] Uninitializing audio input device (pause).");
+            sndin_inited=false;
+            Audio_Input_UnInit();
+        }
+    } else {
+        if (!sndout_inited && ConfigureParams.Sound.bEnableSound) {
+            Log_Printf(LOG_WARN, "[Audio] Initializing audio output device (resume).");
+            Audio_Output_Init();
+            sndout_inited=true;
+        }
+        if (!sndin_inited && sound_input_active && ConfigureParams.Sound.bEnableSound) {
+            Log_Printf(LOG_WARN, "[Audio] Initializing audio input device (resume).");
+            Audio_Input_Init();
+            sndin_inited=true;
+        }
+        if (sound_output_active && sndout_inited) {
+            Audio_Output_Enable(true);
+        }
+        if (sound_input_active && sndin_inited) {
+            Audio_Input_Enable(true);
+        }
+    }
+}
 
 /* Start and stop sound output */
 struct {
@@ -84,10 +115,10 @@ void snd_start_output(Uint8 mode) {
     if (!sound_output_active) {
         Log_Printf(LOG_SND_LEVEL, "[Sound] Starting output loop.");
         sound_output_active = true;
-        CycInt_AddRelativeInterruptTicks(100, INTERRUPT_SND_OUT);
+        CycInt_AddRelativeInterruptCycles(10, INTERRUPT_SND_OUT);
     } else { /* Even re-enable loop if we are already active. This lowers the delay. */
         Log_Printf(LOG_DEBUG, "[Sound] Restarting output loop.");
-        CycInt_AddRelativeInterruptTicks(1, INTERRUPT_SND_OUT);
+        CycInt_AddRelativeInterruptCycles(10, INTERRUPT_SND_OUT);
     }
 }
 
@@ -96,14 +127,11 @@ void snd_stop_output(void) {
 }
 
 void snd_start_input(Uint8 mode) {
-	if (!ConfigureParams.Sound.bEnableSound) {
-		return;
-	}
-	
+    
     /* Starting SDL Audio */
     if (sndin_inited) {
         Audio_Input_Enable(true);
-    } else {
+    } else if (ConfigureParams.Sound.bEnableSound) {
         sndin_inited = true;
         Audio_Input_Init();
         Audio_Input_Enable(true);
@@ -112,10 +140,10 @@ void snd_start_input(Uint8 mode) {
     if (!sound_input_active) {
         Log_Printf(LOG_SND_LEVEL, "[Sound] Starting input loop.");
         sound_input_active = true;
-        CycInt_AddRelativeInterruptTicks(100, INTERRUPT_SND_IN);
+        CycInt_AddRelativeInterruptCycles(10, INTERRUPT_SND_IN);
     } else { /* Even re-enable loop if we are already active. This lowers the delay. */
         Log_Printf(LOG_DEBUG, "[Sound] Restarting input loop.");
-        CycInt_AddRelativeInterruptTicks(1, INTERRUPT_SND_IN);
+        CycInt_AddRelativeInterruptCycles(10, INTERRUPT_SND_IN);
     }
 }
 
@@ -136,36 +164,36 @@ static void do_dma_sndout_intr(void) {
 }
 
 /*
- At a tick rate of 8MHz and a playback rate of 44.1kHz a sample takes about 181 ticks
- Assuming that the emulation runs at least at 1/3 a s fast as a real m68k checking the 
- sound queue every 60 ticks should be ok.
+ At a playback rate of 44.1kHz a sample takes about 23 microseconds.
+ Assuming that the emulation runs at least 1/3 as fast as a real m68k
+ checking the sound queue every 8 microseconds should be ok.
 */
-static const int SND_CHECK_DELAY = 60;
+static const int SND_CHECK_DELAY = 8;
 void SND_Out_Handler(void) {
-    CycInt_AcknowledgeInterrupt();
+    int len;
 
-    if(Audio_Output_Queue_Size() > AUDIO_BUFFER_SAMPLES * 2) {
-        CycInt_AddRelativeInterruptTicks(SND_CHECK_DELAY  * AUDIO_BUFFER_SAMPLES, INTERRUPT_SND_OUT);
+    CycInt_AcknowledgeInterrupt();
+    
+    if (!sound_output_active) {
+        return;
+    }
+
+    if (sndout_inited && Audio_Output_Queue_Size() > AUDIO_BUFFER_SAMPLES * 2) {
+        CycInt_AddRelativeInterruptUs(SND_CHECK_DELAY * AUDIO_BUFFER_SAMPLES, 0, INTERRUPT_SND_OUT);
         return;
     }
     
     do_dma_sndout_intr();
-    int len;
-    bool chaining;
-    snd_buffer = dma_sndout_read_memory(&len, &chaining);
+    snd_buffer = dma_sndout_read_memory(&len);
     
-    if (!sndout_inited || sndout_state.mute) {
-        if (!sound_output_active) {
-            return;
-        }
+    if (len) {
+        len = snd_send_samples(snd_buffer, len);
+        len = (len / 4) + 1;
+        CycInt_AddRelativeInterruptUs(SND_CHECK_DELAY * len, 0, INTERRUPT_SND_OUT);
     } else {
-        if(len) {
-            len = snd_send_samples(snd_buffer, len) / 4;
-            if(chaining) do_dma_sndout_intr();
-            CycInt_AddRelativeInterruptTicks(SND_CHECK_DELAY, INTERRUPT_SND_OUT);
-        } else if(snd_output_active()) {
-            kms_sndout_underrun();
-        }
+        kms_sndout_underrun();
+        /* Call do_dma_sndout_intr() a little bit later */
+        CycInt_AddRelativeInterruptUs(100, 0, INTERRUPT_SND_OUT);
     }
 }
 
@@ -183,7 +211,7 @@ void SND_In_Handler(void) {
 			kms_sndin_overrun();
 		}
 	} else {
-		CycInt_AddRelativeInterruptUs(10000, INTERRUPT_SND_IN);
+		CycInt_AddRelativeInterruptUs(10000, 0, INTERRUPT_SND_IN);
 	}
 }
 
@@ -308,7 +336,11 @@ void snd_adjust_volume_and_lowpass(Uint8 *buf, int len) {
     int i;
     Sint16 ldata, rdata;
     float ladjust, radjust;
-    if (sndout_state.volume[0] || sndout_state.volume[1] || sndout_state.lowpass) {
+    if (sndout_state.mute) {
+        for (i=0; i<len; i++) {
+            buf[i] = 0;
+        }
+    } else if (sndout_state.volume[0] || sndout_state.volume[1] || sndout_state.lowpass) {
         ladjust = (sndout_state.volume[0]==0)?1:(1-log(sndout_state.volume[0])/log(SND_MAX_VOL));
         radjust = (sndout_state.volume[1]==0)?1:(1-log(sndout_state.volume[1])/log(SND_MAX_VOL));
         

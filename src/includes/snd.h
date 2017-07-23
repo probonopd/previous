@@ -5,6 +5,7 @@
 void SND_Out_Handler(void);
 void SND_In_Handler(void);
 void Sound_Reset(void);
+void Sound_Pause(bool pause);
 
 Uint8 snd_make_ulaw(Sint16 sample);
 

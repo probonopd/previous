@@ -442,7 +442,7 @@ void Hardclock_InterruptHandler ( void )
         Uint64 now = host_time_us();
         host_hardclock(latch_hardclock, now - hardClockLastLatch);
         hardClockLastLatch = now;
-        CycInt_AddRelativeInterruptUs(latch_hardclock, INTERRUPT_HARDCLOCK);
+        CycInt_AddRelativeInterruptUs(latch_hardclock, 0, INTERRUPT_HARDCLOCK);
 	}
 }
 
@@ -475,7 +475,7 @@ void HardclockWriteCSR(void) {
 	}
 	if ((hardclock_csr&HARDCLOCK_ENABLE) && (latch_hardclock>0)) {
         Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] enable periodic interrupt (%i microseconds).", latch_hardclock);
-        CycInt_AddRelativeInterruptUs(latch_hardclock, INTERRUPT_HARDCLOCK);
+        CycInt_AddRelativeInterruptUs(latch_hardclock, 0, INTERRUPT_HARDCLOCK);
 	} else {
         Log_Printf(LOG_HARDCLOCK_LEVEL,"[hardclock] disable periodic interrupt.");
     }

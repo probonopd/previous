@@ -234,7 +234,8 @@ static const struct Config_Tag configs_Floppy[] =
 static const struct Config_Tag configs_Ethernet[] =
 {
     { "bEthernetConnected", Bool_Tag, &ConfigureParams.Ethernet.bEthernetConnected },
-    
+    { "bTwistedPair", Bool_Tag, &ConfigureParams.Ethernet.bTwistedPair },
+
     { NULL , Error_Tag, NULL }
 };
 
@@ -362,6 +363,7 @@ void Configuration_SetDefault(void)
     
     /* Set defaults for Ethernet */
     ConfigureParams.Ethernet.bEthernetConnected = false;
+    ConfigureParams.Ethernet.bTwistedPair = false;
     
 	/* Set defaults for Keyboard */
 	ConfigureParams.Keyboard.bDisableKeyRepeat = false;
@@ -506,8 +508,8 @@ void Configuration_Apply(bool bReset) {
 	Configuration_CheckDimensionMemory(ConfigureParams.Dimension.nMemoryBankSize);
 	Configuration_CheckDimensionSettings();
     
-    /* Make sure real time mode is disabled if magneto optical drive is connected */
-    Configuration_CheckOpticalSettings();
+    /* Make sure twisted pair ethernet is disabled on 68030 Cube */
+    Configuration_CheckEthernetSettings();
 	
 	/* Clean file and directory names */    
     File_MakeAbsoluteName(ConfigureParams.Rom.szRom030FileName);
@@ -704,17 +706,14 @@ int Configuration_CheckDimensionMemory(int *banksize) {
 
 void Configuration_CheckDimensionSettings(void) {
 	if (ConfigureParams.System.nMachineType==NEXT_STATION || !ConfigureParams.Dimension.bEnabled) {
+		ConfigureParams.Dimension.bEnabled = false;
 		ConfigureParams.Screen.nMonitorType = MONITOR_TYPE_CPU;
 	}
 }
 
-void Configuration_CheckOpticalSettings(void) {
-    int i;
-    /* Disable realtime mode if an MO drive is connected */
-    for (i = 0; i < MO_MAX_DRIVES; i++) {
-        if (ConfigureParams.MO.drive[i].bDriveConnected) {
-            ConfigureParams.System.bRealtime = false;
-        }
+void Configuration_CheckEthernetSettings(void) {
+    if (ConfigureParams.System.nMachineType == NEXT_CUBE030) {
+        ConfigureParams.Ethernet.bTwistedPair = false;
     }
 }
 

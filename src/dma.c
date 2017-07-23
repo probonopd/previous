@@ -219,19 +219,13 @@ void DMA_CSR_Write(void) {
     }
     if (writecsr&DMA_SETENABLE) {
         dma[channel].csr |= DMA_ENABLE;
-        switch (channel) {
-            case CHANNEL_M2R:
-            case CHANNEL_R2M:
-                if (dma[channel].next==dma[channel].limit) {
-                    dma[channel].csr&= ~DMA_ENABLE;
-                }
-                if ((dma[CHANNEL_M2R].csr&DMA_ENABLE)&&(dma[CHANNEL_R2M].csr&DMA_ENABLE)) {
-                    /* Enable Memory to Memory DMA, if read and write channels are enabled */
-                    dma_m2m_write_memory();
-                }
-                break;
-                
-            default: break;
+        
+        /* Enable Memory to Memory DMA, if read and write channels are enabled */
+        if (channel == CHANNEL_R2M || channel == CHANNEL_M2R) {
+            if (dma[channel].next==dma[channel].limit) {
+                dma[channel].csr &= ~DMA_ENABLE;
+            }
+            dma_m2m();
         }
     }
     if (writecsr&DMA_CLRCOMPLETE) {
@@ -393,19 +387,6 @@ void dma_interrupt(int channel) {
     } else if (dma[channel].csr&DMA_BUSEXC) {
         set_interrupt(interrupt, SET_INT);
     }
-}
-
-
-/* Functions for delayed interrupts */
-
-/* Handler functions for DMA M2M delyed interrupts */
-void M2RDMA_InterruptHandler(void) {
-    CycInt_AcknowledgeInterrupt();
-    dma_interrupt(CHANNEL_M2R);
-}
-void R2MDMA_InterruptHandler(void) {
-    CycInt_AcknowledgeInterrupt();
-    dma_interrupt(CHANNEL_R2M);
 }
 
 
@@ -709,27 +690,27 @@ void dma_mo_read_memory(void) {
 }
 
 
-Uint8* dma_sndout_read_memory(int* len, bool* chaining) {
+Uint8* dma_sndout_read_memory(int* len) {
+    int i;
     Uint8* result = NULL;
     *len          = 0;
-    *chaining     = false;
     
     if (dma[CHANNEL_SOUNDOUT].csr&DMA_ENABLE) {
         
         Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel Sound Out: Read from memory at $%08x, %i bytes",
                    dma[CHANNEL_SOUNDOUT].next,dma[CHANNEL_SOUNDOUT].limit-dma[CHANNEL_SOUNDOUT].next);
         
-        if ((dma[CHANNEL_SOUNDOUT].limit%4) || (dma[CHANNEL_SOUNDOUT].next%4)) {
+        if ((dma[CHANNEL_SOUNDOUT].limit&3) || (dma[CHANNEL_SOUNDOUT].next&3)) {
             Log_Printf(LOG_WARN, "[DMA] Channel Sound Out: Error! Bad alignment! (Next: $%08X, Limit: $%08X)",
                        dma[CHANNEL_SOUNDOUT].next, dma[CHANNEL_SOUNDOUT].limit);
-            abort();
+            dma[CHANNEL_SOUNDOUT].next &= ~3;
+            dma[CHANNEL_SOUNDOUT].limit &= ~3;
         }
         
         TRY(prb) {
-            *len      = dma[CHANNEL_SOUNDOUT].limit - dma[CHANNEL_SOUNDOUT].next;
-            *chaining = (dma[CHANNEL_SOUNDOUT].csr & DMA_SUPDATE) != 0;
+            *len   = dma[CHANNEL_SOUNDOUT].limit - dma[CHANNEL_SOUNDOUT].next;
             result = malloc(*len * 2);
-            for(int i = 0; dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit; dma[CHANNEL_SOUNDOUT].next++, i++)
+            for(i = 0; dma[CHANNEL_SOUNDOUT].next<dma[CHANNEL_SOUNDOUT].limit; dma[CHANNEL_SOUNDOUT].next++, i++)
                 result[i] = NEXTMemory_ReadByte(dma[CHANNEL_SOUNDOUT].next);
         } CATCH(prb) {
             Log_Printf(LOG_WARN, "[DMA] Channel Sound Out: Bus error reading from %08x",dma[CHANNEL_SOUNDOUT].next);
@@ -742,7 +723,9 @@ Uint8* dma_sndout_read_memory(int* len, bool* chaining) {
 }
 
 void dma_sndout_intr() {
-    dma_interrupt(CHANNEL_SOUNDOUT);
+    if (dma[CHANNEL_SOUNDOUT].csr&DMA_ENABLE) {
+        dma_interrupt(CHANNEL_SOUNDOUT);
+    }
 }
 
 int dma_sndin_write_memory() {
@@ -900,55 +883,76 @@ bool dma_enet_read_memory(void) {
 
 
 /* Memory to Memory */
-#define DMA_M2M_CYCLES    1//((DMA_BURST_SIZE * 3) / 4)
+
+Uint32 m2m_buffer[DMA_BURST_SIZE];
+int m2m_buffer_size;
+
+void M2MDMA_IO_Handler(void) {
+    CycInt_AcknowledgeInterrupt();
+    
+    if (dma[CHANNEL_R2M].csr&DMA_ENABLE) {
+        dma_m2m_write_memory();
+        CycInt_AddRelativeInterruptCycles(4, INTERRUPT_M2M_IO);
+    }
+}
+
+void dma_m2m(void) {
+    if ((dma[CHANNEL_M2R].csr&DMA_ENABLE) && (dma[CHANNEL_R2M].csr&DMA_ENABLE)) {
+        if (((dma[CHANNEL_R2M].limit-dma[CHANNEL_R2M].next)%DMA_BURST_SIZE) ||
+            ((dma[CHANNEL_M2R].limit-dma[CHANNEL_M2R].next)%DMA_BURST_SIZE)) {
+            Log_Printf(LOG_WARN, "[DMA] Channel M2M: Error! Memory not burst size aligned!");
+            return;
+        }
+        
+        Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel M2M: Copying %i bytes from $%08X to %i bytes at $%08X.",
+                   dma[CHANNEL_M2R].limit-dma[CHANNEL_M2R].next,dma[CHANNEL_M2R].next,
+                   dma[CHANNEL_R2M].limit-dma[CHANNEL_R2M].next,dma[CHANNEL_R2M].next);
+        
+        CycInt_AddRelativeInterruptCycles(4, INTERRUPT_M2M_IO);
+    }
+}
 
 void dma_m2m_write_memory(void) {
-    int i;
-    int time = 0;
-    Uint32 m2m_buffer[DMA_BURST_SIZE/4];
     
-    if (((dma[CHANNEL_R2M].limit-dma[CHANNEL_R2M].next)%DMA_BURST_SIZE) ||
-        ((dma[CHANNEL_M2R].limit-dma[CHANNEL_M2R].next)%DMA_BURST_SIZE)) {
-        Log_Printf(LOG_WARN, "[DMA] Channel M2M: Error! Memory not burst size aligned!");
-    }
-    
-    Log_Printf(LOG_DMA_LEVEL, "[DMA] Channel M2M: Copying %i bytes from $%08X to $%08X.",
-               dma[CHANNEL_R2M].limit-dma[CHANNEL_R2M].next,dma[CHANNEL_M2R].next,dma[CHANNEL_R2M].next);
-    
-    while (dma[CHANNEL_R2M].next<dma[CHANNEL_R2M].limit) {
-        time+=DMA_M2M_CYCLES;
+    if (dma[CHANNEL_R2M].next<dma[CHANNEL_R2M].limit) {
 
         if (dma[CHANNEL_M2R].next<dma[CHANNEL_M2R].limit) {
+            /* (Re)fill the buffer, if there is still data to read */
+            m2m_buffer_size = 0;
+
             TRY(prb) {
-                /* (Re)fill the buffer, if there is still data to read */
-                for (i=0; i<DMA_BURST_SIZE; i+=4) {
-                    m2m_buffer[i/4]=NEXTMemory_ReadLong(dma[CHANNEL_M2R].next+i);
+                while (m2m_buffer_size < DMA_BURST_SIZE) {
+                    m2m_buffer[m2m_buffer_size]=NEXTMemory_ReadByte(dma[CHANNEL_M2R].next);
+                    m2m_buffer_size++;
+                    dma[CHANNEL_M2R].next++;
                 }
-                dma[CHANNEL_M2R].next+=DMA_BURST_SIZE;
             } CATCH(prb) {
-                Log_Printf(LOG_WARN, "[DMA] Channel M2M: Bus error while reading from %08x",dma[CHANNEL_M2R].next+i);
+                Log_Printf(LOG_WARN, "[DMA] Channel M2M: Bus error while reading from %08x",dma[CHANNEL_M2R].next);
                 dma[CHANNEL_M2R].csr &= ~DMA_ENABLE;
                 dma[CHANNEL_M2R].csr |= (DMA_COMPLETE|DMA_BUSEXC);
             } ENDTRY
             
-            if ((dma[CHANNEL_M2R].next==dma[CHANNEL_M2R].limit)||(dma[CHANNEL_M2R].csr&DMA_BUSEXC)) {
-                CycInt_AddRelativeInterruptTicks(time/4, INTERRUPT_M2R);
-            }
+            dma_interrupt(CHANNEL_M2R);
+        } else {
+            /* Re-use data in buffer */
+            m2m_buffer_size = DMA_BURST_SIZE;
         }
         
         TRY(prb) {
             /* Write the contents of the buffer to memory */
-            for (i=0; i<DMA_BURST_SIZE; i+=4) {
-                NEXTMemory_WriteLong(dma[CHANNEL_R2M].next+i, m2m_buffer[i/4]);
+            while (m2m_buffer_size > 0) {
+                NEXTMemory_WriteByte(dma[CHANNEL_R2M].next, m2m_buffer[DMA_BURST_SIZE-m2m_buffer_size]);
+                m2m_buffer_size--;
+                dma[CHANNEL_R2M].next++;
             }
-            dma[CHANNEL_R2M].next+=DMA_BURST_SIZE;
         } CATCH(prb) {
-            Log_Printf(LOG_WARN, "[DMA] Channel M2M: Bus error while writing to %08x",dma[CHANNEL_R2M].next+i);
+            Log_Printf(LOG_WARN, "[DMA] Channel M2M: Bus error while writing to %08x",dma[CHANNEL_R2M].next);
             dma[CHANNEL_R2M].csr &= ~DMA_ENABLE;
             dma[CHANNEL_R2M].csr |= (DMA_COMPLETE|DMA_BUSEXC);
         } ENDTRY
     }
-    CycInt_AddRelativeInterruptTicks(time/4, INTERRUPT_R2M);
+    
+    dma_interrupt(CHANNEL_R2M);
 }
 
 
@@ -1105,6 +1109,8 @@ void TDMA_CSR_Write(void) {
 	switch (writecsr&TDMA_CMD_MASK) {
 		case TDMA_RESET:
 			Log_Printf(LOG_DMA_LEVEL,"DMA reset"); break;
+		case TDMA_BUFRESET:
+			Log_Printf(LOG_DMA_LEVEL,"DMA initialize buffers"); break;
 		case (TDMA_RESET | TDMA_BUFRESET):
 		case (TDMA_RESET | TDMA_BUFRESET | TDMA_CLRCOMPLETE):
 			Log_Printf(LOG_DMA_LEVEL,"DMA reset and initialize buffers"); break;

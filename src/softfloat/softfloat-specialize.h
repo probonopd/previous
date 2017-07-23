@@ -50,6 +50,15 @@ void float_raise( int8 flags )
 
 }
 
+#ifdef SOFTFLOAT_I860
+void float_raise2( int8 flags )
+{
+    
+    float_exception_flags2 |= flags;
+    
+}
+#endif
+
 /*----------------------------------------------------------------------------
 | Internal canonical NaN format.
 *----------------------------------------------------------------------------*/
@@ -92,7 +101,11 @@ static commonNaNT float32ToCommonNaN( float32 a )
 {
     commonNaNT z;
 
+#ifdef SOFTFLOAT_I860
+    if ( float32_is_signaling_nan( a ) ) float_raise2( float_flag_signaling );
+#else
     if ( float32_is_signaling_nan( a ) ) float_raise( float_flag_signaling );
+#endif
     z.sign = a>>31;
     z.low = 0;
     z.high = ( (bits64) a )<<41;
@@ -128,7 +141,11 @@ static float32 propagateFloat32NaN( float32 a, float32 b )
     bIsSignalingNaN = float32_is_signaling_nan( b );
     a |= 0x00400000;
     b |= 0x00400000;
+#ifdef SOFTFLOAT_I860
+    if ( aIsSignalingNaN | bIsSignalingNaN ) float_raise2( float_flag_signaling );
+#else
     if ( aIsSignalingNaN | bIsSignalingNaN ) float_raise( float_flag_signaling );
+#endif
     if ( aIsNaN ) {
         return ( aIsSignalingNaN & bIsNaN ) ? b : a;
     }
@@ -174,7 +191,11 @@ static commonNaNT float64ToCommonNaN( float64 a )
 {
     commonNaNT z;
 
+#ifdef SOFTFLOAT_I860
+    if ( float64_is_signaling_nan( a ) ) float_raise2( float_flag_signaling );
+#else
     if ( float64_is_signaling_nan( a ) ) float_raise( float_flag_signaling );
+#endif
     z.sign = a>>63;
     z.low = 0;
     z.high = a<<12;
@@ -213,7 +234,11 @@ static float64 propagateFloat64NaN( float64 a, float64 b )
     bIsSignalingNaN = float64_is_signaling_nan( b );
     a |= LIT64( 0x0008000000000000 );
     b |= LIT64( 0x0008000000000000 );
+#ifdef SOFTFLOAT_I860
+    if ( aIsSignalingNaN | bIsSignalingNaN ) float_raise2( float_flag_signaling );
+#else
     if ( aIsSignalingNaN | bIsSignalingNaN ) float_raise( float_flag_signaling );
+#endif
     if ( aIsNaN ) {
         return ( aIsSignalingNaN & bIsNaN ) ? b : a;
     }
@@ -264,7 +289,7 @@ flag floatx80_is_signaling_nan( floatx80 a )
 flag floatx80_is_zero( floatx80 a )
 {
     
-    return ( ( a.high & 0x7FFF ) == 0 ) && ( a.low == 0 );
+    return ( ( a.high & 0x7FFF ) < 0x7FFF ) && ( a.low == 0 );
     
 }
 

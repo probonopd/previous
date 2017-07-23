@@ -59,19 +59,19 @@ void dma_dsp_write_memory(Uint8 val);
 Uint8 dma_dsp_read_memory(void);
 bool dma_dsp_ready(void);
 
+void dma_m2m(void);
 void dma_m2m_write_memory(void);
 
 void dma_scc_read_memory(void);
 
-Uint8* dma_sndout_read_memory(int* len, bool* chaining);
+Uint8* dma_sndout_read_memory(int* len);
 void   dma_sndout_intr(void);
 int    dma_sndin_write_memory(void);
 
 void dma_printer_read_memory(void);
 
-/* Delayed DMA interrupt handlers */
-void M2RDMA_InterruptHandler(void);
-void R2MDMA_InterruptHandler(void);
+/* M2M DMA IO handler */
+void M2MDMA_IO_Handler(void);
 
 /* Function for video interrupt */
 void dma_video_interrupt(void);

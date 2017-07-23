@@ -363,7 +363,7 @@ void lp_interface_command(Uint8 cmd, Uint32 data) {
                         lp_buffer.size = 0;
                     }
                     Statusbar_AddMessage("Laser Printer Printing Page.", 0);
-                    CycInt_AddRelativeInterruptTicks(1000, INTERRUPT_LP_IO);
+                    CycInt_AddRelativeInterruptUs(1000, 100, INTERRUPT_LP_IO);
                 } else {
                     Log_Printf(LOG_LP_LEVEL,"[LP] Disable printer data transfer");
                     if (lp_data_transfer) {
@@ -628,7 +628,7 @@ void Printer_IO_Handler(void) {
         
         lp_buffer.size = 0;
         
-        CycInt_AddRelativeInterruptTicks(100000, INTERRUPT_LP_IO);
+        CycInt_AddRelativeInterruptUs(10000, 1000, INTERRUPT_LP_IO);
     }
 }
 

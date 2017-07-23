@@ -46,7 +46,6 @@ int    usCheckCycles;
 static Sint64 nCyclesOver;
 Sint64 nCyclesMainCounter;         /* Main cycles counter, counts emulated CPU cycles sind reset */
 
-static const Sint64 TICK_RATE = 8; /* Tick rate is 8MHz */
 
 /* List of possible interrupt handlers to be store in 'PendingInterruptTable',
  * used for 'MemorySnapShot' */
@@ -58,8 +57,7 @@ static void (* const pIntHandlerFunctions[MAX_INTERRUPTS])(void) =
     Mouse_Handler,
     ESP_InterruptHandler,
     ESP_IO_Handler,
-    M2RDMA_InterruptHandler,
-    R2MDMA_InterruptHandler,
+    M2MDMA_IO_Handler,
     MO_InterruptHandler,
     MO_IO_Handler,
     ECC_IO_Handler,
@@ -135,6 +133,10 @@ static void CycInt_UpdateInterrupt(void) {
 	Sint64 CycleSubtract;
 	int i;
 
+	/* Skip this if pending interrupt type is microsecond */
+	if (PendingInterrupt.type == CYC_INT_US)
+		return;
+
 	/* Find out how many cycles we went over (<=0) */
 	nCyclesOver = PendingInterrupt.time;
 	/* Calculate how many cycles have passed, included time we went over */
@@ -153,12 +155,14 @@ static void CycInt_UpdateInterrupt(void) {
  */
 bool CycInt_SetNewInterruptUs(void) {
     Sint64 now = host_time_us();
-    for(int i = 0; i < MAX_INTERRUPTS; i++) {
-        if (InterruptHandlers[i].type == CYC_INT_US && now > InterruptHandlers[i].time) {
-            PendingInterrupt = InterruptHandlers[i];
-            PendingInterrupt.time = -1;
-            ActiveInterrupt       = i;
-            return true;
+    if (ConfigureParams.System.bRealtime) {
+        for(int i = 0; i < MAX_INTERRUPTS; i++) {
+            if (InterruptHandlers[i].type == CYC_INT_US && now > InterruptHandlers[i].time) {
+                PendingInterrupt = InterruptHandlers[i];
+                PendingInterrupt.time = -1;
+                ActiveInterrupt       = i;
+                return true;
+            }
         }
     }
     return false;
@@ -201,24 +205,18 @@ void CycInt_AddRelativeInterruptCycles(Sint64 CycleTime, interrupt_id Handler) {
 
 /*-----------------------------------------------------------------------*/
 /**
- * Add interrupt to occur from now.
- */
-void CycInt_AddRelativeInterruptTicks(Sint64 TickTime, interrupt_id Handler) {
-    TickTime *= ConfigureParams.System.nCpuFreq;
-    CycInt_AddRelativeInterruptCycles(TickTime / TICK_RATE, Handler);
-}
-
-/*-----------------------------------------------------------------------*/
-/**
  * Add interrupt to occur us microsencods from now
+ * Use usreal if we are in realtime mode
  */
-void CycInt_AddRelativeInterruptUs(Sint64 us, interrupt_id Handler) {
+void CycInt_AddRelativeInterruptUs(Sint64 us, Sint64 usreal, interrupt_id Handler) {
     assert(us >= 0);
     
     if(ConfigureParams.System.bRealtime) {
         /* Update list cycle counts with current PendingInterruptCount before adding a new int, */
         /* because CycInt_SetNewInterrupt can change the active int / PendingInterruptCount */
         if ( ActiveInterrupt > 0 ) CycInt_UpdateInterrupt();
+        
+        if ( usreal > 0 ) us = usreal;
         
         InterruptHandlers[Handler].type = CYC_INT_US;
         InterruptHandlers[Handler].time = host_time_us() + us;
@@ -228,6 +226,20 @@ void CycInt_AddRelativeInterruptUs(Sint64 us, interrupt_id Handler) {
     } else {
         CycInt_AddRelativeInterruptCycles(us * ConfigureParams.System.nCpuFreq, Handler);
     }
+}
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Add interrupt to occur microseconds from now. Convert to cycles.
+ * Use UsTimeFast if we are in realtime mode.
+ */
+void CycInt_AddRelativeInterruptUsCycles(Sint64 us, Sint64 usreal, interrupt_id Handler) {
+    
+    if (ConfigureParams.System.bRealtime && usreal > 0) {
+       us = usreal;
+    }
+
+    CycInt_AddRelativeInterruptCycles(us * ConfigureParams.System.nCpuFreq, Handler);
 }
 
 /*-----------------------------------------------------------------------*/

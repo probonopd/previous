@@ -35,6 +35,7 @@
  * - (SC) Instruction cache implemented (not present in MAME version)
  * - (SC) Added dual-instruction-mode support (removed in MAME version)
  * - (SC) Added rounding mode support and insn_fix
+ * - (AG) Added machine independent floating point emulation library
  * Generic notes:
  * - There is some amount of code duplication (e.g., see the
  *   various insn_* routines for the branches and FP routines) that
@@ -45,18 +46,6 @@
  *   today also use IEEE FP.
  *
  */
-#include <math.h>
-#include <assert.h>
-
-#ifdef __MINGW32__
-#define _GLIBCXX_HAVE_FENV_H 1
-#endif
-#include <fenv.h>
-
-#if __APPLE__
-#else
-#pragma STDC FENV_ACCESS ON
-#endif
 
 #define DELAY_SLOT_PC() ((m_dim == DIM_FULL) ? 12 : 8)
 #define DELAY_SLOT() do{\
@@ -616,12 +605,8 @@ void i860_cpu_device::insn_st_ctrl (UINT32 insn)
 		UINT32 enew = get_iregval (isrc1) & 0x003e01ef;
 		UINT32 tmp = m_cregs[CR_FSR] & ~0x003e01ef;
 		m_cregs[CR_FSR] = enew | tmp;
-        switch(GET_FSR_RM()) {
-            case 0: fesetround(FE_TONEAREST);  break;
-            case 1: fesetround(FE_DOWNWARD);   break;
-            case 2: fesetround(FE_UPWARD);     break;
-            case 3: fesetround(FE_TOWARDZERO); break;
-        }
+
+		float_set_rounding_mode (GET_FSR_RM());
 	}
 	else if (csrc2 != CR_FIR)
 		m_cregs[csrc2] = get_iregval (isrc1);
@@ -900,10 +885,10 @@ void i860_cpu_device::insn_fldy (UINT32 insn)
 		m_L[2] = m_L[1];
 		m_L[1] = m_L[0];
 		if (size == 8) {
-            m_L[0].val.d = *((double*)bebuf);
+			m_L[0].val.d = *((FLOAT64*)bebuf);
 			m_L[0].stat.lrp = 1;
 		} else {
-            m_L[0].val.s = *((float*)bebuf);
+			m_L[0].val.s = *((FLOAT32*)bebuf);
 			m_L[0].stat.lrp = 0;
 		}
 	}
@@ -1019,7 +1004,7 @@ void i860_cpu_device::insn_ixfr (UINT32 insn)
 
 	/* This is a bit-pattern transfer, not a conversion.  */
 	iv = get_iregval (isrc1);
-	set_fregval_s (fdest, *(float *)&iv);
+	set_fregval_s (fdest, *(FLOAT32 *)&iv);
 }
 
 
@@ -2204,10 +2189,10 @@ void i860_cpu_device::insn_fmul (UINT32 insn)
 	int src_prec = insn & 0x100;     /* 1 = double, 0 = single.  */
 	int res_prec = insn & 0x080;     /* 1 = double, 0 = single.  */
 	int piped = insn & 0x400;        /* 1 = pipelined, 0 = scalar.  */
-	double dbl_tmp_dest = 0.0;
-	float sgl_tmp_dest = 0.0;
-	double dbl_last_stage_contents = 0.0;
-	float sgl_last_stage_contents = 0.0;
+	FLOAT64 dbl_tmp_dest = FLOAT64_ZERO;
+	FLOAT32 sgl_tmp_dest = FLOAT32_ZERO;
+	FLOAT64 dbl_last_stage_contents = FLOAT64_ZERO;
+	FLOAT32 sgl_last_stage_contents = FLOAT32_ZERO;
 	int is_pfmul3 = insn & 0x4;
 	int num_stages = (src_prec && !is_pfmul3) ? 2 : 3;
 
@@ -2244,8 +2229,8 @@ void i860_cpu_device::insn_fmul (UINT32 insn)
 	   precision.  */
 	if (src_prec)
 	{
-		double v1 = get_fregval_d (fsrc1);
-		double v2 = get_fregval_d (fsrc2);
+		FLOAT64 v1 = get_fregval_d (fsrc1);
+		FLOAT64 v2 = get_fregval_d (fsrc2);
 
 		/* For pipelined mul, if fsrc2 is the same as fdest, then the last
 		   stage is bypassed to fsrc2 (rather than using the value in fsrc2).
@@ -2256,14 +2241,14 @@ void i860_cpu_device::insn_fmul (UINT32 insn)
 			v2 = dbl_last_stage_contents;
 
 		if (res_prec)
-			dbl_tmp_dest = v1 * v2;
+			dbl_tmp_dest = float64_mul (v1, v2);
 		else
-			sgl_tmp_dest = (float)(v1 * v2);
+			sgl_tmp_dest = float64_to_float32 (float64_mul (v1, v2));
 	}
 	else
 	{
-		float v1 = get_fregval_s (fsrc1);
-		float v2 = get_fregval_s (fsrc2);
+		FLOAT32 v1 = get_fregval_s (fsrc1);
+		FLOAT32 v2 = get_fregval_s (fsrc2);
 
 		/* For pipelined mul, if fsrc2 is the same as fdest, then the last
 		   stage is bypassed to fsrc2 (rather than using the value in fsrc2).
@@ -2274,9 +2259,9 @@ void i860_cpu_device::insn_fmul (UINT32 insn)
 			v2 = sgl_last_stage_contents;
 
 		if (res_prec)
-			dbl_tmp_dest = (double)(v1 * v2);
+			dbl_tmp_dest = float64_mul (float32_to_float64 (v1), float32_to_float64 (v2));
 		else
-			sgl_tmp_dest = v1 * v2;
+			sgl_tmp_dest = float32_mul (v1, v2);
 	}
 
 	/* FIXME: Set result-status bits besides MRP. And copy to fsr from
@@ -2340,8 +2325,8 @@ void i860_cpu_device::insn_fmlow (UINT32 insn)
 	UINT32 fsrc2 = get_fsrc2 (insn);
 	UINT32 fdest = get_fdest (insn);
 
-	double v1 = get_fregval_d (fsrc1);
-	double v2 = get_fregval_d (fsrc2);
+	FLOAT64 v1 = get_fregval_d (fsrc1);
+	FLOAT64 v2 = get_fregval_d (fsrc2);
 	INT64 i1 = *(UINT64 *)&v1;
 	INT64 i2 = *(UINT64 *)&v2;
 	INT64 tmp = 0;
@@ -2364,7 +2349,7 @@ void i860_cpu_device::insn_fmlow (UINT32 insn)
     tmp = i1 * i2;
 	tmp &= 0x001fffffffffffffULL;
 	tmp |= (i1 & 0x8000000000000000LL) ^ (i2 & 0x8000000000000000LL);
-	set_fregval_d (fdest, *(double *)&tmp);
+	set_fregval_d (fdest, *(FLOAT64 *)&tmp);
 }
 
 
@@ -2378,11 +2363,11 @@ void i860_cpu_device::insn_fadd_sub (UINT32 insn)
 	int res_prec = insn & 0x080;     /* 1 = double, 0 = single.  */
 	int piped = insn & 0x400;        /* 1 = pipelined, 0 = scalar.  */
 	int is_sub = insn & 1;           /* 1 = sub, 0 = add.  */
-	double dbl_tmp_dest = 0.0;
-	float sgl_tmp_dest = 0.0;
-	double dbl_last_stage_contents = 0.0;
-	float sgl_last_stage_contents = 0.0;
-
+	FLOAT64 dbl_tmp_dest = FLOAT64_ZERO;
+	FLOAT32 sgl_tmp_dest = FLOAT32_ZERO;
+	FLOAT64 dbl_last_stage_contents = FLOAT64_ZERO;
+	FLOAT32 sgl_last_stage_contents = FLOAT32_ZERO;
+    
 #if TRACE_UNDEFINED_I860
 	/* Check for invalid .ds combination.  */
 	if ((insn & 0x180) == 0x100)
@@ -2408,8 +2393,8 @@ void i860_cpu_device::insn_fadd_sub (UINT32 insn)
 	   precision.  */
 	if (src_prec)
 	{
-		double v1 = get_fregval_d (fsrc1);
-		double v2 = get_fregval_d (fsrc2);
+		FLOAT64 v1 = get_fregval_d (fsrc1);
+		FLOAT64 v2 = get_fregval_d (fsrc2);
 
 		/* For pipelined add/sub, if fsrc1 is the same as fdest, then the last
 		   stage is bypassed to fsrc1 (rather than using the value in fsrc1).
@@ -2420,14 +2405,14 @@ void i860_cpu_device::insn_fadd_sub (UINT32 insn)
 			v2 = dbl_last_stage_contents;
 
 		if (res_prec)
-			dbl_tmp_dest = is_sub ? v1 - v2 : v1 + v2;
+			dbl_tmp_dest = is_sub ? float64_sub (v1, v2) : float64_add (v1, v2);
 		else
-			sgl_tmp_dest = is_sub ? (float)(v1 - v2) : (float)(v1 + v2);
+			sgl_tmp_dest = is_sub ? float64_to_float32 (float64_sub (v1, v2)) : float64_to_float32 (float64_add (v1, v2));
 	}
 	else
 	{
-		float v1 = get_fregval_s (fsrc1);
-		float v2 = get_fregval_s (fsrc2);
+		FLOAT32 v1 = get_fregval_s (fsrc1);
+		FLOAT32 v2 = get_fregval_s (fsrc2);
 
 		/* For pipelined add/sub, if fsrc1 is the same as fdest, then the last
 		   stage is bypassed to fsrc1 (rather than using the value in fsrc1).
@@ -2438,9 +2423,9 @@ void i860_cpu_device::insn_fadd_sub (UINT32 insn)
 			v2 = sgl_last_stage_contents;
 
 		if (res_prec)
-			dbl_tmp_dest = is_sub ? (double)(v1 - v2) : (double)(v1 + v2);
+			dbl_tmp_dest = is_sub ? float64_sub (float32_to_float64 (v1), float32_to_float64 (v2)) : float64_add (float32_to_float64 (v1), float32_to_float64 (v2));
 		else
-			sgl_tmp_dest = is_sub ? v1 - v2 : v1 + v2;
+			sgl_tmp_dest = is_sub ? float32_sub (v1, v2) : float32_add (v1, v2);
 	}
 
 	/* FIXME: Set result-status bits besides ARP. And copy to fsr from
@@ -2509,19 +2494,19 @@ void i860_cpu_device::insn_fix(UINT32 insn) {
      precision.  Operation: fdest = integer part of fsrc1 in
      lower 32-bits.  */
     if (src_prec) {
-        double v1 = get_fregval_d (fsrc1);
-        INT32 iv = rint(v1);
+        FLOAT64 v1 = get_fregval_d (fsrc1);
+        INT32 iv = float64_to_int32 (v1);
         /* We always write a single, since the lower 32-bits of fdest
          get the result (and the even numbered reg is the lower).  */
-        set_fregval_s (fdest, *(float *)&iv);
+        set_fregval_s (fdest, *(FLOAT32 *)&iv);
     }
     else
     {
-        float v1 = get_fregval_s (fsrc1);
-        INT32 iv = rint(v1);
+        FLOAT32 v1 = get_fregval_s (fsrc1);
+        INT32 iv = float32_to_int32 (v1);
         /* We always write a single, since the lower 32-bits of fdest
          get the result (and the even numbered reg is the lower).  */
-        set_fregval_s (fdest, *(float *)&iv);
+        set_fregval_s (fdest, *(FLOAT32 *)&iv);
     }
     
     /* FIXME: Handle updating of pipestages for pfix.  */
@@ -2530,9 +2515,9 @@ void i860_cpu_device::insn_fix(UINT32 insn) {
     {
         Log_Printf(LOG_WARN, "[i860:%08X] insn_fix: FIXME: pipelined not functional yet", m_pc);
         if (res_prec)
-            set_fregval_d (fdest, 0.0);
+            set_fregval_d (fdest, FLOAT64_ZERO);
         else
-            set_fregval_s (fdest, 0.0);
+            set_fregval_s (fdest, FLOAT32_ZERO);
     }
 }
 
@@ -2582,9 +2567,9 @@ static const struct
 	/* 1111 */ { OP_SRC1, OP_SRC2,        OP_T,           OP_APIPE|FLAGM, 0, 0}
 };
 
-float i860_cpu_device::get_fval_from_optype_s (UINT32 insn, int optype)
+FLOAT32 i860_cpu_device::get_fval_from_optype_s (UINT32 insn, int optype)
 {
-	float retval = 0.0;
+	FLOAT32 retval = FLOAT32_ZERO;
 	UINT32 fsrc1 = get_fsrc1 (insn);
 	UINT32 fsrc2 = get_fsrc2 (insn);
 
@@ -2621,9 +2606,9 @@ float i860_cpu_device::get_fval_from_optype_s (UINT32 insn, int optype)
 }
 
 
-double i860_cpu_device::get_fval_from_optype_d (UINT32 insn, int optype)
+FLOAT64 i860_cpu_device::get_fval_from_optype_d (UINT32 insn, int optype)
 {
-	double retval = 0.0;
+	FLOAT64 retval = FLOAT64_ZERO;
 	UINT32 fsrc1 = get_fsrc1 (insn);
 	UINT32 fsrc2 = get_fsrc2 (insn);
 
@@ -2679,14 +2664,14 @@ void i860_cpu_device::insn_dualop (UINT32 insn)
 	int res_prec = insn & 0x080;     /* 1 = double, 0 = single.  */
 	int is_pfam = insn & 0x400;      /* 1 = pfam, 0 = pfmam.  */
 	int is_sub = insn & 0x10;        /* 1 = pf[m]sm, 0 = pf[m]am.  */
-	double dbl_tmp_dest_mul = 0.0;
-	float sgl_tmp_dest_mul = 0.0;
-	double dbl_tmp_dest_add = 0.0;
-	float sgl_tmp_dest_add = 0.0;
-	double dbl_last_Mstage_contents = 0.0;
-	float sgl_last_Mstage_contents = 0.0;
-	double dbl_last_Astage_contents = 0.0;
-	float sgl_last_Astage_contents = 0.0;
+	FLOAT64 dbl_tmp_dest_mul = FLOAT64_ZERO;
+	FLOAT32 sgl_tmp_dest_mul = FLOAT32_ZERO;
+	FLOAT64 dbl_tmp_dest_add = FLOAT64_ZERO;
+	FLOAT32 sgl_tmp_dest_add = FLOAT32_ZERO;
+	FLOAT64 dbl_last_Mstage_contents = FLOAT64_ZERO;
+	FLOAT32 sgl_last_Mstage_contents = FLOAT32_ZERO;
+	FLOAT64 dbl_last_Astage_contents = FLOAT64_ZERO;
+	FLOAT32 sgl_last_Astage_contents = FLOAT32_ZERO;
 	int num_mul_stages = src_prec ? 2 : 3;
 
 	int dpc = insn & 0xf;
@@ -2745,8 +2730,8 @@ void i860_cpu_device::insn_dualop (UINT32 insn)
 	   precision.  */
 	if (src_prec)
 	{
-		double v1 = get_fval_from_optype_d (insn, M_unit_op1);
-		double v2 = get_fval_from_optype_d (insn, M_unit_op2);
+		FLOAT64 v1 = get_fval_from_optype_d (insn, M_unit_op1);
+		FLOAT64 v2 = get_fval_from_optype_d (insn, M_unit_op2);
 
 		/* For mul, if fsrc2 is the same as fdest, then the last stage
 		   is bypassed to fsrc2 (rather than using the value in fsrc2).
@@ -2757,14 +2742,14 @@ void i860_cpu_device::insn_dualop (UINT32 insn)
 			v2 = is_pfam ? dbl_last_Astage_contents : dbl_last_Mstage_contents;
 
 		if (res_prec)
-			dbl_tmp_dest_mul = v1 * v2;
+			dbl_tmp_dest_mul = float64_mul (v1, v2);
 		else
-			sgl_tmp_dest_mul = (float)(v1 * v2);
+			sgl_tmp_dest_mul = float64_to_float32 (float64_mul (v1, v2));
 	}
 	else
 	{
-		float v1 = get_fval_from_optype_s (insn, M_unit_op1);
-		float v2 = get_fval_from_optype_s (insn, M_unit_op2);
+		FLOAT32 v1 = get_fval_from_optype_s (insn, M_unit_op1);
+		FLOAT32 v2 = get_fval_from_optype_s (insn, M_unit_op2);
 
 		/* For mul, if fsrc2 is the same as fdest, then the last stage
 		   is bypassed to fsrc2 (rather than using the value in fsrc2).
@@ -2775,9 +2760,9 @@ void i860_cpu_device::insn_dualop (UINT32 insn)
 			v2 = is_pfam ? sgl_last_Astage_contents : sgl_last_Mstage_contents;
 
 		if (res_prec)
-			dbl_tmp_dest_mul = (double)(v1 * v2);
+			dbl_tmp_dest_mul = float64_mul (float32_to_float64 (v1), float32_to_float64 (v2));
 		else
-			sgl_tmp_dest_mul = v1 * v2;
+			sgl_tmp_dest_mul = float32_mul (v1, v2);
 	}
 
 	/* Do the add operation, being careful about source and result
@@ -2785,8 +2770,8 @@ void i860_cpu_device::insn_dualop (UINT32 insn)
 	   here.  */
 	if (res_prec)
 	{
-		double v1 = get_fval_from_optype_d (insn, A_unit_op1);
-		double v2 = get_fval_from_optype_d (insn, A_unit_op2);
+		FLOAT64 v1 = get_fval_from_optype_d (insn, A_unit_op1);
+		FLOAT64 v2 = get_fval_from_optype_d (insn, A_unit_op2);
 
 		/* For add/sub, if fsrc1 is the same as fdest, then the last stage
 		   is bypassed to fsrc1 (rather than using the value in fsrc1).
@@ -2797,14 +2782,14 @@ void i860_cpu_device::insn_dualop (UINT32 insn)
 			v2 = is_pfam ? dbl_last_Astage_contents : dbl_last_Mstage_contents;
 
 		if (res_prec)
-			dbl_tmp_dest_add = is_sub ? v1 - v2 : v1 + v2;
+			dbl_tmp_dest_add = is_sub ? float64_sub (v1, v2) : float64_add (v1, v2);
 		else
-			sgl_tmp_dest_add = is_sub ? (float)(v1 - v2) : (float)(v1 + v2);
+			sgl_tmp_dest_add = is_sub ? float64_to_float32 (float64_sub (v1, v2)) : float64_to_float32 (float64_add (v1, v2));
 	}
 	else
 	{
-		float v1 = get_fval_from_optype_s (insn, A_unit_op1);
-		float v2 = get_fval_from_optype_s (insn, A_unit_op2);
+		FLOAT32 v1 = get_fval_from_optype_s (insn, A_unit_op1);
+		FLOAT32 v2 = get_fval_from_optype_s (insn, A_unit_op2);
 
 		/* For add/sub, if fsrc1 is the same as fdest, then the last stage
 		   is bypassed to fsrc1 (rather than using the value in fsrc1).
@@ -2815,9 +2800,9 @@ void i860_cpu_device::insn_dualop (UINT32 insn)
 			v2 = is_pfam ? sgl_last_Astage_contents : sgl_last_Mstage_contents;
 
 		if (res_prec)
-			dbl_tmp_dest_add = is_sub ? (double)(v1 - v2) : (double)(v1 + v2);
+			dbl_tmp_dest_add = is_sub ? float64_sub (float32_to_float64 (v1), float32_to_float64 (v2)) : float64_add (float32_to_float64 (v1), float32_to_float64 (v2));
 		else
-			sgl_tmp_dest_add = is_sub ? v1 - v2 : v1 + v2;
+			sgl_tmp_dest_add = is_sub ? float32_sub (v1, v2) : float32_add (v1, v2);
 	}
 
 	/* If necessary, load T.  */
@@ -2946,9 +2931,9 @@ void i860_cpu_device::insn_frcp (UINT32 insn)
 	   precision.  */
 	if (src_prec)
 	{
-		double v = get_fregval_d (fsrc2);
-		double res;
-		if (v == (double)0.0)
+		FLOAT64 v = get_fregval_d (fsrc2);
+		FLOAT64 res;
+        if (FLOAT64_IS_ZERO(v))
 		{
 			/* Generate source-exception trap if fsrc2 is 0.  */
 			if (0 /* && GET_FSR_FTE () */)
@@ -2965,19 +2950,19 @@ void i860_cpu_device::insn_frcp (UINT32 insn)
 			   be okay.  */
 			SET_FSR_SE (0);
 			*((UINT64 *)&v) &= 0xfffff00000000000ULL;
-			res = (double)1.0/v;
+			res = float64_div (FLOAT64_ONE, v);
 			*((UINT64 *)&res) &= 0xfffff00000000000ULL;
 			if (res_prec)
 				set_fregval_d (fdest, res);
 			else
-				set_fregval_s (fdest, (float)res);
+				set_fregval_s (fdest, float64_to_float32 (res));
 		}
 	}
 	else
 	{
-		float v = get_fregval_s (fsrc2);
-		float res;
-		if (v == 0.0)
+		FLOAT32 v = get_fregval_s (fsrc2);
+		FLOAT32 res;
+		if (FLOAT32_IS_ZERO(v))
 		{
 			/* Generate source-exception trap if fsrc2 is 0.  */
 			if (0 /* GET_FSR_FTE () */)
@@ -2994,10 +2979,10 @@ void i860_cpu_device::insn_frcp (UINT32 insn)
 			   be okay.  */
 			SET_FSR_SE (0);
 			*((UINT32 *)&v) &= 0xffff8000;
-			res = (float)1.0/v;
+			res = float32_div (FLOAT32_ONE, v);
 			*((UINT32 *)&res) &= 0xffff8000;
 			if (res_prec)
-				set_fregval_d (fdest, (double)res);
+				set_fregval_d (fdest, float32_to_float64 (res));
 			else
 				set_fregval_s (fdest, res);
 		}
@@ -3033,9 +3018,9 @@ void i860_cpu_device::insn_frsqr (UINT32 insn)
 	   precision.  */
 	if (src_prec)
 	{
-		double v = get_fregval_d (fsrc2);
-		double res;
-		if (v == 0.0 || v < 0.0)
+		FLOAT64 v = get_fregval_d (fsrc2);
+		FLOAT64 res;
+		if (FLOAT64_IS_ZERO(v) || FLOAT64_IS_NEG(v))
 		{
 			/* Generate source-exception trap if fsrc2 is 0 or negative.  */
 			if (0 /* GET_FSR_FTE () */)
@@ -3050,19 +3035,19 @@ void i860_cpu_device::insn_frsqr (UINT32 insn)
 		{
 			SET_FSR_SE (0);
 			*((UINT64 *)&v) &= 0xfffff00000000000ULL;
-			res = (double)1.0/sqrt (v);
+			res = float64_div (FLOAT64_ONE, float64_sqrt (v));
 			*((UINT64 *)&res) &= 0xfffff00000000000ULL;
 			if (res_prec)
 				set_fregval_d (fdest, res);
 			else
-				set_fregval_s (fdest, (float)res);
+				set_fregval_s (fdest, float64_to_float32 (res));
 		}
 	}
 	else
 	{
-		float v = get_fregval_s (fsrc2);
-		float res;
-		if (v == 0.0 || v < 0.0)
+		FLOAT32 v = get_fregval_s (fsrc2);
+		FLOAT32 res;
+		if (FLOAT32_IS_ZERO(v) || FLOAT32_IS_NEG(v))
 		{
 			/* Generate source-exception trap if fsrc2 is 0 or negative.  */
 			if (0 /* GET_FSR_FTE () */)
@@ -3077,10 +3062,10 @@ void i860_cpu_device::insn_frsqr (UINT32 insn)
 		{
 			SET_FSR_SE (0);
 			*((UINT32 *)&v) &= 0xffff8000;
-			res = (float)1.0/sqrt (v);
+			res = float32_div (FLOAT32_ONE, float32_sqrt (v));
 			*((UINT32 *)&res) &= 0xffff8000;
 			if (res_prec)
-				set_fregval_d (fdest, (double)res);
+				set_fregval_d (fdest, float32_to_float64 (res));
 			else
 				set_fregval_s (fdest, res);
 		}
@@ -3093,7 +3078,7 @@ void i860_cpu_device::insn_fxfr (UINT32 insn)
 {
 	UINT32 fsrc1 = get_fsrc1 (insn);
 	UINT32 idest = get_idest (insn);
-	float fv = 0;
+	FLOAT32 fv = FLOAT32_ZERO;
 
 	/* This is a bit-pattern transfer, not a conversion.  */
 	fv = get_fregval_s (fsrc1);
@@ -3131,19 +3116,19 @@ void i860_cpu_device::insn_ftrunc (UINT32 insn)
 	   lower 32-bits.  */
 	if (src_prec)
 	{
-		double v1 = get_fregval_d (fsrc1);
-		INT32 iv = (INT32)v1;
+		FLOAT64 v1 = get_fregval_d (fsrc1);
+		INT32 iv = float64_to_int32_round_to_zero (v1);
 		/* We always write a single, since the lower 32-bits of fdest
 		   get the result (and the even numbered reg is the lower).  */
-		set_fregval_s (fdest, *(float *)&iv);
+		set_fregval_s (fdest, *(FLOAT32 *)&iv);
 	}
 	else
 	{
-		float v1 = get_fregval_s (fsrc1);
-		INT32 iv = (INT32)v1;
+		FLOAT32 v1 = get_fregval_s (fsrc1);
+		INT32 iv = float32_to_int32_round_to_zero (v1);
 		/* We always write a single, since the lower 32-bits of fdest
 		   get the result (and the even numbered reg is the lower).  */
-		set_fregval_s (fdest, *(float *)&iv);
+		set_fregval_s (fdest, *(FLOAT32 *)&iv);
 	}
 
 	/* FIXME: Handle updating of pipestages for pftrunc.  */
@@ -3152,9 +3137,9 @@ void i860_cpu_device::insn_ftrunc (UINT32 insn)
 	{
 		Log_Printf(LOG_WARN, "[i860:%08X] insn_ftrunc: FIXME: pipelined not functional yet", m_pc);
 		if (res_prec)
-			set_fregval_d (fdest, 0.0);
+			set_fregval_d (fdest, FLOAT64_ZERO);
 		else
-			set_fregval_s (fdest, 0.0);
+			set_fregval_s (fdest, FLOAT32_ZERO);
 	}
 }
 
@@ -3167,24 +3152,24 @@ void i860_cpu_device::insn_famov (UINT32 insn)
 	int src_prec = insn & 0x100;     /* 1 = double, 0 = single.  */
 	int res_prec = insn & 0x080;     /* 1 = double, 0 = single.  */
 	int piped = insn & 0x400;        /* 1 = pipelined, 0 = scalar.  */
-	double dbl_tmp_dest = 0.0;
-	double sgl_tmp_dest = 0.0;
+	FLOAT64 dbl_tmp_dest = FLOAT64_ZERO;
+	FLOAT32 sgl_tmp_dest = FLOAT32_ZERO;
 
 	/* Do the operation, being careful about source and result
 	   precision.  */
 	if (src_prec)
 	{
-		double v1 = get_fregval_d (fsrc1);
+		FLOAT64 v1 = get_fregval_d (fsrc1);
 		if (res_prec)
 			dbl_tmp_dest = v1;
 		else
-			sgl_tmp_dest = (float)v1;
+			sgl_tmp_dest = float64_to_float32 (v1);
 	}
 	else
 	{
-		float v1 = get_fregval_s (fsrc1);
+		FLOAT32 v1 = get_fregval_s (fsrc1);
 		if (res_prec)
-			dbl_tmp_dest = (double)v1;
+			dbl_tmp_dest = float32_to_float64 (v1);
 		else
 			sgl_tmp_dest = v1;
 	}
@@ -3246,8 +3231,8 @@ void i860_cpu_device::insn_fiadd_sub (UINT32 insn)
 	int res_prec = insn & 0x080;     /* 1 = double, 0 = single.  */
 	int piped = insn & 0x400;        /* 1 = pipelined, 0 = scalar.  */
 	int is_sub = insn & 0x4;         /* 1 = sub, 0 = add.  */
-	double dbl_tmp_dest = 0.0;
-	float sgl_tmp_dest = 0.0;
+	FLOAT64 dbl_tmp_dest = FLOAT64_ZERO;
+	FLOAT32 sgl_tmp_dest = FLOAT32_ZERO;
 
 #if TRACE_UNDEFINED_I860
 	/* Check for invalid .ds and .sd combinations.  */
@@ -3262,8 +3247,8 @@ void i860_cpu_device::insn_fiadd_sub (UINT32 insn)
 	   precision.  */
 	if (src_prec)
 	{
-		double v1 = get_fregval_d (fsrc1);
-		double v2 = get_fregval_d (fsrc2);
+		FLOAT64 v1 = get_fregval_d (fsrc1);
+		FLOAT64 v2 = get_fregval_d (fsrc2);
 		UINT64 iv1 = *(UINT64 *)&v1;
 		UINT64 iv2 = *(UINT64 *)&v2;
 		UINT64 r;
@@ -3272,14 +3257,14 @@ void i860_cpu_device::insn_fiadd_sub (UINT32 insn)
 		else
 			r = iv1 + iv2;
 		if (res_prec)
-			dbl_tmp_dest = *(double *)&r;
+			dbl_tmp_dest = *(FLOAT64 *)&r;
 		else
 			assert (0);    /* .ds not allowed.  */
 	}
 	else
 	{
-		float v1 = get_fregval_s (fsrc1);
-		float v2 = get_fregval_s (fsrc2);
+		FLOAT32 v1 = get_fregval_s (fsrc1);
+		FLOAT32 v2 = get_fregval_s (fsrc2);
 		UINT64 iv1 = (UINT64)(*(UINT32 *)&v1);
 		UINT64 iv2 = (UINT64)(*(UINT32 *)&v2);
 		UINT32 r;
@@ -3290,7 +3275,7 @@ void i860_cpu_device::insn_fiadd_sub (UINT32 insn)
 		if (res_prec)
 			assert (0);    /* .sd not allowed.  */
 		else
-			sgl_tmp_dest = *(float *)&r;
+			sgl_tmp_dest = *(FLOAT32 *)&r;
 	}
 
 	/* FIXME: Copy result-status bit IRP to fsr from last stage.  */
@@ -3343,8 +3328,8 @@ void i860_cpu_device::insn_fcmp (UINT32 insn) {
 	UINT32 fsrc2 = get_fsrc2 (insn);
 	UINT32 fdest = get_fdest (insn);
 	int src_prec = insn & 0x100;     /* 1 = double, 0 = single.  */
-	double dbl_tmp_dest = 0.0;
-	double sgl_tmp_dest = 0.0;
+	FLOAT64 dbl_tmp_dest = FLOAT64_ZERO;
+	FLOAT32 sgl_tmp_dest = FLOAT32_ZERO;
 	/* int is_eq = insn & 1; */
 	int is_gt = ((insn & 0x81) == 0x00);
 	int is_le = ((insn & 0x81) == 0x80);
@@ -3362,23 +3347,23 @@ void i860_cpu_device::insn_fcmp (UINT32 insn) {
 	   result into the first stage of the adder pipeline.  We'll model
 	   this by just pushing in dbl_ or sgl_tmp_dest which equal 0.0.  */
 	if (src_prec) {
-		double v1 = get_fregval_d (fsrc1);
-		double v2 = get_fregval_d (fsrc2);
+		FLOAT64 v1 = get_fregval_d (fsrc1);
+		FLOAT64 v2 = get_fregval_d (fsrc2);
 		if (is_gt)                /* gt.  */
-			SET_PSR_CC_F (v1 > v2 ? 1 : 0);
+			SET_PSR_CC_F (float64_gt (v1, v2) ? 1 : 0); // v1 > v2
 		else if (is_le)           /* le.  */
-			SET_PSR_CC_F (v1 <= v2 ? 0 : 1);
+			SET_PSR_CC_F (float64_le (v1, v2) ? 0 : 1); // v1 <= v2
 		else                      /* eq.  */
-			SET_PSR_CC_F (v1 == v2 ? 1 : 0);
+			SET_PSR_CC_F (float64_eq (v1, v2) ? 1 : 0); // v1 == v2
 	} else {
-		float v1 = get_fregval_s (fsrc1);
-		float v2 = get_fregval_s (fsrc2);
+		FLOAT32 v1 = get_fregval_s (fsrc1);
+		FLOAT32 v2 = get_fregval_s (fsrc2);
 		if (is_gt)                /* gt.  */
-			SET_PSR_CC_F (v1 > v2 ? 1 : 0);
+			SET_PSR_CC_F (float32_gt (v1, v2) ? 1 : 0); // v1 > v2
 		else if (is_le)           /* le.  */
-			SET_PSR_CC_F (v1 <= v2 ? 0 : 1);
+			SET_PSR_CC_F (float32_le (v1, v2) ? 0 : 1); // v1 <= v2
 		else                      /* eq.  */
-			SET_PSR_CC_F (v1 == v2 ? 1 : 0);
+			SET_PSR_CC_F (float32_eq (v1, v2) ? 1 : 0); // v1 == v2
 	}
 
 	/* FIXME: Set result-status bits besides ARP. And copy to fsr from
@@ -3421,10 +3406,10 @@ void i860_cpu_device::insn_fzchk (UINT32 insn)
 	UINT32 fdest = get_fdest (insn);
 	int piped = insn & 0x400;        /* 1 = pipelined, 0 = scalar.  */
 	int is_fzchks = insn & 8;        /* 1 = fzchks, 0 = fzchkl.  */
-	double dbl_tmp_dest = 0.0;
+	FLOAT64 dbl_tmp_dest = FLOAT64_ZERO;
 	int i;
-	double v1 = get_fregval_d (fsrc1);
-	double v2 = get_fregval_d (fsrc2);
+	FLOAT64 v1 = get_fregval_d (fsrc1);
+	FLOAT64 v2 = get_fregval_d (fsrc2);
 	UINT64 iv1 = *(UINT64 *)&v1;
 	UINT64 iv2 = *(UINT64 *)&v2;
 	UINT64 r = 0;
@@ -3481,7 +3466,7 @@ void i860_cpu_device::insn_fzchk (UINT32 insn)
 		}
 	}
 
-	dbl_tmp_dest = *(double *)&r;
+	dbl_tmp_dest = *(FLOAT64 *)&r;
 	SET_PSR_PM (pm);
     m_merge = 0;
 
@@ -3517,8 +3502,8 @@ void i860_cpu_device::insn_form (UINT32 insn)
 	UINT32 fsrc1 = get_fsrc1 (insn);
 	UINT32 fdest = get_fdest (insn);
 	int piped = insn & 0x400;        /* 1 = pipelined, 0 = scalar.  */
-	double dbl_tmp_dest = 0.0;
-	double v1 = get_fregval_d (fsrc1);
+	FLOAT64 dbl_tmp_dest = FLOAT64_ZERO;
+	FLOAT64 v1 = get_fregval_d (fsrc1);
 	UINT64 iv1 = *(UINT64 *)&v1;
 
 #if TRACE_UNDEFINED_I860
@@ -3531,7 +3516,7 @@ void i860_cpu_device::insn_form (UINT32 insn)
 #endif
     
 	iv1 |= m_merge;
-	dbl_tmp_dest = *(double *)&iv1;
+	dbl_tmp_dest = *(FLOAT64 *)&iv1;
 	m_merge = 0;
 
 	/* FIXME: Copy result-status bit IRP to fsr from last stage.  */
@@ -3566,16 +3551,16 @@ void i860_cpu_device::insn_faddp (UINT32 insn)
 	UINT32 fsrc2 = get_fsrc2 (insn);
 	UINT32 fdest = get_fdest (insn);
 	int piped = insn & 0x400;        /* 1 = pipelined, 0 = scalar.  */
-	double dbl_tmp_dest = 0.0;
-	double v1 = get_fregval_d (fsrc1);
-	double v2 = get_fregval_d (fsrc2);
+	FLOAT64 dbl_tmp_dest = FLOAT64_ZERO;
+	FLOAT64 v1 = get_fregval_d (fsrc1);
+	FLOAT64 v2 = get_fregval_d (fsrc2);
 	UINT64 iv1 = *(UINT64 *)&v1;
 	UINT64 iv2 = *(UINT64 *)&v2;
 	UINT64 r = 0;
 	int ps = GET_PSR_PS ();
 
 	r = iv1 + iv2;
-	dbl_tmp_dest = *(double *)&r;
+	dbl_tmp_dest = *(FLOAT64 *)&r;
     
 	/* Update the merge register depending on the pixel size.
 	   PS: 0 = 8 bits, 1 = 16 bits, 2 = 32-bits.  */
@@ -3631,15 +3616,15 @@ void i860_cpu_device::insn_faddz (UINT32 insn)
 	UINT32 fsrc2 = get_fsrc2 (insn);
 	UINT32 fdest = get_fdest (insn);
 	int piped = insn & 0x400;        /* 1 = pipelined, 0 = scalar.  */
-	double dbl_tmp_dest = 0.0;
-	double v1 = get_fregval_d (fsrc1);
-	double v2 = get_fregval_d (fsrc2);
+	FLOAT64 dbl_tmp_dest = FLOAT64_ZERO;
+	FLOAT64 v1 = get_fregval_d (fsrc1);
+	FLOAT64 v2 = get_fregval_d (fsrc2);
 	UINT64 iv1 = *(UINT64 *)&v1;
 	UINT64 iv2 = *(UINT64 *)&v2;
 	UINT64 r = 0;
 
 	r = iv1 + iv2;
-	dbl_tmp_dest = *(double *)&r;
+	dbl_tmp_dest = *(FLOAT64 *)&r;
 
 	/* Update the merge register.  */
 	m_merge = ((m_merge >> 16) & ~0xffff0000ffff0000ULL);
@@ -3947,11 +3932,11 @@ void i860_cpu_device::reset() {
 	/* Set grs and frs to undefined/nonsense values, except r0.  */
 	for (i = 0; i < 32; i++){
         set_iregval (i, UNDEF_VAL | i);
-		set_fregval_s (i, 0.0);
+		set_fregval_s (i, FLOAT32_ZERO);
 	}
 	set_iregval (0, 0);
-	set_fregval_s (0, 0.0);
-	set_fregval_s (1, 0.0);
+	set_fregval_s (0, FLOAT32_ZERO);
+	set_fregval_s (1, FLOAT32_ZERO);
 
 	/* Set whole psr to 0.  This sets the proper bits to 0 as specified
 	   above, and zeroes the undefined bits.  */
@@ -3975,9 +3960,9 @@ void i860_cpu_device::reset() {
 	/* Set fir, fsr, KR, KI, MERGE, T to undefined.  */
 	m_cregs[CR_FIR] = UNDEF_VAL;
 	m_cregs[CR_FSR] = UNDEF_VAL;
-	m_KR.d          = 0.0;
-	m_KI.d          = 0.0;
-	m_T.d           = 0.0;
+	m_KR.d          = FLOAT64_ZERO;
+	m_KI.d          = FLOAT64_ZERO;
+	m_T.d           = FLOAT64_ZERO;
 	m_merge         = 0;
 	m_flow          = 0;
     

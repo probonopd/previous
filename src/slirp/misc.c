@@ -12,6 +12,112 @@
 u_int curtime, time_fasttimo, last_slowtimo, detach_time;
 u_int detach_wait = 600000;	/* 10 minutes */
 
+#ifdef __MINGW32__
+
+#define NS_INADDRSZ  4
+#define NS_INT16SZ   2
+
+static int inet_pton4(const char *src, char *dst)
+{
+    uint8_t tmp[NS_INADDRSZ], *tp;
+
+    int saw_digit = 0;
+    int octets = 0;
+    *(tp = tmp) = 0;
+
+    int ch;
+    while ((ch = *src++) != '\0')
+    {
+        if (ch >= '0' && ch <= '9')
+        {
+            uint32_t n = *tp * 10 + (ch - '0');
+
+            if (saw_digit && *tp == 0)
+                return 0;
+
+            if (n > 255)
+                return 0;
+
+            *tp = n;
+            if (!saw_digit)
+            {
+                if (++octets > 4)
+                    return 0;
+                saw_digit = 1;
+            }
+        }
+        else if (ch == '.' && saw_digit)
+        {
+            if (octets == 4)
+                return 0;
+            *++tp = 0;
+            saw_digit = 0;
+        }
+        else
+            return 0;
+    }
+    if (octets < 4)
+        return 0;
+
+    memcpy(dst, tmp, NS_INADDRSZ);
+
+    return 1;
+}
+
+static int inet_pton(int af, const char *src, char *dst)
+{
+    switch (af)
+    {
+    case AF_INET:
+        return inet_pton4(src, dst);
+    default:
+        return -1;
+    }
+}
+
+static size_t strlcpy(char * __restrict dst, const char * __restrict src, size_t siz) {
+	char *d = dst;
+	const char *s = src;
+	size_t n = siz;
+	if (n != 0) {
+		while (--n != 0) {
+			if ((*d++ = *s++) == '\0')
+				break;
+		}
+	}
+	if (n == 0) {
+		if (siz != 0)
+			*d = '\0';
+		while (*s++)
+			;
+	}
+	return(s - src - 1);
+}
+
+static char *inet_ntop4(const u_char *src, char *dst, socklen_t size) {
+	static const char fmt[128] = "%u.%u.%u.%u";
+	char tmp[sizeof "255.255.255.255"];
+	int l;
+
+    l = snprintf( tmp, fmt, src[0], src[1], src[2], src[3] );
+	if (l <= 0 || (socklen_t) l >= size) {
+		return (NULL);
+	}
+	strlcpy(dst, tmp, size);
+	return (dst);
+}
+
+char * inet_ntop(int af, const void *src, char *dst, socklen_t size)
+{
+	switch (af) {
+	case AF_INET:
+		return (inet_ntop4( (unsigned char*)src, (char*)dst, size));
+	default:
+        return 0 ;
+	}
+}
+#endif
+
 #if 0
 int x_port = -1;
 int x_display = 0;

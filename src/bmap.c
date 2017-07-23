@@ -10,115 +10,101 @@
 
 uae_u32  NEXTbmap[16];
 
+int bmap_tpe_select = 0;
+
 uae_u32 bmap_get(uae_u32 addr);
 void bmap_put(uae_u32 addr, uae_u32 val);
 
 
 #define BMAP_DATA_RW    0xD
 
-#define BMAP_TP         0x90000000
+#define BMAP_TPE_RXSEL  0x80000000
+#define BMAP_HEARTBEAT  0x20000000
+#define BMAP_TPE_ILBC   0x10000000
+#define BMAP_TPE        (BMAP_TPE_RXSEL|BMAP_TPE_ILBC)
 
 uae_u32 bmap_lget(uaecptr addr) {
-    if (addr%4) {
+    uae_u32 l;
+    
+    if (addr&3) {
         Log_Printf(LOG_WARN, "[BMAP] Unaligned access.");
-        abort();
+        return 0;
     }
+    
+    l = bmap_get(addr>>2);
 
-    return bmap_get(addr/4);
+    return l;
 }
 
 uae_u32 bmap_wget(uaecptr addr) {
-    uae_u32 w = 0;
-    uae_u32 val = bmap_get(addr/4);
+    uae_u32 w;
+    int shift;
     
-    switch (addr%4) {
-        case 0:
-            w = val>>16;
-            break;
-        case 2:
-            w = val;
-            break;
-        default:
-            Log_Printf(LOG_WARN, "[BMAP] Unaligned access.");
-            abort();
-            break;
+    if (addr&1) {
+        Log_Printf(LOG_WARN, "[BMAP] Unaligned access.");
+        return 0;
     }
+
+    shift = (2 - (addr&2)) * 8;
+    
+    w = bmap_get(addr>>2);
+    w >>= shift;
+    w &= 0xFFFF;
     
     return w;
 }
 
 uae_u32 bmap_bget(uaecptr addr) {
-    uae_u32 b = 0;
-    uae_u32 val = bmap_get(addr/4);
+    uae_u32 b;
+    int shift;
     
-    switch (addr%4) {
-        case 0:
-            b = val>>24;
-            break;
-        case 1:
-            b = val>>16;
-            break;
-        case 2:
-            b = val>>8;
-            break;
-        case 3:
-            b = val;
-            break;
-        default:
-            break;
-    }
+    shift = (3 - (addr&3)) * 8;
+    
+    b = bmap_get(addr>>2);
+    b >>= shift;
+    b &= 0xFF;
     
     return b;
 }
 
 void bmap_lput(uaecptr addr, uae_u32 l) {
-    if (addr%4) {
+    if (addr&3) {
         Log_Printf(LOG_WARN, "[BMAP] Unaligned access.");
-        abort();
+        return;
     }
-        bmap_put(addr/4, l);
+    
+    bmap_put(addr>>2, l);
 }
 
 void bmap_wput(uaecptr addr, uae_u32 w) {
     uae_u32 val;
+    int shift;
     
-    switch (addr%4) {
-        case 0:
-            val = w<<16;
-            break;
-        case 2:
-            val = w;
-            break;
-        default:
-            Log_Printf(LOG_WARN, "[BMAP] Unaligned access.");
-            abort();
-            break;
+    if (addr&1) {
+        Log_Printf(LOG_WARN, "[BMAP] Unaligned access.");
+        return;
     }
+
+    shift = (2 - (addr&2)) * 8;
     
-    bmap_put(addr/4, val);
+    val = NEXTbmap[addr>>2];
+    val &= ~(0xFFFF << shift);
+    val |= w << shift;
+    
+    bmap_put(addr>>2, val);
 }
 
 void bmap_bput(uaecptr addr, uae_u32 b) {
-    uae_u32 val = 0;
+    uae_u32 val;
+    int shift;
     
-    switch (addr%4) {
-        case 0:
-            val = b<<24;
-            break;
-        case 1:
-            val = b<<16;
-            break;
-        case 2:
-            val = b<<8;
-            break;
-        case 3:
-            val = b;
-            break;
-        default:
-            break;
-    }
+    shift = (3 - (addr&3)) * 8;
     
-    bmap_put(addr/4, val);
+    val = NEXTbmap[addr>>2];
+    val &= ~(0xFF << shift);
+    val |= b << shift;
+    
+    bmap_put(addr>>2, val);
 }
 
 
@@ -131,7 +117,13 @@ uae_u32 bmap_get(uae_u32 bmap_reg) {
              * It prevents from switching ethernet
              * transceiver to loopback mode.
              */
-            val = NEXTbmap[BMAP_DATA_RW]|0x20000000;
+            val = NEXTbmap[BMAP_DATA_RW];
+            
+            if (ConfigureParams.Ethernet.bEthernetConnected && ConfigureParams.Ethernet.bTwistedPair) {
+                val &= ~BMAP_HEARTBEAT;
+            } else {
+                val |= BMAP_HEARTBEAT;
+            }
             break;
             
         default:
@@ -145,11 +137,13 @@ uae_u32 bmap_get(uae_u32 bmap_reg) {
 void bmap_put(uae_u32 bmap_reg, uae_u32 val) {
     switch (bmap_reg) {
         case BMAP_DATA_RW:
-            if ((val&BMAP_TP) != (NEXTbmap[bmap_reg]&BMAP_TP)) {
-                if ((val&BMAP_TP)==BMAP_TP) {
+            if ((val&BMAP_TPE) != (NEXTbmap[bmap_reg]&BMAP_TPE)) {
+                if ((val&BMAP_TPE)==BMAP_TPE) {
                     Log_Printf(LOG_WARN, "[BMAP] Switching to twisted pair ethernet.");
-                } else if ((val&BMAP_TP)==0) {
+                    bmap_tpe_select = 1;
+                } else if ((val&BMAP_TPE)==0) {
                     Log_Printf(LOG_WARN, "[BMAP] Switching to thin ethernet.");
+                    bmap_tpe_select = 0;
                 }
             }
             break;
@@ -159,4 +153,13 @@ void bmap_put(uae_u32 bmap_reg, uae_u32 val) {
     }
     
     NEXTbmap[bmap_reg] = val;
+}
+
+void bmap_init(void) {
+    int i;
+    
+    for (i = 0; i < 16; i++) {
+        NEXTbmap[i] = 0;
+    }
+    bmap_tpe_select = 0;
 }

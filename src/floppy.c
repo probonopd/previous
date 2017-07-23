@@ -50,6 +50,8 @@ struct {
     FILE* dsk;
     Uint32 floppysize;
     
+    Uint32 seekoffset;
+    
     bool spinning;
     
     bool protected;
@@ -278,7 +280,7 @@ void floppy_reset(bool hard) {
     } else {
         /* Single poll interrupt after reset (delay = 250 ms) */
         flp_io_state = FLP_STATE_INTERRUPT;
-        CycInt_AddRelativeInterruptUs(250*1000, INTERRUPT_FLP_IO);
+        CycInt_AddRelativeInterruptUs(250*1000, 0, INTERRUPT_FLP_IO);
     }
 }
 
@@ -389,8 +391,30 @@ static void floppy_seek_track(Uint8 c, Uint8 h, int drive) {
         c=(NUM_CYLINDERS-1);
     
     flp.st[0] |= ST0_SE;
+    
+    flpdrv[drive].seekoffset = (flpdrv[drive].cyl < c) ? (c - flpdrv[drive].cyl) : (flpdrv[drive].cyl - c);
     flpdrv[drive].cyl = c;
     flpdrv[drive].head = h;
+}
+
+/* Timings */
+#define FLP_SEEK_TIME 200000 /* 200 ms */
+
+static int get_sector_time(int drive) {
+    switch (flpdrv[drive].floppysize) {
+        case SIZE_720K: return 22000;
+        case SIZE_1440K: return 11000;
+        case SIZE_2880K: return 5500;
+        default: return 1000;
+    }
+}
+
+static int get_seek_time(int drive) {
+    if (flpdrv[drive].seekoffset > NUM_CYLINDERS) {
+        return FLP_SEEK_TIME;
+    }
+    
+    return (flpdrv[drive].seekoffset * FLP_SEEK_TIME / NUM_CYLINDERS);
 }
 
 /* Media IDs for control register */
@@ -509,7 +533,7 @@ static void floppy_read(void) {
         flp_io_drv = drive;
         flp_io_state = FLP_STATE_READ;
     }
-    CycInt_AddRelativeInterruptTicks(1000, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptUs(get_seek_time(drive) + get_sector_time(drive), 100, INTERRUPT_FLP_IO);
 }
 
 static void floppy_write(void) {
@@ -566,7 +590,7 @@ static void floppy_write(void) {
         flp_io_drv = drive;
         flp_io_state = FLP_STATE_WRITE;
     }
-    CycInt_AddRelativeInterruptTicks(1000, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptUs(get_seek_time(drive) + get_sector_time(drive), 100, INTERRUPT_FLP_IO);
 }
 
 static void floppy_format(void) {
@@ -591,7 +615,7 @@ static void floppy_format(void) {
         flp_buffer.limit = 4;
         flp_io_drv = drive;
         flp_io_state = FLP_STATE_FORMAT;
-        CycInt_AddRelativeInterruptTicks(100000, INTERRUPT_FLP_IO);
+        CycInt_AddRelativeInterruptUs(get_seek_time(drive) + get_sector_time(drive), 100, INTERRUPT_FLP_IO);
     }
 }
 
@@ -613,7 +637,7 @@ static void floppy_read_id(void) {
     send_rw_status(drive);
     
     flp_io_state = FLP_STATE_INTERRUPT;
-    CycInt_AddRelativeInterruptTicks(1000, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptUs(get_seek_time(drive), 100, INTERRUPT_FLP_IO);
 }
 
 static void floppy_recalibrate(void) {
@@ -627,13 +651,14 @@ static void floppy_recalibrate(void) {
         flpdrv[drive].cyl = flp.pcn = 0;
 
         flp.st[0] = flp.st[1] = flp.st[2] = 0;
+        floppy_seek_track(0, 0, drive);
 
         /* Done */
         flp.st[0] = IC_NORMAL|ST0_SE;
         flp.sra &= ~SRA_TRK0_N;
         
         flp_io_state = FLP_STATE_INTERRUPT;
-        CycInt_AddRelativeInterruptTicks(1000000, INTERRUPT_FLP_IO);
+        CycInt_AddRelativeInterruptUs(get_seek_time(drive), 100, INTERRUPT_FLP_IO);
     }
 }
 
@@ -656,7 +681,7 @@ static void floppy_seek(Uint8 relative) {
     }
         
     flp_io_state = FLP_STATE_INTERRUPT;
-    CycInt_AddRelativeInterruptTicks(1000000, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptUs(get_seek_time(drive), 100, INTERRUPT_FLP_IO);
 }
 
 static void floppy_interrupt_status(void) {
@@ -712,7 +737,7 @@ static void floppy_unimplemented(void) {
     result_size = 1;
     
     flp_io_state = FLP_STATE_INTERRUPT;
-    CycInt_AddRelativeInterruptTicks(10000, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptUs(1000, 100, INTERRUPT_FLP_IO);
 }
 
 static void floppy_execute_cmd(void) {
@@ -1042,15 +1067,18 @@ void FLP_IO_Handler(void) {
             if (flp_buffer.size==flp_buffer.limit) {
                 floppy_write_sector();
                 if (flp_sector_counter==0) { /* done */
-                    flp_io_state = FLP_STATE_INTERRUPT;
+                    floppy_interrupt();
+                    flp_io_state = FLP_STATE_DONE;
+                    return;
                 }
             } else if (flp_buffer.size<flp_buffer.limit) { /* loop in filling mode */
                 old_size = flp_buffer.size;
                 dma_esp_read_memory();
                 if (flp_buffer.size==old_size) {
                     floppy_rw_nodata();
-                    flp_io_state = FLP_STATE_INTERRUPT;
-                    break;
+                    floppy_interrupt();
+                    flp_io_state = FLP_STATE_DONE;
+                    return;
                 }
             }
             break;
@@ -1064,12 +1092,15 @@ void FLP_IO_Handler(void) {
                 dma_esp_write_memory();
                 if (flp_buffer.size==old_size) {
                     floppy_rw_nodata();
-                    flp_io_state = FLP_STATE_INTERRUPT;
-                    break;
+                    floppy_interrupt();
+                    flp_io_state = FLP_STATE_DONE;
+                    return;
                 }
             }
             if (flp_buffer.size==0 && flp_sector_counter==0) { /* done */
-                flp_io_state = FLP_STATE_INTERRUPT;
+                floppy_interrupt();
+                flp_io_state = FLP_STATE_DONE;
+                return;
             }
             break;
             
@@ -1079,8 +1110,9 @@ void FLP_IO_Handler(void) {
                 dma_esp_read_memory();
                 if (flp_buffer.size==old_size) {
                     floppy_format_done();
-                    flp_io_state = FLP_STATE_INTERRUPT;
-                    break;
+                    floppy_interrupt();
+                    flp_io_state = FLP_STATE_DONE;
+                    return;
                 }
             } else if (flp_buffer.size==flp_buffer.limit) {
                 floppy_format_sector();
@@ -1089,6 +1121,7 @@ void FLP_IO_Handler(void) {
             
         case FLP_STATE_INTERRUPT:
             floppy_interrupt();
+            flp_io_state = FLP_STATE_DONE;
             /* fall through */
             
         case FLP_STATE_DONE:
@@ -1098,7 +1131,7 @@ void FLP_IO_Handler(void) {
             return;
     }
     
-    CycInt_AddRelativeInterruptTicks(2000, INTERRUPT_FLP_IO);
+    CycInt_AddRelativeInterruptUs(get_sector_time(flp_io_drv), 250, INTERRUPT_FLP_IO);
 }
 
 
@@ -1161,6 +1194,8 @@ int Floppy_Insert(int drive) {
     if (size) {
         flpdrv[drive].floppysize = size;
         flpdrv[drive].blocksize = 2; /* 512 byte */
+        flpdrv[drive].cyl = flpdrv[drive].head = flpdrv[drive].sector = 0;
+        flpdrv[drive].seekoffset = 0;
     } else {
         flpdrv[drive].dsk = NULL;
         flpdrv[drive].inserted=false;
@@ -1170,10 +1205,32 @@ int Floppy_Insert(int drive) {
     
     if (ConfigureParams.Floppy.drive[drive].bWriteProtected) {
         flpdrv[drive].dsk = File_Open(ConfigureParams.Floppy.drive[drive].szImageName, "rb");
+        if (flpdrv[drive].dsk == NULL) {
+            Log_Printf(LOG_WARN, "Floppy Disk%i: Cannot open image file %s\n",
+                       drive, ConfigureParams.Floppy.drive[drive].szImageName);
+            flpdrv[drive].inserted=false;
+            flpdrv[drive].spinning=false;
+            Statusbar_AddMessage("Cannot insert floppy disk", 0);
+            return 1;
+        }
         flpdrv[drive].protected=true;
     } else {
         flpdrv[drive].dsk = File_Open(ConfigureParams.Floppy.drive[drive].szImageName, "rb+");
         flpdrv[drive].protected=false;
+        if (flpdrv[drive].dsk == NULL) {
+            flpdrv[drive].dsk = File_Open(ConfigureParams.Floppy.drive[drive].szImageName, "rb");
+            if (flpdrv[drive].dsk == NULL) {
+                Log_Printf(LOG_WARN, "Floppy Disk%i: Cannot open image file %s\n",
+                           drive, ConfigureParams.Floppy.drive[drive].szImageName);
+                flpdrv[drive].inserted=false;
+                flpdrv[drive].spinning=false;
+                Statusbar_AddMessage("Cannot insert floppy disk", 0);
+                return 1;
+            }
+            flpdrv[drive].protected=true;
+            Log_Printf(LOG_WARN, "Floppy Disk%i: Image file is not writable. Enabling write protection.\n",
+                       drive);
+        }
     }
     
     flpdrv[drive].inserted=true;
