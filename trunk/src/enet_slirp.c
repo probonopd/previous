@@ -32,6 +32,7 @@ int slirp_can_output(void);
 queueADT	slirpq;
 
 int slirp_inited;
+int slirp_started;
 static SDL_mutex *slirp_mutex = NULL;
 SDL_Thread *tick_func_handle;
 
@@ -39,7 +40,7 @@ SDL_Thread *tick_func_handle;
 //Is set to true from the init, and false on ethernet disconnect
 int slirp_can_output(void)
 {
-    return slirp_inited;
+    return slirp_started;
 }
 
 //This is a callback function for SLiRP that sends a packet
@@ -67,12 +68,14 @@ static void slirp_tick(void)
     int timeout;
     nfds=-1;
     
-    if (slirp_inited)
+    if (slirp_started)
     {
         FD_ZERO(&rfds);
         FD_ZERO(&wfds);
         FD_ZERO(&xfds);
+        SDL_LockMutex(slirp_mutex);
         timeout=slirp_select_fill(&nfds,&rfds,&wfds,&xfds); //this can crash
+        SDL_UnlockMutex(slirp_mutex);
         
         if(timeout<0)
             timeout=500;
@@ -90,7 +93,7 @@ static void slirp_tick(void)
 
 static int tick_func(void *arg)
 {
-    while(slirp_inited)
+    while(slirp_started)
     {
         host_sleep_ms(10);
         slirp_tick();
@@ -114,7 +117,7 @@ void enet_slirp_queue_poll(void)
 }
 
 void enet_slirp_input(Uint8 *pkt, int pkt_len) {
-    if (slirp_inited) {
+    if (slirp_started) {
         Log_Printf(LOG_WARN, "[SLIRP] Input packet with %i bytes",enet_tx_buffer.size);
         SDL_LockMutex(slirp_mutex);
         slirp_input(pkt,pkt_len);
@@ -125,10 +128,9 @@ void enet_slirp_input(Uint8 *pkt, int pkt_len) {
 void enet_slirp_stop(void) {
     int ret;
     
-    if(slirp_inited) {
+    if (slirp_started) {
         Log_Printf(LOG_WARN, "Stopping SLIRP");
-        slirp_inited=0;
-        //slirp_exit(0);
+        slirp_started=0;
         QueueDestroy(slirpq);
         SDL_DestroyMutex(slirp_mutex);
         SDL_WaitThread(tick_func_handle, &ret);
@@ -139,14 +141,17 @@ void enet_slirp_start(void) {
     struct in_addr guest_addr;
     
     if (!slirp_inited) {
-        Log_Printf(LOG_WARN, "Starting SLIRP");
-        slirp_init();
-        slirpq = QueueCreate();
+        Log_Printf(LOG_WARN, "Initializing SLIRP");
         slirp_inited=1;
-        //host_sleep_ms(500);
-        slirp_mutex=SDL_CreateMutex();
-        tick_func_handle=SDL_CreateThread(tick_func,"SLiRPTickThread", (void *)NULL);
+        slirp_init();
         inet_aton("10.0.2.15", &guest_addr);
         slirp_redir(0, 42323, guest_addr, 23);
+    }
+    if (slirp_inited && !slirp_started) {
+        Log_Printf(LOG_WARN, "Starting SLIRP");
+        slirp_started=1;
+        slirpq = QueueCreate();
+        slirp_mutex=SDL_CreateMutex();
+        tick_func_handle=SDL_CreateThread(tick_func,"SLiRPTickThread", (void *)NULL);
     }
 }

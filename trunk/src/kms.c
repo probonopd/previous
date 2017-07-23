@@ -558,6 +558,6 @@ void Mouse_Handler(void) {
     
     if (m_move_x > 0 || m_move_y > 0) {
         kms_mouse_move_step();
-        CycInt_AddRelativeInterruptUs((1000*1000)/MOUSE_STEP_FREQ, INTERRUPT_MOUSE);
+        CycInt_AddRelativeInterruptUs((1000*1000)/MOUSE_STEP_FREQ, 0, INTERRUPT_MOUSE);
     }
 }

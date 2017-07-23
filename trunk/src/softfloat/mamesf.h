@@ -25,7 +25,8 @@
 | to the same as `int'.
 *----------------------------------------------------------------------------*/
 //#include "assert.h"
-#include "sysdeps.h"
+//#include "sysdeps.h"
+#include "inttypes.h"
 
 typedef int8_t flag;
 typedef uint8_t uint8;
@@ -74,6 +75,12 @@ typedef int64_t sbits64;
  | 6888x floating point coprocessor emulation.
  *----------------------------------------------------------------------------*/
 #define SOFTFLOAT_68K
+
+/*----------------------------------------------------------------------------
+ | The macro `SOFTFLOAT_I860' can be defined to enable changes specific to
+ | i860 floating point emulation.
+ *----------------------------------------------------------------------------*/
+#define SOFTFLOAT_I860
 
 
 #endif //MAMESF_H

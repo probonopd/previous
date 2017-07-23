@@ -335,7 +335,7 @@ void i860_cpu_device::dump_state()
     /* FR's (as 32-bits), 4 per line.  */
     for (rn = 0; rn < 32; rn++)
     {
-        float ff = get_fregval_s (rn);
+        FLOAT32 ff = get_fregval_s (rn);
         if ((rn % 4) == 0)
             fprintf (stderr, "\n");
         fprintf (stderr, "%%f%-3d: 0x%08x  ", rn, *(UINT32 *)&ff);
@@ -359,6 +359,16 @@ void i860_cpu_device::halt(bool state) {
         Log_Printf(LOG_WARN, "[i860] **** RESTARTED ****");
         m_halt = false;
         Statusbar_SetNdLed(1);
+    }
+}
+
+void i860_cpu_device::pause(bool state) {
+    if(state) {
+        m_halt = true;
+        Log_Printf(LOG_WARN, "[i860] **** PAUSED ****");
+    } else {
+        Log_Printf(LOG_WARN, "[i860] **** RESUMED ****");
+        m_halt = false;
     }
 }
 

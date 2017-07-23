@@ -16,6 +16,8 @@ static SDL_Thread*   repaintThread = NULL;
 static SDL_Window*   ndWindow      = NULL;
 static SDL_Renderer* ndRenderer    = NULL;
 
+SDL_atomic_t blitNDFB;
+
 void blitDimension(SDL_Texture* tex);
 
 static int repainter(void* unused) {
@@ -35,10 +37,16 @@ static int repainter(void* unused) {
     SDL_RenderSetLogicalSize(ndRenderer, r.w, r.h);
     ndTexture = SDL_CreateTexture(ndRenderer, SDL_PIXELFORMAT_UNKNOWN, SDL_TEXTUREACCESS_STREAMING, r.w, r.h);
     
+    SDL_AtomicSet(&blitNDFB, 1);
+    
     while(doRepaint) {
-        blitDimension(ndTexture);
-        SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
-        SDL_RenderPresent(ndRenderer);
+        if (SDL_AtomicGet(&blitNDFB)) {
+            blitDimension(ndTexture);
+            SDL_RenderCopy(ndRenderer, ndTexture, NULL, NULL);
+            SDL_RenderPresent(ndRenderer);
+        } else {
+            host_sleep_ms(100);
+        }
     }
 
     SDL_DestroyTexture(ndTexture);
@@ -55,7 +63,7 @@ void nd_vbl_handler() {
     host_blank(ND_SLOT, ND_DISPLAY, ndVBLtoggle);
     ndVBLtoggle = !ndVBLtoggle;
     
-    CycInt_AddRelativeInterruptUs((1000*1000)/136, INTERRUPT_ND_VBL); // 136Hz with toggle gives 68Hz, blank time is 1/2 frame time
+    CycInt_AddRelativeInterruptUs((1000*1000)/136, 0, INTERRUPT_ND_VBL); // 136Hz with toggle gives 68Hz, blank time is 1/2 frame time
 }
 
 bool ndVideoVBLtoggle;
@@ -65,7 +73,7 @@ void nd_video_vbl_handler() {
     host_blank(ND_SLOT, ND_VIDEO, ndVideoVBLtoggle);
     ndVideoVBLtoggle = !ndVideoVBLtoggle;
     
-    CycInt_AddRelativeInterruptUs((1000*1000)/120, INTERRUPT_ND_VIDEO_VBL); // 120Hz with toggle gives 60Hz NTSC, blank time is 1/2 frame time
+    CycInt_AddRelativeInterruptUs((1000*1000)/120, 0, INTERRUPT_ND_VIDEO_VBL); // 120Hz with toggle gives 60Hz NTSC, blank time is 1/2 frame time
 }
 
 void nd_sdl_init() {
@@ -94,13 +102,21 @@ void nd_start_interrupts() {
     
     // if this is a cube and we have an ND configured, install ND VBL handlers
     if (ConfigureParams.Dimension.bEnabled && (ConfigureParams.System.nMachineType == NEXT_CUBE030 || ConfigureParams.System.nMachineType == NEXT_CUBE040)) {
-        CycInt_AddRelativeInterruptUs(1000, INTERRUPT_ND_VBL);
-        CycInt_AddRelativeInterruptUs(1000, INTERRUPT_ND_VIDEO_VBL);
+        CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VBL);
+        CycInt_AddRelativeInterruptUs(1000, 0, INTERRUPT_ND_VIDEO_VBL);
     }
 }
 
 void nd_sdl_uninit() {
     SDL_HideWindow(ndWindow);
+}
+
+void nd_sdl_pause(bool pause) {
+    if (pause) {
+        SDL_AtomicSet(&blitNDFB, 0);
+    } else {
+        SDL_AtomicSet(&blitNDFB, 1);
+    }
 }
 
 void nd_sdl_destroy() {

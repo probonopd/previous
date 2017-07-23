@@ -236,12 +236,9 @@ bool Change_DoNeedReset(CNF_PARAMS *current, CNF_PARAMS *changed)
 bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *changed, bool bForceReset)
 {
 	bool NeedReset;
-	bool bReInitSCSIEmu = false;
 	bool bReInitEnetEmu = false;
     bool bReInitSoundEmu = false;
-	bool bReInitIoMem = false;
 	bool bScreenModeChange = false;
-	int i;
 
 	Dprintf("Changes for:\n");
 	/* Do we need to warn user that changes will only take effect after reset? */
@@ -250,18 +247,7 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	else
 		NeedReset = Change_DoNeedReset(current, changed);
     
-    /* Do we need to change SCSI disks? */
-    for (i = 0; i < ESP_MAX_DEVS; i++) {
-        if (!NeedReset &&
-            (current->SCSI.target[i].bDiskInserted != changed->SCSI.target[i].bDiskInserted ||
-             current->SCSI.target[i].bWriteProtected != changed->SCSI.target[i].bWriteProtected ||
-             strcmp(current->SCSI.target[i].szImageName, changed->SCSI.target[i].szImageName))) {
-            bReInitSCSIEmu = true;
-            break;
-        }
-    }
-    
-    /* Note: MO and floppy disk insert/eject called from GUI */
+    /* Note: SCSI, MO and floppy disk insert/eject called from GUI */
     
     /* Do we need to change Ethernet connection? */
     if (!NeedReset && current->Ethernet.bEthernetConnected != changed->Ethernet.bEthernetConnected) {
@@ -291,27 +277,6 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Copy details to global, if we reset copy them all */
 	Configuration_Apply(NeedReset);
     
-    /* Check if all necessary files exist */
-    Dialog_CheckFiles();
-    if (bQuitProgram)
-    {
-        SDL_Quit();
-        exit(-2);
-    }
-
-	/* Re-init IO memory map? */
-	if (bReInitIoMem)
-	{
-		Dprintf("- IO mem<\n");
-		IoMem_Init();
-	}
-    
-    /* Re-init SCSI disks? */
-    if (bReInitSCSIEmu) {
-        Dprintf("- SCSI disks<\n");
-        SCSI_Reset();
-    }
-    
     /* Re-init Ethernet? */
     if (bReInitEnetEmu) {
         Dprintf("- Ethernet<\n");
@@ -334,6 +299,14 @@ bool Change_CopyChangedParamsToConfiguration(CNF_PARAMS *current, CNF_PARAMS *ch
 	/* Do we need to perform reset? */
 	if (NeedReset)
 	{
+        /* Check if all necessary files exist */
+        Dialog_CheckFiles();
+        if (bQuitProgram)
+        {
+            SDL_Quit();
+            exit(-2);
+        }
+
 		Dprintf("- reset\n");
 		Reset_Cold();
 	}

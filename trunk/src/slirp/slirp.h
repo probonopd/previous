@@ -12,6 +12,8 @@
 #include "slirp_config.h"
 
 #ifdef _WIN32
+#undef _WIN32_WINNT
+#define _WIN32_WINNT 0x0501
 # include <inttypes.h>
 
 typedef uint8_t u_int8_t;

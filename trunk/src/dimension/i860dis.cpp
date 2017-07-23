@@ -15,8 +15,6 @@
 
 ***************************************************************************/
 
-#include <string.h>
-#include <stdio.h>
 #include "i860.hpp"
 
 /* Macros for accessing register fields in instruction word.  */

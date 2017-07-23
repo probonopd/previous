@@ -23,8 +23,10 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include <string.h>
 #include <unistd.h>
 #include <ctype.h>
+#include <assert.h>
 
 #include "i860cfg.h"
 #include "host.h"
@@ -62,6 +64,87 @@ extern "C" {
     typedef void (*mem_wr_func)(UINT32, const UINT32*);
 }
 
+#if WITH_SOFTFLOAT_I860
+extern "C" {
+#include <softfloat.h>
+}
+typedef float32 FLOAT32;
+typedef float64 FLOAT64;
+
+#define FLOAT32_ZERO            0x00000000
+#define FLOAT32_ONE             0x3F800000
+#define FLOAT32_IS_NEG(x)       ((x) & 0x80000000)
+#define FLOAT32_IS_ZERO(x)      (((x) & 0x7FFFFFFF) == 0x00000000)
+#define FLOAT64_ZERO            LIT64(0x0000000000000000)
+#define FLOAT64_ONE             LIT64(0x3FF0000000000000)
+#define FLOAT64_IS_NEG(x)       ((x) & LIT64(0x8000000000000000))
+#define FLOAT64_IS_ZERO(x)      (((x) & LIT64(0x7FFFFFFFFFFFFFFF)) == LIT64(0x0000000000000000))
+
+static inline void float_set_rounding_mode (int mode) {
+    switch (mode) {
+        case 0: float_rounding_mode2 = float_round_nearest_even; break;
+        case 1: float_rounding_mode2 = float_round_down;         break;
+        case 2: float_rounding_mode2 = float_round_up;           break;
+        case 3: float_rounding_mode2 = float_round_to_zero;      break;
+    }
+}
+
+#else // NATIVE FLOAT
+
+#include <math.h>
+#ifdef __MINGW32__
+#define _GLIBCXX_HAVE_FENV_H 1
+#endif
+#include <fenv.h>
+#if __APPLE__
+#else
+#pragma STDC FENV_ACCESS ON
+#endif
+
+typedef float FLOAT32;
+typedef double FLOAT64;
+
+#define FLOAT32_ZERO            0.0
+#define FLOAT32_ONE             1.0
+#define FLOAT32_IS_NEG(x)       ((x) < 0.0)
+#define FLOAT32_IS_ZERO(x)      ((x) == 0.0)
+#define FLOAT64_ZERO            0.0
+#define FLOAT64_ONE             1.0
+#define FLOAT64_IS_NEG(x)       ((x) < 0.0)
+#define FLOAT64_IS_ZERO(x)      ((x) == 0.0)
+
+#define float32_add(x,y)        ((x)+(y))
+#define float32_sub(x,y)        ((x)-(y))
+#define float32_mul(x,y)        ((x)*(y))
+#define float32_div(x,y)        ((x)/(y))
+#define float32_sqrt(x)         (sqrt(x))
+#define float32_to_int32(x)     (rint(x))
+#define float32_to_int32_round_to_zero(x)     ((UINT32)(x))
+#define float32_to_float64(x)   ((double)(x))
+#define float32_gt(x,y)         ((x)>(y))
+#define float32_le(x,y)         ((x)<=(y))
+#define float32_eq(x,y)         ((x)==(y))
+#define float64_add(x,y)        ((x)+(y))
+#define float64_sub(x,y)        ((x)-(y))
+#define float64_mul(x,y)        ((x)*(y))
+#define float64_div(x,y)        ((x)/(y))
+#define float64_sqrt(x)         (sqrt(x))
+#define float64_to_int32(x)     (rint(x))
+#define float64_to_int32_round_to_zero(x)     ((UINT32)(x))
+#define float64_to_float32(x)   ((float)(x))
+#define float64_gt(x,y)         ((x)>(y))
+#define float64_le(x,y)         ((x)<=(y))
+#define float64_eq(x,y)         ((x)==(y))
+
+static inline void float_set_rounding_mode (int mode) {
+    switch (mode) {
+        case 0: fesetround(FE_TONEAREST);  break;
+        case 1: fesetround(FE_DOWNWARD);   break;
+        case 2: fesetround(FE_UPWARD);     break;
+        case 3: fesetround(FE_TOWARDZERO); break;
+    }
+}
+#endif // NATIVE FLOAT
 
 
 /***************************************************************************
@@ -326,6 +409,7 @@ public:
     void init();
     void uninit();
     void halt(bool state);
+    void pause(bool state);
     inline bool is_halted() {return m_halt;};
 
     /* Run one i860 cycle */
@@ -394,8 +478,8 @@ private:
 	/* Special registers (4 x 64-bits).  */
 	union
 	{
-		float s;
-		double d;
+		FLOAT32 s;
+		FLOAT64 d;
 	} m_KR, m_KI, m_T;
     
 	UINT64 m_merge;
@@ -405,8 +489,8 @@ private:
 	{
 		/* The stage contents.  */
 		union {
-			float s;
-			double d;
+			FLOAT32 s;
+			FLOAT64 d;
 		} val;
 
 		/* The stage status bits.  */
@@ -421,8 +505,8 @@ private:
 	struct {
 		/* The stage contents.  */
 		union {
-			float s;
-			double d;
+			FLOAT32 s;
+			FLOAT64 d;
 		} val;
 
 		/* The stage status bits.  */
@@ -436,8 +520,8 @@ private:
 	struct {
 		/* The stage contents.  */
 		union {
-			float s;
-			double d;
+			FLOAT32 s;
+			FLOAT64 d;
 		} val;
 
 		/* The stage status bits.  */
@@ -451,8 +535,8 @@ private:
 	struct {
 		/* The stage contents.  */
 		union {
-			float s;
-			double d;
+			FLOAT32 s;
+			FLOAT64 d;
 		} val;
 
 		/* The stage status bits.  */
@@ -567,10 +651,10 @@ private:
     /* register access */
     UINT32 get_iregval(int gr);
     void   set_iregval(int gr, UINT32 val);
-    float  get_fregval_s (int fr);
-    void   set_fregval_s (int fr, float s);
-    double get_fregval_d (int fr);
-    void   set_fregval_d (int fr, double d);
+    FLOAT32  get_fregval_s (int fr);
+    void   set_fregval_s (int fr, FLOAT32 s);
+    FLOAT64 get_fregval_d (int fr);
+    void   set_fregval_d (int fr, FLOAT64 d);
     void   SET_PSR_CC(int val);
     
     void   invalidate_icache();
@@ -592,8 +676,8 @@ private:
 	int    delay_slots(UINT32 insn);
 	UINT32 get_address_translation(UINT32 vaddr, int is_dataref, int is_write);
     inline UINT32 get_address_translation(UINT32 vaddr, UINT32 voffset, UINT32 tlbidx, int is_dataref, int is_write);
-	float  get_fval_from_optype_s (UINT32 insn, int optype);
-	double get_fval_from_optype_d (UINT32 insn, int optype);
+	FLOAT32  get_fval_from_optype_s (UINT32 insn, int optype);
+	FLOAT64 get_fval_from_optype_d (UINT32 insn, int optype);
     int    memtest(bool be);
     void   dbg_check_wr(UINT32 addr, int size, UINT8* data);
     

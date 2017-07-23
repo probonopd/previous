@@ -19,8 +19,7 @@ typedef enum
   INTERRUPT_MOUSE,
   INTERRUPT_ESP,
   INTERRUPT_ESP_IO,
-  INTERRUPT_M2R,
-  INTERRUPT_R2M,
+  INTERRUPT_M2M_IO,
   INTERRUPT_MO,
   INTERRUPT_MO_IO,
   INTERRUPT_ECC_IO,
@@ -61,8 +60,8 @@ void CycInt_Reset(void);
 void CycInt_MemorySnapShot_Capture(bool bSave);
 void CycInt_AcknowledgeInterrupt(void);
 void CycInt_AddRelativeInterruptCycles(int64_t CycleTime, interrupt_id Handler);
-void CycInt_AddRelativeInterruptTicks(int64_t TickTime, interrupt_id Handler);
-void CycInt_AddRelativeInterruptUs(int64_t us, interrupt_id Handler);
+void CycInt_AddRelativeInterruptUs(int64_t us, int64_t usreal, interrupt_id Handler);
+void CycInt_AddRelativeInterruptUsCycles(int64_t us, int64_t usreal, interrupt_id Handler);
 void CycInt_RemovePendingInterrupt(interrupt_id Handler);
 bool CycInt_InterruptActive(interrupt_id Handler);
 bool CycInt_SetNewInterruptUs(void);

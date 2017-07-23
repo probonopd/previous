@@ -124,6 +124,7 @@ check_function_exists(gettimeofday HAVE_GETTIMEOFDAY)
 check_function_exists(nanosleep HAVE_NANOSLEEP)
 check_function_exists(alphasort HAVE_ALPHASORT)
 check_function_exists(scandir HAVE_SCANDIR)
+check_function_exists(strdup HAVE_STRDUP)
 
 
 # #############
@@ -132,7 +133,7 @@ check_function_exists(scandir HAVE_SCANDIR)
 
 # Warning flags:
 if(CMAKE_COMPILER_IS_GNUCC)
-	set(CMAKE_C_FLAGS "-Wcast-qual -g -O0 -Wbad-function-cast -Wpointer-arith ${CMAKE_C_FLAGS}")
+	set(CMAKE_C_FLAGS "-Wcast-qual -g -O0 -Wbad-function-cast -Wpointer-arith ${CMAKE_C_FLAGS} -D__USE_MINGW_ANSI_STDIO=1")
 	set(CMAKE_C_FLAGS "-Wmissing-prototypes -Wstrict-prototypes ${CMAKE_C_FLAGS}")
 	set(CMAKE_C_FLAGS "-Wall -Wwrite-strings -Wsign-compare ${CMAKE_C_FLAGS}")
 	#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wextra -Wno-unused-parameter -Wno-empty-body")

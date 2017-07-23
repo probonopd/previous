@@ -38,8 +38,8 @@ static const int NeXT_SCRN_HEIGHT = 832;
 static SDL_Thread*   repaintThread;
 static SDL_Renderer* sdlRenderer;
 static SDL_sem*      initLatch;
+static SDL_atomic_t  blitFB;
 static SDL_atomic_t  blitUI;           /* When value == 1, the repaint thread will blit the sldscrn surface to the screen on the next redraw */
-static SDL_atomic_t  blitStatusBar;    /* When value == 1, the repaint thread will blit the sldscrn status bar on the next redraw */
 static bool          doUIblit;
 static SDL_Rect      saveWindowBounds; /* Window bounds before going fullscreen. Used to restore window size & position. */
 static void*         uiBuffer;         /* uiBuffer used for ui texture */
@@ -269,39 +269,58 @@ static int repainter(void* unused) {
     /* Initialization done -> signal */
     SDL_SemPost(initLatch);
     
+    /* Start with framebuffer blit enabled */
+    SDL_AtomicSet(&blitFB, 1);
+    
     /* Enter repaint loop */
     while(doRepaint) {
-        SDL_RenderClear(sdlRenderer);
+        bool updateFB = false;
+        bool updateUI = false;
         
-        // Blit the NeXT framebuffer to textrue
-        blitScreen(fbTexture);
-        // Render NeXT framebuffer texture
-        SDL_RenderCopy(sdlRenderer, fbTexture, NULL, NULL);
+        if (SDL_AtomicGet(&blitFB)) {
+            // Blit the NeXT framebuffer to textrue
+            blitScreen(fbTexture);
+            updateFB = true;
+        }
         
-        bool updateTexture   = false;
-        bool updateStatusBar = false;
         // Copy UI surface to texture
         SDL_AtomicLock(&uiBufferLock);
         if(SDL_AtomicSet(&blitUI, 0)) {
             // update full UI texture
             memcpy(uiBufferTmp, uiBuffer, sdlscrn->h * sdlscrn->pitch);
-            updateTexture = true;
-        } else if(SDL_AtomicSet(&blitStatusBar, 0)) {
-            // update only status bar (optimization)
-            memcpy(&((Uint8*)uiBufferTmp)[statusBar.y*sdlscrn->pitch], &((Uint8*)uiBuffer)[statusBar.y*sdlscrn->pitch], statusBar.h * sdlscrn->pitch);
-            updateStatusBar = true;
+            updateUI = true;
         }
         SDL_AtomicUnlock(&uiBufferLock);
         
-        // Update and render UI texture
-        if(updateTexture)        SDL_UpdateTexture(uiTexture, NULL,       uiBufferTmp, sdlscrn->pitch);
-        else if(updateStatusBar) SDL_UpdateTexture(uiTexture, &statusBar, &((Uint8*)uiBufferTmp)[statusBar.y*sdlscrn->pitch], sdlscrn->pitch);
-        SDL_RenderCopy(sdlRenderer, uiTexture, NULL, NULL);
+        if(updateUI) {
+            SDL_UpdateTexture(uiTexture, NULL,       uiBufferTmp, sdlscrn->pitch);
+        }
         
-        // SDL_RenderPresent sleeps until next VSYNC because of SDL_RENDERER_PRESENTVSYNC in ScreenInit
-        SDL_RenderPresent(sdlRenderer);
+        // Update and render UI texture
+        if (updateFB || updateUI) {
+            SDL_RenderClear(sdlRenderer);
+            // Render NeXT framebuffer texture
+            SDL_RenderCopy(sdlRenderer, fbTexture, NULL, NULL);
+            SDL_RenderCopy(sdlRenderer, uiTexture, NULL, NULL);
+            // SDL_RenderPresent sleeps until next VSYNC because of SDL_RENDERER_PRESENTVSYNC in ScreenInit
+            SDL_RenderPresent(sdlRenderer);
+        } else {
+            host_sleep_ms(10);
+        }
     }
     return 0;
+}
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Pause Screen, pauses or resumes drawing of NeXT framebuffer
+ */
+void Screen_Pause(bool pause) {
+    if (pause) {
+        SDL_AtomicSet(&blitFB, 0);
+    } else {
+        SDL_AtomicSet(&blitFB, 1);
+    }
 }
 
 /*-----------------------------------------------------------------------*/

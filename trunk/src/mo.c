@@ -198,8 +198,10 @@ void MO_Init(void);
 void MO_Uninit(void);
 
 /* Experimental */
-#define SECTOR_IO_DELAY 2500
-#define CMD_DELAY       1000
+#define SECTOR_IO_DELAY 1250
+#define CMD_DELAY       40
+
+#define SEEK_TIMING 1
 
 static void mo_set_signals(bool complete, bool attn, int delay);
 static void mo_push_signals(bool complete, bool attn, int drive);
@@ -878,7 +880,7 @@ void ecc_write(void) {
     }
     ecc_buffer[eccin].size=0; /* FIXME: find a better place for this */
     ecc_buffer[eccin].limit=MO_SECTORSIZE_DATA; /* and this */
-    CycInt_AddRelativeInterruptTicks(ECC_DELAY, INTERRUPT_ECC_IO);
+    CycInt_AddRelativeInterruptUsCycles(ECC_DELAY, 80, INTERRUPT_ECC_IO);
 }
 void ecc_read(void) {
     if (ecc_state!=ECC_STATE_DONE) {
@@ -890,7 +892,7 @@ void ecc_read(void) {
     if (mo.ctrlr_csr2&MOCSR2_ECC_BLOCKS) {
         ecc_repeat=true;
     }
-    CycInt_AddRelativeInterruptTicks(ECC_DELAY, INTERRUPT_ECC_IO);
+    CycInt_AddRelativeInterruptUsCycles(ECC_DELAY, 80, INTERRUPT_ECC_IO);
 }
 void ecc_verify(void) {
     if (ecc_state!=ECC_STATE_DONE) {
@@ -899,7 +901,7 @@ void ecc_verify(void) {
     }
     ecc_mode=ECC_MODE_VERIFY;
     ecc_state=ECC_STATE_ECCING;
-    CycInt_AddRelativeInterruptTicks(ECC_DELAY, INTERRUPT_ECC_IO);
+    CycInt_AddRelativeInterruptUsCycles(ECC_DELAY, 80, INTERRUPT_ECC_IO);
 }
 void ecc_sequence_done(void) {
     if (ecc_repeat==true) {
@@ -910,7 +912,7 @@ void ecc_sequence_done(void) {
         } else {
             ecc_state=ECC_STATE_ECCING;
         }
-        CycInt_AddRelativeInterruptTicks(ECC_DELAY, INTERRUPT_ECC_IO);
+        CycInt_AddRelativeInterruptUsCycles(ECC_DELAY, 80, INTERRUPT_ECC_IO);
         return;
     }
 
@@ -1012,7 +1014,7 @@ void ECC_IO_Handler(void) {
             return;
     }
     
-    CycInt_AddRelativeInterruptTicks(ECC_DELAY, INTERRUPT_ECC_IO);
+    CycInt_AddRelativeInterruptUsCycles(ECC_DELAY, 80, INTERRUPT_ECC_IO);
 }
 
 
@@ -1314,7 +1316,6 @@ bool mo_protected(void) {
     return false;
 }
 
-#define SEEK_TIMING 0
 void mo_seek(Uint16 command) {
 #if SEEK_TIMING
     int seek_time=modrv[dnum].head_pos;
@@ -1330,11 +1331,12 @@ void mo_seek(Uint16 command) {
     } else {
         seek_time=modrv[dnum].head_pos-seek_time;
     }
-    seek_time*=20;
-    if (seek_time>180000) {
-        seek_time=180000;
+    if (seek_time>95000) {
+        seek_time=95000;
     }
-    mo_set_signals(true, false, 20000+seek_time);
+    seek_time+=5000;
+
+    mo_set_signals(true, false, seek_time);
 #else
     mo_set_signals(true, false, CMD_DELAY);
 #endif
@@ -1397,7 +1399,7 @@ void mo_jump_head(Uint16 command) {
         return;
     }
 #if SEEK_TIMING
-    mo_set_signals(true, false, 10000);
+    mo_set_signals(true, false, 1600);
 #else
     mo_set_signals(true, false, CMD_DELAY);
 #endif
@@ -1479,7 +1481,7 @@ void mo_start_spinning(void) {
     Statusbar_AddMessage("Spin-up magneto-optical disk.", 0);
     modrv[dnum].dstat &= ~DS_STOPPED;
     modrv[dnum].spinning=true;
-    mo_set_signals(true, false, 30000000);
+    mo_set_signals(true, false, 1600000);
 }
 
 void mo_eject_disk(int drv) {
@@ -1509,14 +1511,39 @@ void mo_insert_disk(int drv) {
     
     if (ConfigureParams.MO.drive[drv].bWriteProtected) {
         modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "rb");
-        modrv[drv].protected=true;
+        if (modrv[drv].dsk == NULL) {
+            Log_Printf(LOG_WARN, "MO Disk%i: Cannot open image file %s\n",
+                       drv, ConfigureParams.MO.drive[drv].szImageName);
+            modrv[drv].inserted=false;
+            modrv[drv].protected=false;
+            Statusbar_AddMessage("Cannot insert magneto-optical disk.", 0);
+            return;
+        } else {
+            modrv[drv].inserted=true;
+            modrv[drv].protected=true;
+        }
     } else {
         modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "rb+");
-        modrv[drv].protected=false;
+        if (modrv[drv].dsk == NULL) {
+            modrv[drv].dsk = File_Open(ConfigureParams.MO.drive[drv].szImageName, "rb");
+            if (modrv[drv].dsk == NULL) {
+                Log_Printf(LOG_WARN, "MO Disk%i: Cannot open image file %s\n",
+                           drv, ConfigureParams.MO.drive[drv].szImageName);
+                modrv[drv].inserted=false;
+                modrv[drv].protected=false;
+                Statusbar_AddMessage("Cannot insert magneto-optical disk.", 0);
+                return;
+            } else {
+                modrv[drv].inserted=true;
+                modrv[drv].protected=true;
+            }
+        } else {
+            modrv[drv].inserted=true;
+            modrv[drv].protected=false;
+        }
     }
-    
+
     Statusbar_AddMessage("Inserting magneto-optical disk.", 0);
-    modrv[drv].inserted=true;
     modrv[drv].dstat&=~DS_EMPTY;
     modrv[drv].dstat|=DS_INSERT;
     modrv[drv].spinning=false;
@@ -1535,7 +1562,7 @@ void mo_start_spiraling(void) {
     }
 
     if (!modrv[0].spiraling && !modrv[1].spiraling) { /* periodic disk operation already active? */
-        CycInt_AddRelativeInterruptTicks(SECTOR_IO_DELAY, INTERRUPT_MO_IO);
+        CycInt_AddRelativeInterruptUsCycles(SECTOR_IO_DELAY, 400, INTERRUPT_MO_IO);
     }
     modrv[dnum].spiraling=true;
 
@@ -1570,7 +1597,7 @@ void mo_spiraling_operation(void) {
             modrv[i].sec_offset%=MO_SEC_PER_TRACK;
         }
     }
-    CycInt_AddRelativeInterruptTicks(SECTOR_IO_DELAY, INTERRUPT_MO_IO);
+    CycInt_AddRelativeInterruptUsCycles(SECTOR_IO_DELAY, 400, INTERRUPT_MO_IO);
 }
 
 void mo_self_diagnostic(void) {
@@ -1668,7 +1695,7 @@ void mo_set_signals(bool complete, bool attn, int delay) {
         delayed_drive=dnum;
         delayed_compl=complete;
         delayed_attn=attn;
-        CycInt_AddRelativeInterruptTicks(delay, INTERRUPT_MO);
+        CycInt_AddRelativeInterruptUsCycles(delay, CMD_DELAY, INTERRUPT_MO);
     } else {
         mo_push_signals(complete, attn, dnum);
     }
@@ -1701,13 +1728,34 @@ void MO_Init(void) {
             modrv[i].dstat=modrv[i].estat=modrv[i].hstat=0;
             if (ConfigureParams.MO.drive[i].bDiskInserted &&
                 File_Exists(ConfigureParams.MO.drive[i].szImageName)) {
-                modrv[i].inserted=true;
                 if (ConfigureParams.MO.drive[i].bWriteProtected) {
                     modrv[i].dsk = File_Open(ConfigureParams.MO.drive[i].szImageName, "rb");
-                    modrv[i].protected=true;
+                    if (modrv[i].dsk == NULL) {
+                        Log_Printf(LOG_WARN, "MO Disk%i: Cannot open image file %s\n",
+                                   i, ConfigureParams.MO.drive[i].szImageName);
+                        modrv[i].inserted=false;
+                        modrv[i].protected=false;
+                    } else {
+                        modrv[i].inserted=true;
+                        modrv[i].protected=true;
+                    }
                 } else {
                     modrv[i].dsk = File_Open(ConfigureParams.MO.drive[i].szImageName, "rb+");
-                    modrv[i].protected=false;
+                    if (modrv[i].dsk == NULL) {
+                        modrv[i].dsk = File_Open(ConfigureParams.MO.drive[i].szImageName, "rb");
+                        if (modrv[i].dsk == NULL) {
+                            Log_Printf(LOG_WARN, "MO Disk%i: Cannot open image file %s\n",
+                                       i, ConfigureParams.MO.drive[i].szImageName);
+                            modrv[i].inserted=false;
+                            modrv[i].protected=false;
+                        } else {
+                            modrv[i].inserted=true;
+                            modrv[i].protected=true;
+                        }
+                    } else {
+                        modrv[i].inserted=true;
+                        modrv[i].protected=false;
+                    }
                 }
             } else {
                 modrv[i].dsk = NULL;

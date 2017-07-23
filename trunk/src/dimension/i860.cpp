@@ -15,18 +15,11 @@
 
 ***************************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <math.h>
-#include <assert.h>
-#include "host.h"
 #include "i860.hpp"
 
 static i860_cpu_device nd_i860;
 
 extern "C" {
-#include "configuration.h"
     
     static void i860_run_nop(int nHostCycles) {}
     
@@ -59,6 +52,10 @@ extern "C" {
 	void nd_i860_uninit() {
         nd_i860.uninit();
 	}
+    
+    void nd_i860_pause(bool state) {
+        nd_i860.pause(state);
+    }
 	    
     void nd_start_debugger(void) {
         nd_i860.send_msg(MSG_DBG_BREAK);
@@ -151,22 +148,22 @@ inline void i860_cpu_device::set_iregval(int gr, UINT32 val) {
     m_iregs[0]  = 0; // make sure r0 is always 0
 }
 
-inline float i860_cpu_device::get_fregval_s (int fr) {
-    return *(float*)(&m_fregs[fr * 4]);
+inline FLOAT32 i860_cpu_device::get_fregval_s (int fr) {
+    return *(FLOAT32*)(&m_fregs[fr * 4]);
 }
 
-inline void i860_cpu_device::set_fregval_s (int fr, float s) {
+inline void i860_cpu_device::set_fregval_s (int fr, FLOAT32 s) {
     if(fr > 1)
-        *(float*)(&m_fregs[fr * 4]) = s;
+        *(FLOAT32*)(&m_fregs[fr * 4]) = s;
 }
 
-inline double i860_cpu_device::get_fregval_d (int fr) {
-    return *(double*)(&m_fregs[fr * 4]);
+inline FLOAT64 i860_cpu_device::get_fregval_d (int fr) {
+    return *(FLOAT64*)(&m_fregs[fr * 4]);
 }
 
-inline void i860_cpu_device::set_fregval_d (int fr, double d) {
+inline void i860_cpu_device::set_fregval_d (int fr, FLOAT64 d) {
     if(fr > 1)
-        *(double*)(&m_fregs[fr * 4]) = d;
+        *(FLOAT64*)(&m_fregs[fr * 4]) = d;
 }
 
 inline void i860_cpu_device::SET_PSR_CC(int val) {
@@ -417,10 +414,10 @@ int i860_cpu_device::memtest(bool be) {
     rdmem[4](P_TEST_ADDR+0, &tmp32); if(tmp32 != 0x01234567) return err+4;
     
     UINT8* uint8p = (UINT8*)&uint64;
-    set_fregval_d(2, *((double*)uint8p));
+    set_fregval_d(2, *((FLOAT64*)uint8p));
     writemem_emu(P_TEST_ADDR, 8, &m_fregs[8], 0xff);
     readmem_emu (P_TEST_ADDR, 8, &m_fregs[8]);
-    *((double*)&uint64) = get_fregval_d(2);
+    *((FLOAT64*)&uint64) = get_fregval_d(2);
     if(uint64 != 0x0123456789ABCDEFLL) return err+5;
 
     UINT32 lo;
@@ -467,13 +464,13 @@ void i860_cpu_device::init() {
         
         for(int i = 0; i < 32; i++) {
             uint8p[3] = i;
-            set_fregval_s(i, *((float*)uint8p));
+            set_fregval_s(i, *((FLOAT32*)uint8p));
         }
         if(get_fregval_s(0) != 0)   {err = 198; goto error;}
         if(get_fregval_s(1) != 0)   {err = 199; goto error;}
         for(int i = 2; i < 32; i++) {
             uint8p[3] = i;
-            if(get_fregval_s(i) != *((float*)uint8p))
+            if(get_fregval_s(i) != *((FLOAT32*)uint8p))
                 {err = 100+i; goto error;}
         }
         for(int i = 2; i < 32; i++) {
@@ -498,18 +495,18 @@ void i860_cpu_device::init() {
         
         for(int i = 0; i < 16; i++) {
             uint8p[7] = i;
-            set_fregval_d(i*2, *((double*)uint8p));
+            set_fregval_d(i*2, *((FLOAT64*)uint8p));
         }
         if(get_fregval_d(0) != 0)
             {err = 10199; goto error;}
         for(int i = 1; i < 16; i++) {
             uint8p[7] = i;
-            if(get_fregval_d(i*2) != *((double*)uint8p))
+            if(get_fregval_d(i*2) != *((FLOAT64*)uint8p))
                 {err = 10100+i; goto error;}
         }
         for(int i = 2; i < 32; i += 2) {
-            float hi = get_fregval_s(i+1);
-            float lo = get_fregval_s(i+0);
+            FLOAT32 hi = get_fregval_s(i+1);
+            FLOAT32 lo = get_fregval_s(i+0);
             if((*(UINT32*)&hi) != (0x00234567 | (i<<23))) {err = 10100+i; goto error;}
             if((*(UINT32*)&lo) !=  0x89ABCDEF)            {err = 10100+i; goto error;}
         }
@@ -541,8 +538,6 @@ error:
 }
 
 void i860_cpu_device::uninit() {
-    if(is_halted()) return;
-    
 	halt(true);
 
     if(m_thread) {

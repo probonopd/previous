@@ -1157,6 +1157,7 @@ const char* memory_init(int *nNewNEXTMemSize)
 			write_log("Mapping device space at $%08X\n", NEXT_IO_BMAP_START);
 		}
 	}
+	bmap_init();
 	
 	if (ConfigureParams.System.bTurbo) {
 		map_banks(&TMC_bank, NEXT_IO_TMC_START >> 16, NEXT_IO_SIZE>>16);

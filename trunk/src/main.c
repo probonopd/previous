@@ -26,6 +26,7 @@ const char Main_fileid[] = "Hatari main.c : " __DATE__ " " __TIME__;
 #include "screen.h"
 #include "sdlgui.h"
 #include "shortcut.h"
+#include "snd.h"
 #include "statusbar.h"
 #include "nextMemory.h"
 #include "str.h"
@@ -99,7 +100,6 @@ const char* Main_SpeedMsg() {
 
 #if ENABLE_TESTING
 static const report_t reports[] = {
-    {"Speed", Main_Speed},
     {"ND",    nd_reports},
     {"Host",  host_report},
 };
@@ -118,6 +118,12 @@ bool Main_PauseEmulation(bool visualize) {
 
 	bEmulationActive = false;
     host_pause_time(!(bEmulationActive));
+    Screen_Pause(true);
+    Sound_Pause(true);
+    if (ConfigureParams.Dimension.bEnabled) {
+        dimension_pause(true);
+    }
+    
 	if (visualize) {
 		Statusbar_AddMessage("Emulation paused", 100);
 		/* make sure msg gets shown */
@@ -144,6 +150,11 @@ bool Main_UnPauseEmulation(void) {
 
 	bEmulationActive = true;
     host_pause_time(!(bEmulationActive));
+    Screen_Pause(false);
+    Sound_Pause(false);
+    if (ConfigureParams.Dimension.bEnabled) {
+        dimension_pause(false);
+    }
 
 	if (bGrabMouse) {
 		/* Grab mouse pointer again */
@@ -389,7 +400,7 @@ void Main_EventHandler(void) {
 void Main_EventHandlerInterrupt() {
     CycInt_AcknowledgeInterrupt();
     Main_EventHandler();
-    CycInt_AddRelativeInterruptUs((1000*1000)/200, INTERRUPT_EVENT_LOOP); // poll events with 200 Hz
+    CycInt_AddRelativeInterruptUs((1000*1000)/200, 0, INTERRUPT_EVENT_LOOP); // poll events with 200 Hz
 }
 
 /*-----------------------------------------------------------------------*/
@@ -430,10 +441,15 @@ static void Main_Init(void) {
 	Keymap_Init();
 
     /* call menu at startup */
-    if (!File_Exists(sConfigFileName) || ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup)
+    if (!File_Exists(sConfigFileName) || ConfigureParams.ConfigDialog.bShowConfigDialogAtStartup) {
         Dialog_DoProperty();
-    else
-        Dialog_CheckFiles();
+        if (bQuitProgram) {
+            SDL_Quit();
+            exit(-2);
+        }
+    }
+
+    Dialog_CheckFiles();
     
     if (bQuitProgram) {
         SDL_Quit();
@@ -445,7 +461,7 @@ static void Main_Init(void) {
 	IoMem_Init();
 	
     /* Start EventHandler */
-    CycInt_AddRelativeInterruptUs(500*1000, INTERRUPT_EVENT_LOOP);
+    CycInt_AddRelativeInterruptUs(500*1000, 0, INTERRUPT_EVENT_LOOP);
     
 	/* done as last, needs CPU & DSP running... */
 	DebugUI_Init();

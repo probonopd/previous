@@ -243,6 +243,13 @@ void nd_slot_bput(Uint32 addr, Uint8 b) {
     }
 }
 
+/* Pause and resume function */
+
+void dimension_pause(bool pause) {
+    nd_i860_pause(pause);
+    nd_sdl_pause(pause);
+}
+
 /* Reset function */
 
 void dimension_init(void) {

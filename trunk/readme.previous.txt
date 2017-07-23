@@ -1,6 +1,6 @@
 
 
-                                 Previous 1.6
+                                 Previous 1.7
 
 
 
@@ -132,23 +132,20 @@ input devices.
  ---------------
 
 - Un-emulated hardware may cause problems when attempted to being used.
+- NeXTdimension emulation does not work on hosts with big endian byte order.
 - The MO drive causes slow downs and hangs when both drives are connected, but 
   only one disk is inserted. This is no emulation issue but a bug in NeXTstep.
-- The MO drives do not work if variable CPU speed mode is enabled. Therefore 
-  this mode is automatically disabled, if an MO drive is connected.
-- DSP sound has timing related issues. DSPmusic under NeXTstep 0.9 sometimes 
-  produces bad audio or hangs in variable speed mode. ScorePlayer under 
-  NeXTstep 2.x produces distorted sound in normal CPU mode.
+- DSP sound has timing related issues. playscore under NeXTstep 0.9 sometimes 
+  produces bad audio in variable speed mode. ScorePlayer under NeXTstep 2.x 
+  produces distorted sound in normal CPU mode.
 - Shortcuts do not work properly or overlap with host commands on some 
   platforms.
 - CPU timings are not correct. You may experience performance differences 
   compared to real hardware.
-- Some 68882 FPU functions are emulated inaccurately due to missing SoftFloat 
-  implementations. Results may vary between different host system platforms.
-- Floating point overflow and underflow may cause wrong results on 68040 due to 
-  incomplete 68040 FRESTORE emulation.
-- Starting sound output or sound input may cause short lags in emulation. This 
-  is most likely caused by SDL or host audio hardware and drivers.
+- 68882 transcendental FPU instructions produce results identical to 68040 FPSP.
+  The results are slightly different from real 68882 results.
+- Changing network connection settings while a guest system is running sometimes
+  causes permanently lost connections, especially under NeXTstep 2.2.
 
 
 
@@ -197,6 +194,22 @@ input devices.
   > Fixes bug that prevented sound input under NeXTstep 0.8.
   > Fixes bug that caused temporary speed anomalies after pausing.
   > Improves dummy RAMDAC emulation.
+
+  Previous v1.7:
+  > Adds support for twisted-pair Ethernet.
+  > Adds SoftFloat emulation for 68882 transcendental FPU instructions.
+  > Adds SoftFloat emulation for i860 floating point instructions.
+  > Improves 68040 FPU emulation to support resuming of instructions.
+  > Improves Ethernet connection stability.
+  > Improves efficiency while emulation is paused.
+  > Improves device timings to be closer to real hardware.
+  > Fixes bug in timing system. MO drive now works in variable speed mode.
+  > Fixes bug in 68040 MMU that caused crashes and kernel panics.
+  > Fixes bug in 68040 FPU that caused crashes due to unnormal zero.
+  > Fixes bug in FMOVEM that modified wrong FPU registers.
+  > Fixes bug that sometimes caused hangs if sound was disabled.
+  > Fixes bug that caused lags in responsiveness during sound output.
+  > Fixes bug that caused a crash when using write protected image files.
 
 
  7) Running Previous

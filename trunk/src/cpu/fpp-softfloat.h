@@ -12,11 +12,6 @@
 #ifndef FPP_H
 #define FPP_H
 
-#define __USE_ISOC9X  /* We might be able to pick up a NaN */
-
-#include <math.h>
-#include <float.h>
-
 #include <softfloat.h>
 
 
@@ -96,29 +91,32 @@ STATIC_INLINE const char *fp_print(fptype *fx)
 {
     static char fs[32];
     bool n, u, d;
-    long double result = 0.0;
-    int i;
+    fptype x;
+    int32 len;
+    int8 save_exception_flags;
     
     n = floatx80_is_negative(*fx);
     u = floatx80_is_unnormal(*fx);
     d = floatx80_is_denormal(*fx);
-    
-    if (floatx80_is_zero(*fx)) {
-        sprintf(fs, "%c%#.17Le%s%s", n?'-':'+', (long double) 0.0, u?"U":"", d?"D":"");
-    } else if (floatx80_is_infinity(*fx)) {
+
+    if (floatx80_is_infinity(*fx)) {
         sprintf(fs, "%c%s", n?'-':'+', "inf");
     } else if (floatx80_is_signaling_nan(*fx)) {
         sprintf(fs, "%c%s", n?'-':'+', "snan");
     } else if (floatx80_is_nan(*fx)) {
         sprintf(fs, "%c%s", n?'-':'+', "nan");
     } else {
-        for (i = 63; i >= 0; i--) {
-            if (fx->low & (((uae_u64)1)<<i)) {
-                result += (long double) 1.0 / (((uae_u64)1)<<(63-i));
-            }
-        }
-        result *= powl(2.0, (fx->high&0x7FFF) - 0x3FFF);
-        sprintf(fs, "%c%#.17Le%s%s", n?'-':'+', result, u?"U":"", d?"D":"");
+        len = 17;
+        save_exception_flags = float_exception_flags;
+        float_exception_flags = 0;
+        x = floatx80_to_floatdecimal(*fx, &len);
+        
+        sprintf(fs, "%c%01lld.%016llde%c%04d%s%s", n?'-':'+',
+                x.low/LIT64(10000000000000000), x.low%LIT64(10000000000000000),
+                (x.high&0x4000)?'-':'+', x.high&0x3FFF, d?"D":u?"U":"",
+                (float_exception_flags&float_flag_inexact)?"~":"");
+
+        float_exception_flags = save_exception_flags;
     }
     
     return fs;
@@ -165,79 +163,6 @@ STATIC_INLINE void fp_normalize(fptype *fp)
 }
 
 /* Functions for converting between float formats */
-static const long double twoto32 = 4294967296.0;
-
-STATIC_INLINE void to_native(long double *fp, fptype fpx)
-{
-    int expon;
-    long double frac;
-    
-    expon = fpx.high & 0x7fff;
-    
-    if (floatx80_is_zero(fpx)) {
-        *fp = floatx80_is_negative(fpx) ? -0.0 : +0.0;
-        return;
-    }
-    if (floatx80_is_nan(fpx)) {
-        *fp = sqrtl(-1);
-        return;
-    }
-    if (floatx80_is_infinity(fpx)) {
-        *fp = floatx80_is_negative(fpx) ? logl(0.0) : (1.0/0.0);
-        return;
-    }
-    
-    frac = (long double)fpx.low / (long double)(twoto32 * 2147483648.0);
-    if (floatx80_is_negative(fpx))
-        frac = -frac;
-    *fp = ldexpl (frac, expon - 16383);
-}
-
-STATIC_INLINE void from_native(long double fp, fptype *fpx)
-{
-    int expon;
-    long double frac;
-    
-    if (signbit(fp))
-        fpx->high = 0x8000;
-    else
-        fpx->high = 0x0000;
-    
-    if (isnan(fp)) {
-        fpx->high |= 0x7fff;
-        fpx->low = LIT64(0xffffffffffffffff);
-        return;
-    }
-    if (isinf(fp)) {
-        fpx->high |= 0x7fff;
-        fpx->low = LIT64(0x0000000000000000);
-        return;
-    }
-    if (fp == 0.0) {
-        fpx->low = LIT64(0x0000000000000000);
-        return;
-    }
-    if (fp < 0.0)
-        fp = -fp;
-    
-    frac = frexpl (fp, &expon);
-    frac += 0.5 / (twoto32 * twoto32);
-    if (frac >= 1.0) {
-        frac /= 2.0;
-        expon++;
-    }
-    fpx->high |= (expon + 16383 - 1) & 0x7fff;
-    fpx->low = (bits64)(frac * (long double)(twoto32 * twoto32));
-    
-    while (!(fpx->low & LIT64( 0x8000000000000000))) {
-        if (fpx->high == 0) {
-            break;
-        }
-        fpx->low <<= 1;
-        fpx->high--;
-    }
-}
-
 STATIC_INLINE void to_single(fptype *fp, uae_u32 wrd1)
 {
     float32 f = wrd1;
@@ -380,6 +305,7 @@ STATIC_INLINE void from_pack(fptype *fp, uae_u32 *wrd, uae_s32 kfactor)
         exponent = f.high & 0x3FFF;
         significand = f.low;
         
+        pack_int = 0;
         pack_frac = 0;
         len = kfactor; // SoftFloat saved len to kfactor variable
         while (len > 0) {
@@ -451,6 +377,12 @@ STATIC_INLINE uae_u32 fp_get_internal_grs(void)
     return (uae_u32)getFloatInternalGRS();
 }
 
+/* Function for denormalizing */
+STATIC_INLINE void fp_denormalize(fptype *fp, int esign)
+{
+    *fp = floatx80_denormalize(*fp, esign);
+}
+
 /* Functions for rounding */
 
 // round to float with extended precision exponent
@@ -509,32 +441,6 @@ STATIC_INLINE void fp_sqrt(fptype *a, fptype *b)
 {
     *a = floatx80_sqrt(*b);
 }
-STATIC_INLINE void fp_lognp1(fptype *a, fptype *b)
-{
-    *a = floatx80_flognp1(*b);
-}
-STATIC_INLINE void fp_sin(fptype *a, fptype *b)
-{
-    *a = *b;
-    floatx80_fsin(a);
-}
-STATIC_INLINE void fp_tan(fptype *a, fptype *b)
-{
-    *a = *b;
-    floatx80_ftan(a);
-}
-STATIC_INLINE void fp_logn(fptype *a, fptype *b)
-{
-    *a = floatx80_flogn(*b);
-}
-STATIC_INLINE void fp_log10(fptype *a, fptype *b)
-{
-    *a = floatx80_flog10(*b);
-}
-STATIC_INLINE void fp_log2(fptype *a, fptype *b)
-{
-    *a = floatx80_flog2(*b);
-}
 STATIC_INLINE void fp_abs(fptype *a, fptype *b)
 {
     *a = floatx80_abs(*b);
@@ -542,11 +448,6 @@ STATIC_INLINE void fp_abs(fptype *a, fptype *b)
 STATIC_INLINE void fp_neg(fptype *a, fptype *b)
 {
     *a = floatx80_neg(*b);
-}
-STATIC_INLINE void fp_cos(fptype *a, fptype *b)
-{
-    *a = *b;
-    floatx80_fcos(a);
 }
 STATIC_INLINE void fp_getexp(fptype *a, fptype *b)
 {
@@ -599,6 +500,79 @@ STATIC_INLINE void fp_cmp(fptype *a, fptype *b)
 STATIC_INLINE void fp_tst(fptype *a, fptype *b)
 {
     *a = floatx80_tst(*b);
+}
+
+STATIC_INLINE void fp_sinh(fptype *a, fptype *b)
+{
+    *a = floatx80_sinh(*b);
+}
+STATIC_INLINE void fp_lognp1(fptype *a, fptype *b)
+{
+    *a = floatx80_lognp1(*b);
+}
+STATIC_INLINE void fp_etoxm1(fptype *a, fptype *b)
+{
+    *a = floatx80_etoxm1(*b);
+}
+STATIC_INLINE void fp_tanh(fptype *a, fptype *b)
+{
+    *a = floatx80_tanh(*b);
+}
+STATIC_INLINE void fp_atan(fptype *a, fptype *b)
+{
+    *a = floatx80_atan(*b);
+}
+STATIC_INLINE void fp_asin(fptype *a, fptype *b)
+{
+    *a = floatx80_asin(*b);
+}
+STATIC_INLINE void fp_atanh(fptype *a, fptype *b)
+{
+    *a = floatx80_atanh(*b);
+}
+STATIC_INLINE void fp_sin(fptype *a, fptype *b)
+{
+    *a = floatx80_sin(*b);
+}
+STATIC_INLINE void fp_tan(fptype *a, fptype *b)
+{
+    *a = floatx80_tan(*b);
+}
+STATIC_INLINE void fp_etox(fptype *a, fptype *b)
+{
+    *a = floatx80_etox(*b);
+}
+STATIC_INLINE void fp_twotox(fptype *a, fptype *b)
+{
+    *a = floatx80_twotox(*b);
+}
+STATIC_INLINE void fp_tentox(fptype *a, fptype *b)
+{
+    *a = floatx80_tentox(*b);
+}
+STATIC_INLINE void fp_logn(fptype *a, fptype *b)
+{
+    *a = floatx80_logn(*b);
+}
+STATIC_INLINE void fp_log10(fptype *a, fptype *b)
+{
+    *a = floatx80_log10(*b);
+}
+STATIC_INLINE void fp_log2(fptype *a, fptype *b)
+{
+    *a = floatx80_log2(*b);
+}
+STATIC_INLINE void fp_cosh(fptype *a, fptype *b)
+{
+    *a = floatx80_cosh(*b);
+}
+STATIC_INLINE void fp_acos(fptype *a, fptype *b)
+{
+    *a = floatx80_acos(*b);
+}
+STATIC_INLINE void fp_cos(fptype *a, fptype *b)
+{
+    *a = floatx80_cos(*b);
 }
 
 /* Functions with fixed precision */
@@ -716,9 +690,81 @@ STATIC_INLINE void fp_sqrt_double(fptype *a, fptype *b)
 }
 
 
-/* FIXME: create softfloat functions for following arithmetics */
 
-STATIC_INLINE void fp_sinh(fptype *a, fptype *b)
+#if 0 /* Old fallback functions disabled */
+static const long double twoto32 = 4294967296.0;
+
+STATIC_INLINE void to_native(long double *fp, fptype fpx)
+{
+    int expon;
+    long double frac;
+    
+    expon = fpx.high & 0x7fff;
+    
+    if (floatx80_is_zero(fpx)) {
+        *fp = floatx80_is_negative(fpx) ? -0.0 : +0.0;
+        return;
+    }
+    if (floatx80_is_nan(fpx)) {
+        *fp = sqrtl(-1);
+        return;
+    }
+    if (floatx80_is_infinity(fpx)) {
+        *fp = floatx80_is_negative(fpx) ? logl(0.0) : (1.0/0.0);
+        return;
+    }
+    
+    frac = (long double)fpx.low / (long double)(twoto32 * 2147483648.0);
+    if (floatx80_is_negative(fpx))
+        frac = -frac;
+    *fp = ldexpl (frac, expon - 16383);
+}
+STATIC_INLINE void from_native(long double fp, fptype *fpx)
+{
+    int expon;
+    long double frac;
+    
+    if (signbit(fp))
+        fpx->high = 0x8000;
+    else
+        fpx->high = 0x0000;
+    
+    if (isnan(fp)) {
+        fpx->high |= 0x7fff;
+        fpx->low = LIT64(0xffffffffffffffff);
+        return;
+    }
+    if (isinf(fp)) {
+        fpx->high |= 0x7fff;
+        fpx->low = LIT64(0x0000000000000000);
+        return;
+    }
+    if (fp == 0.0) {
+        fpx->low = LIT64(0x0000000000000000);
+        return;
+    }
+    if (fp < 0.0)
+        fp = -fp;
+    
+    frac = frexpl (fp, &expon);
+    frac += 0.5 / (twoto32 * twoto32);
+    if (frac >= 1.0) {
+        frac /= 2.0;
+        expon++;
+    }
+    fpx->high |= (expon + 16383 - 1) & 0x7fff;
+    fpx->low = (bits64)(frac * (long double)(twoto32 * twoto32));
+    
+    while (!(fpx->low & LIT64( 0x8000000000000000))) {
+        if (fpx->high == 0) {
+            break;
+        }
+        fpx->low <<= 1;
+        fpx->high--;
+    }
+}
+
+STATIC_INLINE void fp_sinhf(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_sinh_check(*a, &e);
@@ -729,7 +775,18 @@ STATIC_INLINE void fp_sinh(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
-STATIC_INLINE void fp_etoxm1(fptype *a, fptype *b)
+STATIC_INLINE void fp_lognp1f(fptype *a, fptype *b)
+{
+    flag e = 0;
+    floatx80_lognp1_check(*a, &e);
+    if (e) return;
+    long double fp;
+    to_native(&fp, *b);
+    fp = log1pl(fp);
+    from_native(fp, a);
+    fp_round(a);
+}
+STATIC_INLINE void fp_etoxm1f(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_etoxm1_check(*a, &e);
@@ -740,7 +797,7 @@ STATIC_INLINE void fp_etoxm1(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
-STATIC_INLINE void fp_tanh(fptype *a, fptype *b)
+STATIC_INLINE void fp_tanhf(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_tanh_check(*a, &e);
@@ -751,7 +808,7 @@ STATIC_INLINE void fp_tanh(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
-STATIC_INLINE void fp_atan(fptype *a, fptype *b)
+STATIC_INLINE void fp_atanf(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_atan_check(*a, &e);
@@ -762,7 +819,7 @@ STATIC_INLINE void fp_atan(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
-STATIC_INLINE void fp_asin(fptype *a, fptype *b)
+STATIC_INLINE void fp_asinf(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_asin_check(*a, &e);
@@ -773,7 +830,7 @@ STATIC_INLINE void fp_asin(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
-STATIC_INLINE void fp_atanh(fptype *a, fptype *b)
+STATIC_INLINE void fp_atanhf(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_atanh_check(*a, &e);
@@ -784,7 +841,29 @@ STATIC_INLINE void fp_atanh(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
-STATIC_INLINE void fp_etox(fptype *a, fptype *b)
+STATIC_INLINE void fp_sinf(fptype *a, fptype *b)
+{
+    flag e = 0;
+    floatx80_sin_check(*a, &e);
+    if (e) return;
+    long double fp;
+    to_native(&fp, *b);
+    fp = sinl(fp);
+    from_native(fp, a);
+    fp_round(a);
+}
+STATIC_INLINE void fp_tanf(fptype *a, fptype *b)
+{
+    flag e = 0;
+    floatx80_tan_check(*a, &e);
+    if (e) return;
+    long double fp;
+    to_native(&fp, *b);
+    fp = tanl(fp);
+    from_native(fp, a);
+    fp_round(a);
+}
+STATIC_INLINE void fp_etoxf(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_etox_check(*a, &e);
@@ -795,7 +874,7 @@ STATIC_INLINE void fp_etox(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
-STATIC_INLINE void fp_twotox(fptype *a, fptype *b)
+STATIC_INLINE void fp_twotoxf(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_twotox_check(*a, &e);
@@ -806,7 +885,7 @@ STATIC_INLINE void fp_twotox(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
-STATIC_INLINE void fp_tentox(fptype *a, fptype *b)
+STATIC_INLINE void fp_tentoxf(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_tentox_check(*a, &e);
@@ -817,7 +896,40 @@ STATIC_INLINE void fp_tentox(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
-STATIC_INLINE void fp_cosh(fptype *a, fptype *b)
+STATIC_INLINE void fp_lognf(fptype *a, fptype *b)
+{
+    flag e = 0;
+    floatx80_logn_check(*a, &e);
+    if (e) return;
+    long double fp;
+    to_native(&fp, *b);
+    fp = logl(fp);
+    from_native(fp, a);
+    fp_round(a);
+}
+STATIC_INLINE void fp_log10f(fptype *a, fptype *b)
+{
+    flag e = 0;
+    floatx80_log10_check(*a, &e);
+    if (e) return;
+    long double fp;
+    to_native(&fp, *b);
+    fp = log10l(fp);
+    from_native(fp, a);
+    fp_round(a);
+}
+STATIC_INLINE void fp_log2f(fptype *a, fptype *b)
+{
+    flag e = 0;
+    floatx80_log2_check(*a, &e);
+    if (e) return;
+    long double fp;
+    to_native(&fp, *b);
+    fp = log2l(fp);
+    from_native(fp, a);
+    fp_round(a);
+}
+STATIC_INLINE void fp_coshf(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_cosh_check(*a, &e);
@@ -828,7 +940,7 @@ STATIC_INLINE void fp_cosh(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
-STATIC_INLINE void fp_acos(fptype *a, fptype *b)
+STATIC_INLINE void fp_acosf(fptype *a, fptype *b)
 {
     flag e = 0;
     floatx80_acos_check(*a, &e);
@@ -839,5 +951,17 @@ STATIC_INLINE void fp_acos(fptype *a, fptype *b)
     from_native(fp, a);
     fp_round(a);
 }
+STATIC_INLINE void fp_cosf(fptype *a, fptype *b)
+{
+    flag e = 0;
+    floatx80_cos_check(*a, &e);
+    if (e) return;
+    long double fp;
+    to_native(&fp, *b);
+    fp = cosl(fp);
+    from_native(fp, a);
+    fp_round(a);
+}
+#endif
 
 #endif

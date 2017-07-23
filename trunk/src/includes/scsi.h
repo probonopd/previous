@@ -31,6 +31,8 @@ struct {
 void SCSI_Init(void);
 void SCSI_Uninit(void);
 void SCSI_Reset(void);
+void SCSI_Insert(Uint8 target);
+void SCSI_Eject(Uint8 target);
 
 Uint8 SCSIdisk_Send_Status(void);
 Uint8 SCSIdisk_Send_Message(void);
@@ -38,3 +40,6 @@ Uint8 SCSIdisk_Send_Data(void);
 void SCSIdisk_Receive_Data(Uint8 val);
 bool SCSIdisk_Select(Uint8 target);
 void SCSIdisk_Receive_Command(Uint8 *commandbuf, Uint8 identify);
+
+Sint64 SCSI_Seek_Time(void);
+Sint64 SCSI_Sector_Time(void);
