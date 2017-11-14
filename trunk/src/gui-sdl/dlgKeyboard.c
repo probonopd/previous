@@ -21,12 +21,8 @@ const char DlgKeyboard_fileid[] = "Previous dlgKeyboard.c : " __DATE__ " " __TIM
 
 #define DLGKEY_SCANCODE  4
 #define DLGKEY_SYMBOLIC  5
-#define DLGKEY_FROMFILE  5
-#define DLGKEY_MAPNAME   7
-#define DLGKEY_MAPBROWSE 8
-#define DLGKEY_DISREPEAT 8
-#define DLGKEY_SWAP      9
-#define DLGKEY_EXIT      21
+#define DLGKEY_SWAP      8
+#define DLGKEY_EXIT      20
 
 
 /* The keyboard dialog: */
@@ -42,8 +38,7 @@ static SGOBJ keyboarddlg[] =
     
     { SGBOX, 0, 0, 24,3, 21,7, NULL },
     { SGTEXT, 0, 0, 26,4, 12,1, "Key options:" },
-	{ SGCHECKBOX, 0, 0, 26,6, 16,1, "Disable repeat" },
-    { SGCHECKBOX, 0, 0, 26,8, 18,1, "Swap cmd and alt" },
+    { SGCHECKBOX, 0, 0, 26,6, 18,1, "Swap cmd and alt" },
     
     { SGBOX, 0, 0, 2,11, 43,12, NULL },
     { SGTEXT, 0, 0, 4,12, 10,1, "Shortcuts:" },
@@ -93,10 +88,6 @@ void Dialog_KeyboardDlg(void)
 	File_ShrinkName(dlgmapfile, ConfigureParams.Keyboard.szMappingFileName, keyboarddlg[DLGKEY_MAPNAME].w);
 	keyboarddlg[DLGKEY_MAPNAME].txt = dlgmapfile;
 #endif
-	if (ConfigureParams.Keyboard.bDisableKeyRepeat)
-		keyboarddlg[DLGKEY_DISREPEAT].state |= SG_SELECTED;
-	else
-		keyboarddlg[DLGKEY_DISREPEAT].state &= ~SG_SELECTED;
     
     if (ConfigureParams.Keyboard.bSwapCmdAlt)
         keyboarddlg[DLGKEY_SWAP].state |= SG_SELECTED;
@@ -128,6 +119,5 @@ void Dialog_KeyboardDlg(void)
 	else
 		ConfigureParams.Keyboard.nKeymapType = KEYMAP_LOADED;
 #endif
-	ConfigureParams.Keyboard.bDisableKeyRepeat = (keyboarddlg[DLGKEY_DISREPEAT].state & SG_SELECTED);
     ConfigureParams.Keyboard.bSwapCmdAlt = (keyboarddlg[DLGKEY_SWAP].state & SG_SELECTED);
 }

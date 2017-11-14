@@ -43,7 +43,7 @@ void (*PendingInterruptFunction)(void);
 Sint64 PendingInterruptCounter;
 int    usCheckCycles;
 
-static Sint64 nCyclesOver;
+Sint64 nCyclesOver;
 Sint64 nCyclesMainCounter;         /* Main cycles counter, counts emulated CPU cycles sind reset */
 
 
@@ -130,23 +130,14 @@ static void CycInt_SetNewInterrupt(void) {
  * Adjust all interrupt timings, MUST call CycInt_SetNewInterrupt after this.
  */
 static void CycInt_UpdateInterrupt(void) {
-	Sint64 CycleSubtract;
 	int i;
 
-	/* Skip this if pending interrupt type is microsecond */
-	if (PendingInterrupt.type == CYC_INT_US)
-		return;
-
-	/* Find out how many cycles we went over (<=0) */
-	nCyclesOver = PendingInterrupt.time;
-	/* Calculate how many cycles have passed, included time we went over */
-	CycleSubtract = InterruptHandlers[ActiveInterrupt].time - nCyclesOver;
-
-	/* Adjust table */
+	/* Adjust table by subtracting cycles that have passed since last update */
 	for (i = 0; i < MAX_INTERRUPTS; i++) {
 		if (InterruptHandlers[i].type == CYC_INT_CPU)
-			InterruptHandlers[i].time -= CycleSubtract;
+			InterruptHandlers[i].time -= nCyclesOver;
 	}
+    nCyclesOver = 0;
 }
 
 /*-----------------------------------------------------------------------*/

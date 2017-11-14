@@ -976,8 +976,7 @@ static void floppy_read_sector(void) {
         Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Read sector at offset %i",logical_sec);
 
         flp_buffer.size = flp_buffer.limit = sec_size;
-        fseek(flpdrv[drive].dsk, logical_sec*sec_size, SEEK_SET);
-        fread(flp_buffer.data, flp_buffer.size, 1, flpdrv[drive].dsk);
+        File_Read(flp_buffer.data, flp_buffer.size, logical_sec*sec_size, flpdrv[drive].dsk);
         flpdrv[drive].sector++;
         flp_sector_counter--;
     }
@@ -1005,8 +1004,7 @@ static void floppy_write_sector(void) {
     } else {
         Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Write sector at offset %i",logical_sec);
         
-        fseek(flpdrv[drive].dsk, logical_sec*sec_size, SEEK_SET);
-        fwrite(flp_buffer.data, flp_buffer.size, 1, flpdrv[drive].dsk);
+        File_Write(flp_buffer.data, flp_buffer.size, logical_sec*sec_size, flpdrv[drive].dsk);
         flp_buffer.size = 0;
         flp_buffer.limit = sec_size;
         flpdrv[drive].sector++;
@@ -1049,8 +1047,7 @@ static void floppy_format_sector(void) {
     } else {
         Log_Printf(LOG_FLP_CMD_LEVEL, "[Floppy] Format sector at offset %i (%i/%i/%i), blocksize: %i",
                    logical_sec,c,h,s,sec_size);
-        fseek(flpdrv[drive].dsk, logical_sec*sec_size, SEEK_SET);
-        fwrite(flp_buffer.data, flp_buffer.size, 1, flpdrv[drive].dsk);
+        File_Write(flp_buffer.data, flp_buffer.size, logical_sec*sec_size, flpdrv[drive].dsk);
         flp_buffer.size = 0;
         flp_buffer.limit = 4;
     }
