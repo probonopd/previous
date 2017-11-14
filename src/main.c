@@ -351,24 +351,16 @@ void Main_EventHandler(void) {
                 else if (event.button.button == SDL_BUTTON_RIGHT)
                 {
                     Keymap_MouseDown(false);
-                    //				Keyboard.bRButtonDown |= BUTTON_MOUSE;
-                }
-                else if (event.button.button == SDL_BUTTON_MIDDLE)
-                {
-                    /* Start double-click sequence in emulation time */
-                    //				Keyboard.LButtonDblClk = 1;
                 }
                 break;
                 
             case SDL_MOUSEBUTTONUP:
                 if (event.button.button == SDL_BUTTON_LEFT) {
                     Keymap_MouseUp(true);
-                    //				Keyboard.bLButtonDown &= ~BUTTON_MOUSE;
                 }
                 else if (event.button.button == SDL_BUTTON_RIGHT)
                 {
                     Keymap_MouseUp(false);
-                    //				Keyboard.bRButtonDown &= ~BUTTON_MOUSE;
                 }
                 break;
                 
@@ -377,7 +369,7 @@ void Main_EventHandler(void) {
                 break;
                 
             case SDL_KEYDOWN:
-                if (ConfigureParams.Keyboard.bDisableKeyRepeat && event.key.repeat)
+                if (event.key.repeat)
                     break;
                 
                 Keymap_KeyDown(&event.key.keysym);

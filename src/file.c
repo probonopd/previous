@@ -157,7 +157,7 @@ bool File_DoesFileNameEndWithSlash(char *pszFileName)
  * or NULL for error.  If pFileSize is non-NULL, read file size
  * is set to that.
  */
-Uint8 *File_Read(const char *pszFileName, long *pFileSize, const char * const ppszExts[])
+Uint8 *File_Load(const char *pszFileName, long *pFileSize, const char * const ppszExts[])
 {
 	char *filepath = NULL;
 	Uint8 *pFile = NULL;
@@ -573,6 +573,46 @@ FILE *File_Close(FILE *fp)
 		fclose(fp);
 	}
 	return NULL;
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Read data from given FILE pointer to buffer and return status
+ */
+bool File_Read(Uint8 *data, Uint32 size, Uint64 offset, FILE *fp)
+{
+    if (fseek(fp, offset, SEEK_SET))
+    {
+        fprintf(stderr, "File seek failed:\n  %s\n", strerror(errno));
+        return false;
+    }
+    if (fread(data, size, 1, fp) != 1)
+    {
+        fprintf(stderr, "Error occured while reading file.\n");
+        return false;
+    }
+    return true;
+}
+
+
+/*-----------------------------------------------------------------------*/
+/**
+ * Write data to given FILE pointer and return status
+ */
+bool File_Write(Uint8 *data, Uint32 size, Uint64 offset, FILE *fp)
+{
+    if (fseek(fp, offset, SEEK_SET))
+    {
+        fprintf(stderr, "File seek failed:\n  %s\n", strerror(errno));
+        return false;
+    }
+    if (fwrite(data, size, 1, fp) != 1)
+    {
+        fprintf(stderr, "Error occured while writing file.\n");
+        return false;
+    }
+    return true;
 }
 
 

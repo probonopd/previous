@@ -40,7 +40,7 @@ struct fpp_cr_entry {
     uae_s8 rndoff[4];
 };
 
-struct fpp_cr_entry fpp_cr[22] = {
+static const struct fpp_cr_entry fpp_cr[22] = {
     { {0x40000000, 0xc90fdaa2, 0x2168c235}, 1, {0,-1,-1, 0} }, //  0 = pi
     { {0x3ffd0000, 0x9a209a84, 0xfbcff798}, 1, {0, 0, 0, 1} }, //  1 = log10(2)
     { {0x40000000, 0xadf85458, 0xa2bb4a9a}, 1, {0, 0, 0, 1} }, //  2 = e
@@ -61,7 +61,7 @@ struct fpp_cr_entry fpp_cr[22] = {
     { {0x43510000, 0xaa7eebfb, 0x9df9de8e}, 1, {0,-1,-1, 0} }, // 17 = 1e256
     { {0x46a30000, 0xe319a0ae, 0xa60e91c7}, 1, {0,-1,-1, 0} }, // 18 = 1e512
     { {0x4d480000, 0xc9767586, 0x81750c17}, 1, {0, 0, 0, 1} }, // 19 = 1e1024
-    { {0x5a920000, 0x9e8b3b5d, 0xc53d5de5}, 1, {0, 0, 0, 1} }, // 20 = 1e2048
+    { {0x5a920000, 0x9e8b3b5d, 0xc53d5de5}, 1, {0,-1,-1, 0} }, // 20 = 1e2048
     { {0x75250000, 0xc4605202, 0x8a20979b}, 1, {0,-1,-1, 0} }  // 21 = 1e4096
 };
 
@@ -87,6 +87,27 @@ struct fpp_cr_entry fpp_cr[22] = {
 #define FPP_CR_1E1024   19
 #define FPP_CR_1E2048   20
 #define FPP_CR_1E4096   21
+
+struct fpp_cr_entry_undef {
+    uae_u32 val[3];
+};
+
+#define FPP_CR_NUM_SPECIAL_UNDEFINED 10
+
+// 68881 and 68882 have identical undefined fields
+static const struct fpp_cr_entry_undef fpp_cr_undef[FPP_CR_NUM_SPECIAL_UNDEFINED+1] = {
+    { {0x40000000, 0x00000000, 0x00000000} },
+    { {0x40010000, 0xfe000682, 0x00000000} },
+    { {0x40010000, 0xffc00503, 0x80000000} },
+    { {0x20000000, 0x7fffffff, 0x00000000} },
+    { {0x00000000, 0xffffffff, 0xffffffff} },
+    { {0x3c000000, 0xffffffff, 0xfffff800} },
+    { {0x3f800000, 0xffffff00, 0x00000000} },
+    { {0x00010000, 0xf65d8d9c, 0x00000000} },
+    { {0x7fff0000, 0x001e0000, 0x00000000} },
+    { {0x43ff0000, 0x000e0000, 0x00000000} },
+    { {0x407f0000, 0x00060000, 0x00000000} }
+};
 
 uae_u32 xhex_nan[]   ={0x7fff0000, 0xffffffff, 0xffffffff};
 
@@ -537,11 +558,12 @@ static void fpset (fptype *fp, uae_s32 val)
 
 bool fpu_get_constant(fptype *fp, int cr)
 {
-    uae_u32 *f = NULL;
-    uae_u32 entry = 0;
-    bool valid = true;
+    uae_u32 f[3] = { 0, 0, 0 };
+    int entry = 0;
+    int mode = (regs.fpcr >> 4) & 3;
+    int prec = (regs.fpcr >> 6) & 3;
     
-    switch (cr & 0x7f)
+    switch (cr)
     {
         case 0x00: // pi
             entry = FPP_CR_PI;
@@ -609,30 +631,84 @@ bool fpu_get_constant(fptype *fp, int cr)
         case 0x3f: // 1e4096
             entry = FPP_CR_1E4096;
             break;
-        default: // undefined, return 0.0
-            write_log (_T("Undocumented FPU constant access (index %02x\n"), entry);
-            valid = false;
-            entry = FPP_CR_ZERO;
-            break;
+        default: // undefined
+        {
+            bool check_f1_adjust = false;
+            int f1_adjust = 0;
+            uae_u32 sr = 0;
+
+            if (cr > FPP_CR_NUM_SPECIAL_UNDEFINED) {
+                cr = 0; // Most undefined fields contain this
+            }
+            f[0] = fpp_cr_undef[cr].val[0];
+            f[1] = fpp_cr_undef[cr].val[1];
+            f[2] = fpp_cr_undef[cr].val[2];
+            // Rounding mode and precision works very strangely here..
+            switch (cr)
+            {
+                case 1:
+                    check_f1_adjust = true;
+                    break;
+                case 2:
+                    if (prec == 1 && mode == 3)
+                        f1_adjust = -1;
+                    break;
+                case 3:
+                    if (prec == 1 && (mode == 0 || mode == 3))
+                        sr = FPSR_CC_I;
+                    else
+                        sr = FPSR_CC_NAN;
+                    break;
+                case 7:
+                    sr = FPSR_CC_NAN;
+                    check_f1_adjust = true;
+                    break;
+            }
+            if (check_f1_adjust) {
+                if (prec == 1) {
+                    if (mode == 0) {
+                        f1_adjust = -1;
+                    } else if (mode == 1 || mode == 2) {
+                        f1_adjust = 1;
+                    }
+                }
+            }
+            
+            to_exten_fmovem(fp, f[0], f[1], f[2]);
+            
+            if (prec == 1) fp_round32(fp);
+            if (prec >= 2) fp_round64(fp);
+            
+            if (f1_adjust) {
+                from_exten_fmovem(fp, &f[0], &f[1], &f[2]);
+                f[1] += f1_adjust * 0x80;
+                to_exten_fmovem(fp, f[0], f[1], f[2]);
+            }
+            
+            fpsr_set_result(fp);
+            regs.fpsr |= sr;
+        }
+            return false;
     }
     
-    f = fpp_cr[entry].val;
-    
+    f[0] = fpp_cr[entry].val[0];
+    f[1] = fpp_cr[entry].val[1];
+    f[2] = fpp_cr[entry].val[2];
     // if constant is inexact, set inexact bit and round
     // note: with valid constants, LSB never wraps
     if (fpp_cr[entry].inexact) {
         fpsr_set_exception(FPSR_INEX2);
-        f[2] += fpp_cr[entry].rndoff[(regs.fpcr >> 4) & 3];
+        f[2] += fpp_cr[entry].rndoff[mode];
     }
-
+    
     to_exten_fmovem(fp, f[0], f[1], f[2]);
     
-    if (((regs.fpcr >> 6) & 3) == 1) fp_round32(fp);
-    if (((regs.fpcr >> 6) & 3) >= 2) fp_round64(fp);
+    if (prec == 1) fp_round32(fp);
+    if (prec >= 2) fp_round64(fp);
     
     fpsr_set_result(fp);
 
-    return valid;
+    return true;
 }
 
 
@@ -772,12 +848,21 @@ static void fpu_noinst (uae_u16 opcode, uaecptr pc)
     op_illg (opcode);
 }
 
+static bool if_no_fpu(void)
+{
+    return (regs.pcr & 2) || currprefs.fpu_model <= 0;
+}
+
 static bool fault_if_no_fpu (uae_u16 opcode, uae_u16 extra, uaecptr ea, uaecptr oldpc)
 {
-    if ((regs.pcr & 2) || currprefs.fpu_model <= 0) {
+    if (if_no_fpu()) {
 #if EXCEPTION_FPP
         write_log (_T("no FPU: %04X-%04X PC=%08X\n"), opcode, extra, oldpc);
 #endif
+        if (fpu_mmu_fixup) {
+            m68k_areg (regs, mmufixup[0].reg) = mmufixup[0].value;
+            mmufixup[0].reg = -1;
+        }
         fpu_op_illg (opcode, ea, oldpc);
         return true;
     }
@@ -1062,6 +1147,9 @@ static int get_fp_value (uae_u32 opcode, uae_u16 extra, fptype *src, uaecptr old
     
     switch (mode) {
         case 0:
+            if ((size == 0 || size == 1 ||size == 4 || size == 6) && fault_if_no_fpu (opcode, extra, 0, oldpc))
+                return -1;
+            
             switch (size)
         {
             case 6:
@@ -1087,22 +1175,23 @@ static int get_fp_value (uae_u32 opcode, uae_u16 extra, fptype *src, uaecptr old
             ad = m68k_areg (regs, reg);
             break;
         case 3:
-            if (currprefs.mmu_model) {
-                mmufixup[0].reg = reg;
-                mmufixup[0].value = m68k_areg (regs, reg);
-                fpu_mmu_fixup = true;
-            }
+            // Also needed by fault_if_no_fpu
+            mmufixup[0].reg = reg;
+            mmufixup[0].value = m68k_areg (regs, reg);
+            fpu_mmu_fixup = true;
             ad = m68k_areg (regs, reg);
             m68k_areg (regs, reg) += reg == 7 ? sz2[size] : sz1[size];
             break;
         case 4:
-            if (currprefs.mmu_model) {
-                mmufixup[0].reg = reg;
-                mmufixup[0].value = m68k_areg (regs, reg);
-                fpu_mmu_fixup = true;
-            }
+            // Also needed by fault_if_no_fpu
+            mmufixup[0].reg = reg;
+            mmufixup[0].value = m68k_areg (regs, reg);
+            fpu_mmu_fixup = true;
             m68k_areg (regs, reg) -= reg == 7 ? sz2[size] : sz1[size];
             ad = m68k_areg (regs, reg);
+            // 68060 no fpu -(an): EA points to -4, not -12 if extended precision
+            if (currprefs.cpu_model == 68060 && if_no_fpu() && sz1[size] == 12)
+                ad += 8;
             break;
         case 5:
             ad = m68k_areg (regs, reg) + (uae_s32) (uae_s16) x_cp_next_iword ();
@@ -1160,10 +1249,14 @@ static int get_fp_value (uae_u32 opcode, uae_u16 extra, fptype *src, uaecptr old
         }
     }
     
+    if (fault_if_no_fpu (opcode, extra, ad, oldpc))
+        return -1;
+    
     *adp = ad;
     uae_u32 adold = ad;
     
     if (currprefs.fpu_model == 68060) {
+        // Skip if 68040 because FSAVE frame can store both src and dst
         if (fault_if_unimplemented_680x0(opcode, extra, ad, oldpc, src, -1)) {
             return -1;
         }
@@ -1252,10 +1345,11 @@ static int put_fp_value (fptype *value, uae_u32 opcode, uae_u16 extra, uaecptr o
     reg = opcode & 7;
     mode = (opcode >> 3) & 7;
     size = (extra >> 10) & 7;
-    ad = -1;
     switch (mode)
     {
         case 0:
+            if ((size == 0 || size == 1 ||size == 4 || size == 6) && fault_if_no_fpu (opcode, extra, 0, oldpc))
+                return -1;
             
             switch (size)
         {
@@ -1297,22 +1391,23 @@ static int put_fp_value (fptype *value, uae_u32 opcode, uae_u16 extra, uaecptr o
             ad = m68k_areg (regs, reg);
             break;
         case 3:
-            if (currprefs.mmu_model) {
-                mmufixup[0].reg = reg;
-                mmufixup[0].value = m68k_areg (regs, reg);
-                fpu_mmu_fixup = true;
-            }
+            // Also needed by fault_if_no_fpu
+            mmufixup[0].reg = reg;
+            mmufixup[0].value = m68k_areg (regs, reg);
+            fpu_mmu_fixup = true;
             ad = m68k_areg (regs, reg);
             m68k_areg (regs, reg) += reg == 7 ? sz2[size] : sz1[size];
             break;
         case 4:
-            if (currprefs.mmu_model) {
-                mmufixup[0].reg = reg;
-                mmufixup[0].value = m68k_areg (regs, reg);
-                fpu_mmu_fixup = true;
-            }
+            // Also needed by fault_if_no_fpu
+            mmufixup[0].reg = reg;
+            mmufixup[0].value = m68k_areg (regs, reg);
+            fpu_mmu_fixup = true;
             m68k_areg (regs, reg) -= reg == 7 ? sz2[size] : sz1[size];
             ad = m68k_areg (regs, reg);
+            // 68060 no fpu -(an): EA points to -4, not -12 if extended precision
+            if (currprefs.cpu_model == 68060 && if_no_fpu() && sz1[size] == 12)
+                ad += 8;
             break;
         case 5:
             ad = m68k_areg (regs, reg) + (uae_s32) (uae_s16) x_cp_next_iword ();
@@ -1344,7 +1439,7 @@ static int put_fp_value (fptype *value, uae_u32 opcode, uae_u16 extra, uaecptr o
     *adp = ad;
 
     if (fault_if_no_fpu (opcode, extra, ad, oldpc))
-        return 1;
+        return -1;
     
     switch (size)
     {
@@ -2108,8 +2203,6 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
                         regs.fpiar = m68k_areg (regs, opcode & 7);
                 }
             } else if ((opcode & 0x3f) == 0x3c) {
-                if (fault_if_no_fpu (opcode, extra, 0, pc))
-                    return;
                 if ((extra & 0x2000) == 0) {
                     uae_u32 ext[3];
                     // 68060 FMOVEM.L #imm,more than 1 control register: unimplemented EA
@@ -2126,12 +2219,18 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
                         ext[1] = x_cp_next_ilong ();
                     if (extra & 0x0400)
                         ext[2] = x_cp_next_ilong ();
+                    if (fault_if_no_fpu (opcode, extra, 0, pc))
+                        return;
                     if (extra & 0x1000)
                         fpp_set_fpcr (ext[0]);
                     if (extra & 0x0800)
                         fpp_set_fpsr (ext[1]);
                     if (extra & 0x0400)
                         regs.fpiar = ext[2];
+                } else {
+                    // immediate as destination
+                    fpu_noinst (opcode, pc);
+                    return;
                 }
             } else if (extra & 0x2000) {
                 /* FMOVEM FPP->memory */
@@ -2267,12 +2366,15 @@ static void fpuop_arithmetic2 (uae_u32 opcode, uae_u16 extra)
             regs.fpiar = pc;
             reg = (extra >> 7) & 7;
             if ((extra & 0xfc00) == 0x5c00) {
-                if (fault_if_no_fpu (opcode, extra, 0, pc))
-                    return;
                 if (fault_if_unimplemented_680x0 (opcode, extra, ad, pc, &src, reg))
                     return;
+                if (extra & 0x40) {
+                    // 6888x and ROM constant 0x40 - 0x7f: f-line
+                    fpu_noinst (opcode, pc);
+                    return;
+                }
                 fpsr_clear_status();
-                fpu_get_constant(&regs.fp[reg], extra);
+                fpu_get_constant(&regs.fp[reg], extra & 0x3f);
                 fpsr_make_status();
                 fpsr_check_arithmetic_exception(0, &src, opcode, extra, ad);
                 return;

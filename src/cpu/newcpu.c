@@ -1107,16 +1107,23 @@ uae_u32 REGPARAM2 op_illg (uae_u32 opcode)
 // 68030 (68851) MMU instructions only
 bool mmu_op30 (uaecptr pc, uae_u32 opcode, uae_u16 extra, uaecptr extraa)
 {
+    bool fline = false;
+    
     if (extra & 0x8000) {
-        return mmu_op30_ptest (pc, opcode, extra, extraa);
+        fline = mmu_op30_ptest (pc, opcode, extra, extraa);
     } else if ((extra&0xE000)==0x2000 && (extra & 0x1C00)) {
-        return mmu_op30_pflush (pc, opcode, extra, extraa);
+        fline = mmu_op30_pflush (pc, opcode, extra, extraa);
     } else if ((extra&0xE000)==0x2000 && !(extra & 0x1C00)) {
-        return mmu_op30_pload (pc, opcode, extra, extraa);
+        fline = mmu_op30_pload (pc, opcode, extra, extraa);
     } else {
-        return mmu_op30_pmove (pc, opcode, extra, extraa);
+        fline = mmu_op30_pmove (pc, opcode, extra, extraa);
     }
-    return false;
+    
+    if (fline) {
+        m68k_setpc(pc);
+        op_illg(opcode);
+    }
+    return fline;
 }
 
 void mmu_op (uae_u32 opcode, uae_u32 extra)
@@ -1954,7 +1961,7 @@ void m68k_disasm_2 (TCHAR *buf, int bufsize, uaecptr pc, uaecptr *nextpc, int cn
             pc += 2;
             if ((extra & 0xfc00) == 0x5c00) { // FMOVECR (=i_FPP with source specifier = 7)
                 fptype fp;
-                if (fpu_get_constant(&fp, extra))
+                if (fpu_get_constant(&fp, extra & 0x3f))
                     _stprintf(instrname, _T("FMOVECR.X #%s,FP%d"), fp_print(&fp), (extra >> 7) & 7);
                 else
                     _stprintf(instrname, _T("FMOVECR.X #?,FP%d"), (extra >> 7) & 7);

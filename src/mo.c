@@ -1028,9 +1028,7 @@ void mo_read_sector(Uint32 sector_id) {
     Log_Printf(LOG_MO_IO_LEVEL, "MO disk %i: Read sector at offset %i (%i sectors remaining)",
                dnum, sector_num, sector_counter-1);
     
-    /* seek to the position */
-	fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK, SEEK_SET);
-    fread(ecc_buffer[eccin].data, MO_SECTORSIZE_DISK, 1, modrv[dnum].dsk);
+    File_Read(ecc_buffer[eccin].data, MO_SECTORSIZE_DISK, sector_num*MO_SECTORSIZE_DISK, modrv[dnum].dsk);
     
     ecc_buffer[eccin].limit = ecc_buffer[eccin].size = MO_SECTORSIZE_DISK;
 }
@@ -1042,9 +1040,7 @@ void mo_write_sector(Uint32 sector_id) {
                dnum, sector_num, sector_counter-1);
     
     if (ecc_buffer[eccout].limit==MO_SECTORSIZE_DISK) {
-        /* seek to the position */
-        fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK, SEEK_SET);
-        fwrite(ecc_buffer[eccout].data, MO_SECTORSIZE_DISK, 1, modrv[dnum].dsk);
+        File_Write(ecc_buffer[eccout].data, MO_SECTORSIZE_DISK, sector_num*MO_SECTORSIZE_DISK, modrv[dnum].dsk);
 
         ecc_buffer[eccout].size = 0;
         ecc_buffer[eccout].limit = MO_SECTORSIZE_DATA;
@@ -1064,9 +1060,7 @@ void mo_erase_sector(Uint32 sector_id) {
     Uint8 erase_buf[MO_SECTORSIZE_DISK];
     memset(erase_buf, 0xFF, MO_SECTORSIZE_DISK);
     
-    /* seek to the position */
-    fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK, SEEK_SET);
-    fwrite(erase_buf, MO_SECTORSIZE_DISK, 1, modrv[dnum].dsk);
+    File_Write(erase_buf, MO_SECTORSIZE_DISK, sector_num*MO_SECTORSIZE_DISK, modrv[dnum].dsk);
 }
 
 void mo_verify_sector(Uint32 sector_id) {
@@ -1075,9 +1069,7 @@ void mo_verify_sector(Uint32 sector_id) {
     Log_Printf(LOG_MO_IO_LEVEL, "MO disk %i: Verify sector at offset %i (%i sectors remaining)",
                dnum, sector_num, sector_counter-1);
     
-    /* seek to the position */
-	fseek(modrv[dnum].dsk, sector_num*MO_SECTORSIZE_DISK, SEEK_SET);
-    fread(ecc_buffer[eccin].data, MO_SECTORSIZE_DISK, 1, modrv[dnum].dsk);
+    File_Read(ecc_buffer[eccin].data, MO_SECTORSIZE_DISK, sector_num*MO_SECTORSIZE_DISK, modrv[dnum].dsk);
     
     ecc_buffer[eccin].limit = ecc_buffer[eccin].size = MO_SECTORSIZE_DISK;
 }

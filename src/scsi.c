@@ -713,19 +713,17 @@ void SCSI_WriteSector(Uint8 *cdb) {
 
 void scsi_write_sector(void) {
     Uint8 target = SCSIbus.target;
-    int n=0;
-    
+    Uint64 offset = 0;
+
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Writing block at offset %i (%i blocks remaining).",
                SCSIdisk[target].lba,SCSIdisk[target].blockcounter-1);
     
-    /* seek to the position */
-    if ((SCSIdisk[target].dsk==NULL) || (fseek(SCSIdisk[target].dsk, ((Uint64)SCSIdisk[target].lba)*BLOCKSIZE, SEEK_SET) != 0)) {
-        n = 0;
-    } else {
-        if(ConfigureParams.SCSI.nWriteProtection != WRITEPROT_ON)
-            n = fwrite(scsi_buffer.data, BLOCKSIZE, 1, SCSIdisk[target].dsk);
-        else {
-            n=1;
+    offset = ((Uint64)SCSIdisk[target].lba)*BLOCKSIZE;
+    
+    if (offset < SCSIdisk[target].size) {
+        if (ConfigureParams.SCSI.nWriteProtection != WRITEPROT_ON) {
+            File_Write(scsi_buffer.data, BLOCKSIZE, offset, SCSIdisk[target].dsk);
+        } else {
             Log_Printf(LOG_SCSI_LEVEL, "[SCSI] WARNING: File write disabled!");
             if(SCSIdisk[target].shadow) {
                 if(!(SCSIdisk[target].shadow[SCSIdisk[target].lba]))
@@ -740,9 +738,7 @@ void scsi_write_sector(void) {
         }
         scsi_buffer.limit=BLOCKSIZE;
         scsi_buffer.size=0;
-    }
-    
-    if (n == 1) {
+
         SCSIdisk[target].status = STAT_GOOD;
         SCSIdisk[target].sense.code = SC_NO_ERROR;
         SCSIdisk[target].sense.valid = false;
@@ -791,31 +787,26 @@ void SCSI_ReadSector(Uint8 *cdb) {
 
 void scsi_read_sector(void) {
     Uint8 target = SCSIbus.target;
+    Uint64 offset = 0;
     
     if (SCSIdisk[target].blockcounter==0) {
         SCSIbus.phase = PHASE_ST;
         return;
     }
     
-    int n;
-    
     Log_Printf(LOG_SCSI_LEVEL, "[SCSI] Reading block at offset %i (%i blocks remaining).",
                SCSIdisk[target].lba,SCSIdisk[target].blockcounter-1);
     
-    /* seek to the position */
-    if ((SCSIdisk[target].dsk==NULL) || (fseek(SCSIdisk[target].dsk, ((Uint64)SCSIdisk[target].lba)*BLOCKSIZE, SEEK_SET) != 0)) {
-        n = 0;
-    } else {
-        if(SCSIdisk[target].shadow && SCSIdisk[target].shadow[SCSIdisk[target].lba]) {
+    offset = ((Uint64)SCSIdisk[target].lba)*BLOCKSIZE;
+    
+    if (offset < SCSIdisk[target].size) {
+        if (SCSIdisk[target].shadow && SCSIdisk[target].shadow[SCSIdisk[target].lba]) {
             memcpy(scsi_buffer.data, SCSIdisk[target].shadow[SCSIdisk[target].lba], BLOCKSIZE);
-            n = 1;
         } else {
-            n = fread(scsi_buffer.data, BLOCKSIZE, 1, SCSIdisk[target].dsk);
+            File_Read(scsi_buffer.data, BLOCKSIZE, offset, SCSIdisk[target].dsk);
         }
         scsi_buffer.limit=scsi_buffer.size=BLOCKSIZE;
-    }
-    
-    if (n == 1) {
+
         SCSIdisk[target].status = STAT_GOOD;
         SCSIdisk[target].sense.code = SC_NO_ERROR;
         SCSIdisk[target].sense.valid = false;
