@@ -92,10 +92,14 @@ typedef unsigned char u_int8_t;
 # endif
 #endif /* NEED_TYPEDEFS */
 
+#ifdef __HAIKU__
+#include <SupportDefs.h>
+#else
 /* Basilisk II types glue */
 typedef u_int8_t uint8;
 typedef u_int16_t uint16;
 typedef u_int32_t uint32;
+#endif
 
 #ifdef HAVE_UNISTD_H
 # include <unistd.h>
