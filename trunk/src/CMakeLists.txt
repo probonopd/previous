@@ -124,12 +124,17 @@ if(WIN32)
 	target_link_libraries(Previous ws2_32 Iphlpapi)
 endif(WIN32)
 
+if(HAIKU)
+	# Needed for socket() on Haiku
+	target_link_libraries(Previous network)
+endif(HAIKU)
+
 if(ENABLE_OSX_BUNDLE)
 	install(TARGETS Previous BUNDLE DESTINATION /Applications)
 else()
 	install(TARGETS Previous RUNTIME DESTINATION ${BINDIR})
 	install(FILES Previous-icon.bmp DESTINATION ${DATADIR})
-	install(FILES dimension_eeprom.bin DESTINATION ${BINDIR})
+	install(FILES ND_step1_v43_eeprom.bin DESTINATION ${BINDIR})
 	install(FILES Rev_1.0_v41.BIN DESTINATION ${BINDIR})
 	install(FILES Rev_2.5_v66.BIN DESTINATION ${BINDIR})
 	install(FILES Rev_3.3_v74.BIN DESTINATION ${BINDIR})

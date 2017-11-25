@@ -74,12 +74,13 @@ SET(SDL2_SEARCH_PATHS
   /opt/local # DarwinPorts
   /opt/csw # Blastwave
   /opt
+  /system/develop # Haiku
 )
 
 FIND_PATH(SDL2_INCLUDE_DIR SDL_scancode.h
   HINTS
   $ENV{SDL2DIR}
-  PATH_SUFFIXES include/SDL2 include
+  PATH_SUFFIXES include/SDL2 include headers/x86/SDL2 headers/SDL2 headers
   PATHS ${SDL2_SEARCH_PATHS}
 )
 
@@ -87,7 +88,7 @@ FIND_LIBRARY(SDL2_LIBRARY_TEMP
   NAMES SDL2
   HINTS
   $ENV{SDL2DIR}
-  PATH_SUFFIXES lib64 lib
+  PATH_SUFFIXES lib64 lib/x86 lib
   PATHS ${SDL2_SEARCH_PATHS}
 )
 
@@ -101,7 +102,7 @@ IF(NOT SDL2_BUILDING_LIBRARY)
       NAMES SDL2main
       HINTS
       $ENV{SDL2DIR}
-      PATH_SUFFIXES lib64 lib
+      PATH_SUFFIXES lib64 lib/x86 lib
       PATHS ${SDL2_SEARCH_PATHS}
     )
   ENDIF(NOT ${SDL2_INCLUDE_DIR} MATCHES ".framework")
