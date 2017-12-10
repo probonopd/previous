@@ -5,8 +5,13 @@ compiler: gcc
 sudo: require
 dist: trusty
 
-install:
-  - sudo apt-get -y install libsdl2-dev zlib1g-dev libpng-dev
+# Workaround for: https://github.com/travis-ci/travis-ci/issues/8317
+addons:
+  apt:
+    packages:
+        - libsdl2-dev
+        - libpng-dev
+        - zlib1g-dev
 
 script:
   - cmake . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
