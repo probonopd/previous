@@ -24,7 +24,7 @@ addons:
         - libdirectfb-dev
 
 script:
-  - wget http://www.libsdl.org/release/SDL2-2.0.4.tar.gz
+  - wget http://www.libsdl.org/release/SDL2-2.0.4.tar.gz # Apparently it does not compile with libSDL-dev from Ubuntu
   - tar xfv SDL2-2.0.4.tar.gz
   - cd SDL2-*/
   - ./configure
@@ -34,6 +34,7 @@ script:
   - cmake . -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
   - make -j$(nproc)
   - make DESTDIR=appdir -j$(nproc) install ; find appdir/
+  - rm appdir/usr/share/applications/hatariui.desktop
   - wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
   - chmod a+x linuxdeployqt-continuous-x86_64.AppImage
   - unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
