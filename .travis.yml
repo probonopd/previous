@@ -12,13 +12,22 @@ addons:
 #       - libsdl2-dev
         - libpng-dev
         - zlib1g-dev
+        - libudev-dev
+        - libts-dev
+        - libgl1-mesa-dev
+        - libglu1-mesa-dev
+        - libasound2-dev
+        - libpulse-dev
+        - libopenal-dev
+        - libaudiofile-dev
+        - libdbus-1-dev
+        - libdirectfb-dev
 
 script:
   - wget http://www.libsdl.org/release/SDL2-2.0.4.tar.gz
   - tar xzf SDL2-2.0.4.tar.gz
   - cd SDL2.0.4
   - ./configure
-  - sudo apt-get -y install libudev-dev libts-dev libgl1-mesa-dev libglu1-mesa-dev libasound2-dev libpulse-dev libopenal-dev libaudiofile-dev libdbus-1-dev libdirectfb-dev
   - make -j$(nproc)
   - sudo make install
   - cd ..
