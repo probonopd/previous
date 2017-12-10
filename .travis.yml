@@ -25,8 +25,8 @@ addons:
 
 script:
   - wget http://www.libsdl.org/release/SDL2-2.0.4.tar.gz
-  - tar xzf SDL2-2.0.4.tar.gz
-  - cd SDL2.0.4
+  - tar xfv SDL2-2.0.4.tar.gz
+  - cd SDL2-*/
   - ./configure
   - make -j$(nproc)
   - sudo make install
