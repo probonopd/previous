@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Previous
+Exec=previous
+Comment=NeXT emulator
+Categories=System;Emulator;
+Type=Application
+Icon=previous
