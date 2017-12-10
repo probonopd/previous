@@ -36,9 +36,9 @@ script:
   - make DESTDIR=appdir -j$(nproc) install ; find appdir/
   - rm appdir/usr/share/applications/hatariui.desktop
   - cp dist/*.desktop appdir/usr/share/applications/
-  - mkdir -p appdir/usr/share/icons/hicolor/256x256/apps/ ; touch appdir/icons/hicolor/256x256/apps/previous.png # FIXME
+  - mkdir -p appdir/usr/share/icons/hicolor/256x256/apps/ ; touch appdir/usr/share/icons/hicolor/256x256/apps/previous.png # FIXME
   - ls
-  - mv Previous appdir/usr/bin/previous
+  - cp Previous appdir/usr/bin/previous
   - wget -c -nv "https://github.com/probonopd/linuxdeployqt/releases/download/continuous/linuxdeployqt-continuous-x86_64.AppImage"
   - chmod a+x linuxdeployqt-continuous-x86_64.AppImage
   - unset QTDIR; unset QT_PLUGIN_PATH ; unset LD_LIBRARY_PATH
