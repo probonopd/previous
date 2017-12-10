@@ -1,22 +1,6 @@
+# Previous 1.8
 
-
-                                 Previous 1.8
-
-
-
-Contents:
----------
-1. License
-2. About Previous
-3. Compiling and installing
-4. Known problems
-5. Running Previous
-6. Contributors
-7. Contact
-
-
- 1) License
- ----------
+## License
 
 This program is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Soft-
@@ -33,9 +17,7 @@ this program; if not, write to the
  51 Franklin Street, Fifth Floor, Boston,
  MA  02110-1301, USA
 
-
- 2) About Previous
- -----------------
+## About Previous
 
 Previous is a NeXT Computer emulator based on the Atari emulator Hatari. It 
 uses the latest m68k emulation core from WinUAE and the i860 emulator from 
@@ -44,26 +26,25 @@ and Windows. It may also work on other Systems which are supported by the SDL2
 library, like FreeBSD, NetBSD and BeOS.
 
 Previous emulates the following machines:
- NeXT Computer (original 68030 Cube)
- NeXTcube
- NeXTcube Turbo
- NeXTstation
- NeXTstation Turbo
- NeXTstation Color
- NeXTstation Turbo Color
- NeXTdimension Graphics Board
 
+* NeXT Computer (original 68030 Cube)
+* NeXTcube
+* NeXTcube Turbo
+* NeXTstation
+* NeXTstation Turbo
+* NeXTstation Color
+* NeXTstation Turbo Color
+* NeXTdimension Graphics Board
 
- 3) Compiling and installing
- ---------------------------
+## Compiling and installing
 
 For using Previous, you need to have installed the following libraries:
 
 Required:
-- The SDL library v2.0.5 or later (http://www.libsdl.org)
-- The libpng PNG reference library (http://www.libpng.org)
-- The zlib compression library (http://www.gzip.org/zlib/)
 
+* The SDL library v2.0.5 or later (http://www.libsdl.org)
+* The libpng PNG reference library (http://www.libpng.org)
+* The zlib compression library (http://www.gzip.org/zlib/)
 
 Don't forget to also install the header files of these libraries for compiling
 Previous (some Linux distributions use separate development packages for these
@@ -76,14 +57,20 @@ CMake can generate makefiles for various flavors of "Make" (like GNU-Make)
 and various IDEs like Xcode on Mac OS X. To run CMake, you've got to pass the
 path to the sources of Previous as parameter, for example run the following if
 you are in the topmost directory of the Previous source tree:
-	cmake .
+
+```
+cmake .
+```
 
 If you're tracking Previous version control, it's preferable to do
 the build in a separate build directory as above would overwrite
 the (non-CMake) Makefiles coming with Previous:
-	mkdir -p build
-	cd build
-	cmake ..
+
+```
+mkdir -p build
+cd build
+cmake ..
+```
 
 Have a look at the manual of CMake for other options. Alternatively, you can
 use the "cmake-gui" program to configure the sources with a graphical
@@ -94,11 +81,12 @@ by typing "make". If all works fine, you'll get the executable "Previous" in
 the src/ subdirectory of the build tree.
 
 
- 4) Status
- ---------
+## Status
 
 Previous is stable, but some parts are still work in progress. Some hardware 
 is not yet emulated. Status of the individual components is as follows:
+
+```
 CPU		good (but not cycle-exact)
 MMU		good
 FPU		good
@@ -122,36 +110,32 @@ Mouse		good
 ADB		dummy
 Nitro		dummy
 Dimension	partial (no video I/O)
-
+```
 
 There are remaining problems with the host to emulated machine interface for
 input devices.
 
+## Known issues
 
- 5) Known issues
- ---------------
-
-- Un-emulated hardware may cause problems when attempted to being used.
-- NeXTdimension emulation does not work on hosts with big endian byte order.
-- The MO drive causes slow downs and hangs when both drives are connected, but 
+* Un-emulated hardware may cause problems when attempted to being used.
+* NeXTdimension emulation does not work on hosts with big endian byte order.
+* The MO drive causes slow downs and hangs when both drives are connected, but 
   only one disk is inserted. This is no emulation issue but a bug in NeXTstep.
-- DSP sound has timing related issues. playscore under NeXTstep 0.9 sometimes 
+* DSP sound has timing related issues. playscore under NeXTstep 0.9 sometimes 
   produces bad audio in variable speed mode. ScorePlayer under NeXTstep 2.x 
   produces distorted sound in normal CPU mode.
-- Shortcuts do not work properly or overlap with host commands on some 
+* Shortcuts do not work properly or overlap with host commands on some 
   platforms.
-- CPU timings are not correct. You may experience performance differences 
+* CPU timings are not correct. You may experience performance differences 
   compared to real hardware.
-- 68882 transcendental FPU instructions produce results identical to 68040 FPSP.
+* 68882 transcendental FPU instructions produce results identical to 68040 FPSP.
   The results are slightly different from real 68882 results.
-- Changing network connection settings while a guest system is running sometimes
+* Changing network connection settings while a guest system is running sometimes
   causes permanently lost connections, especially under NeXTstep 2.2.
 
+## Release notes
 
-
- 6) Release notes
- ----------------
-
+```
   Previous v1.0:
   > Initial release.
 
@@ -215,10 +199,9 @@ Previous v1.8:
   > Removes support for host keyboard repeat because it became useless.
   > Fixes bug that caused FMOVECR to return wrong values in some cases.
   > Fixes bug in timing system that caused hangs in variable speed mode.
+```
 
-
- 7) Running Previous
- -------------------
+## Running Previous
 
 For running the emulator, you need an image of the boot ROM of the emulated 
 machine.
@@ -227,9 +210,7 @@ While the emulator is running, you can open the configuration menu by
 pressing F12, toggle between fullscreen and windowed mode by pressing F11 
 and initiate a clean shut down by pressing F10 (emulates the power button).
 
-
- 8) Contributors
- ---------------
+## Contributors
 
 Previous was written by Andreas Grabher, Simon Schubiger and Gilles Fetis.
 
@@ -239,9 +220,7 @@ Michael Bosshard, Thomas Huth, Olivier Galibert, Jason Eckhardt, Jason
 Stevens, Daniel L'Hommedieu, Vaughan Kaufman and Peter Leonard!
 This emulator would not exist without their help.
 
-
- 9) Contact
- ----------
+## Contact
 
 If you want to contact the authors of Previous, please have a look at the 
 NeXT International Forums (http://www.nextcomputers.org/forums).
