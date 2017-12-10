@@ -9,7 +9,7 @@ dist: trusty
 addons:
   apt:
     packages:
-        - libsdl2-dev
+#       - libsdl2-dev
         - libpng-dev
         - zlib1g-dev
 
