@@ -1,6 +1,6 @@
 [Desktop Entry]
 Name=Previous
-Exec=previous
+Exec=Previous
 Comment=NeXT emulator
 Categories=System;Emulator;
 Type=Application
